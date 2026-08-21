@@ -1,0 +1,13 @@
+[versions]
+agp = "9.3.1"
+leanback = "1.2.0"
+okhttp = "4.12.0"
+zxingCore = "3.5.3"
+
+[libraries]
+androidx-leanback = { group = "androidx.leanback", name = "leanback", version.ref = "leanback" }
+okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
+zxing-core = { group = "com.google.zxing", name = "core", version.ref = "zxingCore" }
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }

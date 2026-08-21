@@ -1,0 +1,4 @@
+<resources>
+
+    <style name="Theme.TVRelay" parent="@style/Theme.Leanback" />
+</resources>

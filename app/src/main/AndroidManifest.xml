@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- TheTVDB lookups and Kodi's local JSON-RPC both go over HTTP(S). -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Optional: powers the "Watch now in {App}" confirmation overlay
+         (see WatchNowOverlay) that appears before a recognized click
+         actually opens another app - accidental-click protection. Granted
+         separately by the user in Settings; without it, a recognized
+         click launches the app directly instead, no confirmation step. -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+
+    <!-- Neither a touchscreen nor a "real" Leanback launcher is required to
+         run this app; declaring both as not-required keeps it installable
+         when sideloaded on non-TV Android and on TV boxes that don't fully
+         report leanback support. -->
+    <uses-feature
+        android:name="android.hardware.touchscreen"
+        android:required="false" />
+    <uses-feature
+        android:name="android.software.leanback"
+        android:required="false" />
+
+    <!-- Android 11+ package visibility: PlayerLauncher targets these apps by
+         package name with an explicit Intent. Without declaring them here,
+         the targeted intent silently fails to resolve on API 30+. -->
+    <queries>
+        <package android:name="com.nuvio.app" />
+        <package android:name="com.stremio.one" />
+        <package android:name="org.xbmc.kodi" />
+    </queries>
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:networkSecurityConfig="@xml/network_security_config"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.TVRelay">
+
+        <activity
+            android:name=".MainActivity"
+            android:banner="@drawable/tv_banner"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:screenOrientation="landscape">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".SearchActivity"
+            android:exported="false"
+            android:screenOrientation="landscape" />
+
+        <service
+            android:name=".TvRelayAccessibilityService"
+            android:exported="false"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice.config"
+                android:resource="@xml/accessibility_service_config" />
+        </service>
+
+    </application>
+
+</manifest>

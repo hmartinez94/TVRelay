@@ -1,0 +1,17 @@
+*.iml
+.gradle
+/local.properties
+# Whole folder, not just specific files inside it: pure IDE-local state,
+# no value for a public repo, and cherry-picking sub-paths only covers
+# what Android Studio happens to have generated so far.
+/.idea
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+
+# Working notes for AI coding assistants - local project context, not
+# meant for the public repo.
+CLAUDE.md

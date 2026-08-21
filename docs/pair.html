@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TVRelay - Send to TV</title>
+<style>
+  :root { color-scheme: light dark; }
+  body {
+    font-family: -apple-system, Roboto, Helvetica, Arial, sans-serif;
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 24px 20px 60px;
+    line-height: 1.5;
+  }
+  h1 { font-size: 1.3rem; margin-bottom: 4px; }
+  p.hint { opacity: 0.75; font-size: 0.95rem; }
+  input[type=text] {
+    width: 100%;
+    box-sizing: border-box;
+    font-size: 1.1rem;
+    padding: 12px;
+    margin: 16px 0;
+    border-radius: 8px;
+    border: 1px solid #888;
+  }
+  button {
+    width: 100%;
+    font-size: 1.1rem;
+    padding: 14px;
+    border-radius: 8px;
+    border: none;
+    background: #2a7de1;
+    color: white;
+    cursor: pointer;
+  }
+  button:disabled { opacity: 0.6; }
+  #status { margin-top: 20px; font-size: 1.05rem; }
+  #status.error { color: #c0392b; }
+  #status.success { color: #1e8449; }
+</style>
+</head>
+<body>
+  <h1>Send to your TV</h1>
+  <p class="hint">Type or paste the value below, then tap Send. It'll appear on your TV automatically - no need to type it there.</p>
+  <input type="text" id="value" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Paste value here">
+  <button id="send">Send to TV</button>
+  <p id="status"></p>
+
+<script>
+(function () {
+  var params = new URLSearchParams(window.location.search);
+  var topic = params.get("topic");
+  var statusEl = document.getElementById("status");
+  var input = document.getElementById("value");
+  var button = document.getElementById("send");
+
+  if (!topic) {
+    statusEl.textContent = "Missing pairing code - go back to your TV and scan the QR code again.";
+    statusEl.className = "error";
+    input.disabled = true;
+    button.disabled = true;
+    return;
+  }
+
+  button.addEventListener("click", function () {
+    var value = input.value.trim();
+    if (!value) {
+      return;
+    }
+    button.disabled = true;
+    statusEl.textContent = "Sending...";
+    statusEl.className = "";
+
+    // mode: "no-cors" deliberately: this page only needs to SEND the
+    // value, never read ntfy's response, so it works regardless of
+    // whether ntfy.sh sets permissive CORS headers.
+    fetch("https://ntfy.sh/" + encodeURIComponent(topic), {
+      method: "POST",
+      mode: "no-cors",
+      body: value
+    }).then(function () {
+      statusEl.textContent = "Sent! You can close this page and go back to your TV.";
+      statusEl.className = "success";
+      input.value = "";
+      button.disabled = false;
+    }).catch(function () {
+      statusEl.textContent = "Couldn't send - check your connection and try again.";
+      statusEl.className = "error";
+      button.disabled = false;
+    });
+  });
+})();
+</script>
+</body>
+</html>

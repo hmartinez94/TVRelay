@@ -1,0 +1,75 @@
+<resources>
+    <string name="accessibility_service_description">Permite que TVRelay detecte cuándo seleccionas una recomendación de película o serie en el launcher, para poder abrirla en Nuvio, Stremio o Kodi.</string>
+
+    <string name="disclosure_title">Antes de empezar</string>
+    <string name="disclosure_description">TVRelay usa un Servicio de Accesibilidad para detectar cuándo pulsas una recomendación de película o serie en la pantalla de inicio de tu TV. Cuando lo hace, envía únicamente el texto de ese título a TheTVDB para identificarlo, y luego muestra un botón \"Ver ahora\" para la app que elegiste en Ajustes - solo al pulsarlo se abre ese título ahí, así un clic accidental nunca te lleva a otra app por sí solo.\n\nNo se lee, recopila ni envía nada más. Cualquier otro clic (aplicaciones, menús, cualquier cosa que no sea una recomendación de contenido) se deja completamente intacto.\n\nPuedes desactivar el servicio en cualquier momento desde los Ajustes de esta app.</string>
+    <string name="disclosure_accept">Entendido, continuar</string>
+
+    <string name="settings_description">Elige qué app se abre al seleccionar una recomendación en la pantalla de inicio de tu TV.</string>
+    <string name="settings_enable_accessibility">Activar en Ajustes de Accesibilidad</string>
+    <string name="settings_accessibility_status_enabled">Estado: activado</string>
+    <string name="settings_accessibility_status_disabled">Estado: no activado - selecciona para abrir los ajustes del sistema</string>
+    <string name="settings_kodi_connection">Ajustes de conexión con Kodi</string>
+    <string name="settings_enable_overlay">Activar confirmación \"Ver ahora\"</string>
+    <string name="settings_overlay_status_enabled">Estado: activado - aparece un botón de confirmación antes de abrir otra app</string>
+    <string name="settings_overlay_status_disabled">Estado: no activado - los clics reconocidos abren la app directamente sin confirmación. Selecciona para conceder \"mostrar sobre otras apps\"</string>
+    <string name="settings_search_manually">Buscar un título manualmente</string>
+    <string name="settings_metadata_provider">Proveedor de metadatos</string>
+    <string name="settings_donate">Invítame a un café</string>
+    <string name="settings_about">Acerca de y ayuda</string>
+
+    <string name="kodi_settings_title">Conexión con Kodi</string>
+    <string name="kodi_settings_description">En Kodi: Ajustes → Servicios → Control → activa \"Permitir control remoto vía HTTP\", y luego introduce aquí su dirección. Kodi normalmente se ejecuta en este mismo dispositivo, así que 127.0.0.1 es correcto en la mayoría de los casos.</string>
+    <string name="kodi_field_host">Host</string>
+    <string name="kodi_field_port">Puerto</string>
+    <string name="kodi_field_username">Usuario</string>
+    <string name="kodi_field_password">Contraseña</string>
+    <string name="kodi_action_test">Probar conexión</string>
+    <string name="kodi_action_save">Guardar</string>
+    <string name="kodi_saved">Ajustes de Kodi guardados</string>
+    <string name="kodi_test_success">Conectado a Kodi correctamente</string>
+    <string name="kodi_test_failure">No se pudo conectar con Kodi - comprueba la dirección y que el control remoto esté activado</string>
+    <string name="kodi_title_not_found">Kodi: no se encontró ese título en tu biblioteca</string>
+    <string name="kodi_connection_failed">Kodi: no se pudo conectar - revisa los ajustes de conexión</string>
+
+    <string name="donate_title">Invítame a un café</string>
+    <string name="donate_description">Si TVRelay te ha resultado útil, escanea esto con tu móvil. Totalmente opcional - la app funciona exactamente igual de cualquier forma.\n\n%1$s</string>
+    <string name="donate_close">Cerrar</string>
+
+    <string name="about_title">Acerca de y ayuda</string>
+    <string name="about_legal">TVRelay es una herramienta independiente de automatización y redirección. No aloja, almacena, distribuye ni proporciona películas, series, streams, torrents ni ningún otro contenido audiovisual. No tiene relación con Nuvio, Stremio, Kodi, ni con el origen o legalidad de ningún contenido al que accedas a través de esas apps - eso depende por completo de qué apps y complementos tengas instalados y configurados, bajo tu propia responsabilidad. TVRelay no está afiliada, patrocinada, autorizada ni respaldada por Google, Nuvio, Stremio ni la Kodi Foundation.</string>
+    <string name="about_tvdb_attribution">Este producto usa la API de TheTVDB pero no está avalado ni certificado por TheTVDB. thetvdb.com</string>
+    <string name="about_restricted_settings">Si instalaste esta app manualmente y el interruptor de Accesibilidad se apaga solo justo después de activarlo: es la protección \"Ajustes restringidos\" de Android para apps no instaladas desde una tienda de aplicaciones, no un fallo. Busca \"Permitir ajuste restringido\" en la pantalla de información de esta app en Ajustes del sistema. Si no la encuentras, conéctate por ADB y ejecuta:\n\nadb shell settings put secure enabled_accessibility_services com.hmartinez94.tvrelay/com.hmartinez94.tvrelay.TvRelayAccessibilityService\nadb shell settings put secure accessibility_enabled 1\n\n(El primer comando reemplaza toda la lista - separa los servicios con dos puntos si ya usas otro, como TalkBack.)</string>
+    <string name="about_close">Cerrar</string>
+
+    <string name="watch_now_loading">Buscando…</string>
+    <string name="watch_now_confirm">Ver ahora en %1$s</string>
+
+    <string name="search_title">Buscar un título</string>
+    <string name="search_description">Algunas tarjetas de recomendación no exponen su título a las herramientas de accesibilidad, así que TVRelay no siempre puede detectarlas automáticamente. Escribe aquí el título en su lugar - todo lo demás (buscarlo, abrir tu app elegida) funciona exactamente igual.</string>
+    <string name="search_field_title">Título</string>
+    <string name="search_action">Buscar</string>
+    <string name="search_searching">Buscando…</string>
+    <string name="search_not_found">No se encontró ese título en TheTVDB</string>
+
+    <string name="metadata_provider_title">Proveedor de metadatos</string>
+    <string name="metadata_provider_description">El servicio que TVRelay usa para identificar un título pulsado. TheTVDB es el predeterminado y no necesita nada de ti. TMDB es una alternativa si TheTVDB alguna vez te da una coincidencia incorrecta - requiere tu propia clave de API gratuita (consíguela en themoviedb.org, en Ajustes → API), usada solo para tus propias búsquedas y sujeta a los términos de uso de TMDB.</string>
+    <string name="metadata_provider_tvdb">TheTVDB (recomendado)</string>
+    <string name="metadata_provider_tvdb_description">Predeterminado - no requiere configuración</string>
+    <string name="metadata_provider_tmdb">TMDB</string>
+    <string name="metadata_provider_tmdb_description">Requiere tu propia clave de API gratuita abajo</string>
+    <string name="metadata_tmdb_key_field">Clave de API de TMDB</string>
+    <string name="metadata_tmdb_pair_phone">Enviar clave desde el móvil…</string>
+    <string name="metadata_tmdb_pair_phone_description">Escanea un código QR y escríbela en tu móvil en lugar de aquí</string>
+    <string name="metadata_tmdb_test_key">Probar clave</string>
+    <string name="metadata_tmdb_test_success">La clave de TMDB funciona</string>
+    <string name="metadata_tmdb_test_failure">Esa clave no funcionó - comprueba que se copió correctamente</string>
+    <string name="metadata_provider_save">Guardar</string>
+    <string name="metadata_provider_saved">Guardado</string>
+
+    <string name="pairing_title">Enviar desde tu móvil</string>
+    <string name="pairing_description">Escanea esto con la cámara de tu móvil, luego escribe o pega el valor en la página que se abre y pulsa Enviar. Aparecerá aquí automáticamente - no hace falta escribirlo con el mando.\n\n%1$s</string>
+    <string name="pairing_cancel">Cancelar</string>
+    <string name="pairing_received">Recibido</string>
+    <string name="pairing_timed_out">No se recibió nada - escanea el código de nuevo para reintentar</string>
+</resources>

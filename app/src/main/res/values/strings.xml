@@ -1,0 +1,79 @@
+<resources>
+    <string name="app_name">TVRelay</string>
+
+    <string name="accessibility_service_description">Lets TVRelay detect when you select a movie or show recommendation on the launcher, so it can open it in Nuvio, Stremio, or Kodi instead.</string>
+
+    <string name="disclosure_title">Before you start</string>
+    <string name="disclosure_description">TVRelay uses an Accessibility Service to detect when you click a movie or show recommendation on your TV\'s home screen. When it does, it sends only that title\'s text to TheTVDB to identify it, then shows a \"Watch now\" button for the app you\'ve chosen in Settings - tapping it (and only tapping it) opens that title there, so an accidental click never jumps you into another app on its own.\n\nNothing else is read, collected, or sent anywhere. Every other click (apps, menus, anything that isn\'t a content recommendation) is left completely alone.\n\nYou can turn the service off at any time from this app\'s Settings.</string>
+    <string name="disclosure_accept">I understand, continue</string>
+
+    <string name="settings_description">Pick which app opens when you select a recommendation on your TV\'s home screen.</string>
+    <string name="settings_enable_accessibility">Enable in Accessibility settings</string>
+    <string name="settings_accessibility_status_enabled">Status: enabled</string>
+    <string name="settings_accessibility_status_disabled">Status: not enabled - select to open system settings</string>
+    <string name="settings_kodi_connection">Kodi connection settings</string>
+    <string name="settings_enable_overlay">Enable \"Watch now\" confirmation</string>
+    <string name="settings_overlay_status_enabled">Status: enabled - a confirm button appears before opening another app</string>
+    <string name="settings_overlay_status_disabled">Status: not enabled - recognized clicks open the app directly with no confirmation. Select to grant \"display over other apps\"</string>
+    <string name="settings_search_manually">Search for a title manually</string>
+    <string name="settings_metadata_provider">Metadata provider</string>
+    <string name="settings_donate">Buy me a coffee</string>
+    <string name="settings_about">About &amp; help</string>
+
+    <string name="kodi_settings_title">Kodi connection</string>
+    <string name="kodi_settings_description">In Kodi: Settings → Services → Control → turn on \"Allow remote control via HTTP\", then enter its address here. Kodi usually runs on this same device, so 127.0.0.1 is right for most setups.</string>
+    <string name="kodi_field_host">Host</string>
+    <string name="kodi_field_port">Port</string>
+    <string name="kodi_field_username">Username</string>
+    <string name="kodi_field_password">Password</string>
+    <string name="kodi_action_test">Test connection</string>
+    <string name="kodi_action_save">Save</string>
+    <string name="kodi_saved">Kodi settings saved</string>
+    <string name="kodi_test_success">Connected to Kodi successfully</string>
+    <string name="kodi_test_failure">Could not connect to Kodi - check the address and that remote control is enabled</string>
+    <string name="kodi_title_not_found">Kodi: couldn\'t find that title in your library</string>
+    <string name="kodi_connection_failed">Kodi: couldn\'t connect - check the connection settings</string>
+
+    <string name="donate_title">Buy me a coffee</string>
+    <string name="donate_description">If TVRelay\'s been useful to you, scan this with your phone. Completely optional - the app works exactly the same either way.\n\n%1$s</string>
+    <!-- TODO: replace with your real Buy Me a Coffee URL before shipping. -->
+    <string name="donate_url" translatable="false">https://buymeacoffee.com/hectormtzm6</string>
+    <string name="donate_close">Close</string>
+
+    <string name="about_title">About &amp; help</string>
+    <string name="about_legal">TVRelay is an independent automation and redirection tool. It does not host, store, distribute, or provide movies, series, streams, torrents, or any other audiovisual content. It has no relationship with Nuvio, Stremio, Kodi, or the origin or legality of any content you access through those apps - that depends entirely on which apps and add-ons you have installed and configured, under your own responsibility. TVRelay is not affiliated with, sponsored by, authorized by, or endorsed by Google, Nuvio, Stremio, or the Kodi Foundation.</string>
+    <string name="about_tvdb_attribution">This product uses the TheTVDB API but is not endorsed or certified by TheTVDB. thetvdb.com</string>
+    <string name="about_restricted_settings">If you sideloaded this app and the Accessibility toggle switches itself back off right after you enable it: that\'s Android\'s \"Restricted settings\" protection for apps not installed from an app store, not a bug. Look for \"Allow restricted setting\" on this app\'s system App info screen. If you can\'t find it, connect over ADB and run:\n\nadb shell settings put secure enabled_accessibility_services com.hmartinez94.tvrelay/com.hmartinez94.tvrelay.TvRelayAccessibilityService\nadb shell settings put secure accessibility_enabled 1\n\n(The first command replaces the whole list - separate services with a colon if you already use another one, like TalkBack.)</string>
+    <string name="about_close">Close</string>
+
+    <string name="watch_now_loading">Looking that up…</string>
+    <string name="watch_now_confirm">Watch now in %1$s</string>
+
+    <string name="search_title">Search for a title</string>
+    <string name="search_description">Some recommendation cards don\'t expose their title to accessibility tools, so TVRelay can\'t always detect them automatically. Type the title here instead - everything after that (looking it up, opening your chosen app) works exactly the same way.</string>
+    <string name="search_field_title">Title</string>
+    <string name="search_action">Search</string>
+    <string name="search_searching">Searching…</string>
+    <string name="search_not_found">Couldn\'t find that title on TheTVDB</string>
+
+    <string name="metadata_provider_title">Metadata provider</string>
+    <string name="metadata_provider_description">Whichever service TVRelay asks to identify a clicked title. TheTVDB is the default and needs nothing from you. TMDB is an alternative if TheTVDB ever gives you a wrong match for a title - it requires your own free personal API key (get one at themoviedb.org, under Settings → API), used only for your own lookups and subject to TMDB\'s terms of use.</string>
+    <string name="metadata_provider_tvdb">TheTVDB (recommended)</string>
+    <string name="metadata_provider_tvdb_description">Default - no setup needed</string>
+    <string name="metadata_provider_tmdb">TMDB</string>
+    <string name="metadata_provider_tmdb_description">Requires your own free API key below</string>
+    <string name="metadata_tmdb_key_field">TMDB API key</string>
+    <string name="metadata_tmdb_pair_phone">Send key from phone…</string>
+    <string name="metadata_tmdb_pair_phone_description">Scan a QR code and type it on your phone instead of here</string>
+    <string name="metadata_tmdb_test_key">Test key</string>
+    <string name="metadata_tmdb_test_success">TMDB key works</string>
+    <string name="metadata_tmdb_test_failure">That key didn\'t work - check it was copied correctly</string>
+    <string name="metadata_provider_save">Save</string>
+    <string name="metadata_provider_saved">Saved</string>
+
+    <string name="pairing_title">Send from your phone</string>
+    <string name="pairing_description">Scan this with your phone\'s camera, then type or paste the value on the page that opens and tap Send. It\'ll fill in here automatically - no need to type it with the remote.\n\n%1$s</string>
+    <string name="pairing_cancel">Cancel</string>
+    <string name="pairing_received">Received</string>
+    <string name="pairing_timed_out">Nothing received - scan the code again to retry</string>
+</resources>
