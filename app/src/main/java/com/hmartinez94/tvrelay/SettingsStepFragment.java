@@ -20,7 +20,6 @@ public class SettingsStepFragment extends GuidedStepSupportFragment {
 
     private static final long ACTION_PLAYER_BASE = 100;
     private static final long ACTION_ENABLE_ACCESSIBILITY = 1;
-    private static final long ACTION_KODI_SETTINGS = 2;
     private static final long ACTION_DONATE = 3;
     private static final long ACTION_ABOUT = 4;
     private static final long ACTION_SEARCH_MANUALLY = 5;
@@ -71,11 +70,6 @@ public class SettingsStepFragment extends GuidedStepSupportFragment {
                 .description(getString(serviceEnabled
                         ? R.string.settings_accessibility_status_enabled
                         : R.string.settings_accessibility_status_disabled))
-                .build());
-
-        actions.add(new GuidedAction.Builder(context)
-                .id(ACTION_KODI_SETTINGS)
-                .title(getString(R.string.settings_kodi_connection))
                 .build());
 
         boolean overlayGranted = Settings.canDrawOverlays(context);
@@ -130,8 +124,6 @@ public class SettingsStepFragment extends GuidedStepSupportFragment {
 
         if (id == ACTION_ENABLE_ACCESSIBILITY) {
             startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS));
-        } else if (id == ACTION_KODI_SETTINGS) {
-            GuidedStepSupportFragment.add(getFragmentManager(), new KodiSettingsStepFragment());
         } else if (id == ACTION_ENABLE_OVERLAY) {
             startActivity(new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
                     Uri.parse("package:" + context.getPackageName())));

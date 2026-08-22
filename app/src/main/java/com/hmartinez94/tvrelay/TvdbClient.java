@@ -17,7 +17,7 @@ import okhttp3.Response;
 
 /**
  * Minimal TheTVDB v4 client: resolves a title to an IMDB id, which is what
- * the Nuvio/Stremio/Kodi deep links need.
+ * the Nuvio/Stremio deep links need.
  *
  * The API key comes from BuildConfig.TVDB_API_KEY, generated from
  * TVDB_API_KEY in local.properties (not versioned). Get a free key at

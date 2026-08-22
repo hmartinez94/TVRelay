@@ -3,17 +3,13 @@ package com.hmartinez94.tvrelay;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
-import android.os.Handler;
-import android.os.Looper;
 import android.util.Log;
-import android.widget.Toast;
 
 /**
  * Opens a resolved title in whichever app the user picked in Settings.
  *
  * Nuvio: nuvio://movie/{imdbId} (movies), nuvio://detail/tv/{imdbId} (series).
  * Stremio: stremio:///detail/movie/{imdbId}, stremio:///detail/series/{imdbId}.
- * Kodi has no equivalent URI scheme - see KodiClient.
  *
  * Takes a plain Context (not specifically AccessibilityService) so it can be
  * called both from the accessibility service and from a regular Activity
@@ -28,21 +24,6 @@ final class PlayerLauncher {
 
     static void open(Context context, TvdbMatch match) {
         PlayerApp app = Preferences.getSelectedApp(context);
-
-        if (app == PlayerApp.KODI) {
-            KodiClient.Result result = KodiClient.open(context, match);
-            if (result != KodiClient.Result.OPENED) {
-                Log.w(TAG, "Kodi did not open the title: " + result);
-                int messageRes = result == KodiClient.Result.NOT_FOUND
-                        ? R.string.kodi_title_not_found
-                        : R.string.kodi_connection_failed;
-                // KodiClient.open() runs on a background thread; Toast must
-                // be shown from the main thread.
-                new Handler(Looper.getMainLooper()).post(() ->
-                        Toast.makeText(context, messageRes, Toast.LENGTH_LONG).show());
-            }
-            return;
-        }
 
         Uri uri;
         if (app == PlayerApp.NUVIO) {

@@ -18,8 +18,8 @@ import java.util.regex.Pattern;
  * (com.google.android.apps.tv.launcherx) and the Fire TV launcher
  * (com.amazon.tv.launcher). When the clicked item is a movie/show
  * recommendation card, extracts its title, resolves it to an IMDB id via
- * TheTVDB, and opens it in the app chosen in Settings (Nuvio, Stremio, or
- * Kodi) instead of whatever the launcher would normally do.
+ * TheTVDB, and opens it in the app chosen in Settings (Nuvio or Stremio)
+ * instead of whatever the launcher would normally do.
  *
  * Every other click is left alone - normal launcher behavior (app icons,
  * the "Your apps" row, etc.) is untouched.

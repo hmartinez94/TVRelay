@@ -3,8 +3,7 @@ package com.hmartinez94.tvrelay;
 /** The app a resolved title gets opened in. */
 public enum PlayerApp {
     NUVIO("com.nuvio.app", "Nuvio"),
-    STREMIO("com.stremio.one", "Stremio"),
-    KODI("org.xbmc.kodi", "Kodi");
+    STREMIO("com.stremio.one", "Stremio");
 
     private final String packageName;
     private final String label;

@@ -32,8 +32,8 @@ public class MetadataProviderStepFragment extends GuidedStepSupportFragment {
     public void onCreate(Bundle savedInstanceState) {
         // Load before super.onCreate(): GuidedStepSupportFragment.onCreate()
         // calls onCreateActions() internally, so fields it reads must
-        // already be set (see KodiSettingsStepFragment for the crash this
-        // ordering avoids).
+        // already be set - this ordering avoided a real crash the first
+        // time a fragment here read a Preferences-backed field too late.
         Context context = requireContext();
         provider = Preferences.getMetadataProvider(context);
         tmdbApiKey = Preferences.getTmdbApiKey(context);

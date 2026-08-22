@@ -19,8 +19,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * (currently: the TMDB API key) on their phone instead of the TV's
  * on-screen keyboard - see PhonePairing for how the phone's submission
  * actually reaches the TV. Purpose-built for the TMDB key for now rather
- * than a generic "receive any field" component; the same pattern could be
- * reused for Kodi credentials later if that turns out to be worth doing.
+ * than a generic "receive any field" component.
  */
 public class PhonePairingStepFragment extends GuidedStepSupportFragment {
 

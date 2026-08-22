@@ -4,22 +4,22 @@
 
 Free app for Android TV / Google TV that changes how recommendations behave on the Google TV launcher.
 
-When you select a compatible movie or show card, TVRelay identifies the content and shows a **"Watch now in {App}"** button for whichever of **Nuvio**, **Stremio**, or **Kodi** you've set as your player - tapping it (and only tapping it) opens that title there, so an accidental click never jumps you into another app on its own.
+When you select a compatible movie or show card, TVRelay identifies the content and shows a **"Watch now in {App}"** button for whichever of **Nuvio** or **Stremio** you've set as your player - tapping it (and only tapping it) opens that title there, so an accidental click never jumps you into another app on its own.
 
-TVRelay is an independent automation and redirection tool. **It does not host, store, distribute, or provide movies, series, streams, torrents, or any other audiovisual content.** It has no relationship with Nuvio, Stremio, Kodi, or the origin or legality of any content you access through those apps - that depends entirely on which apps and add-ons you have installed and configured, under your own responsibility.
+TVRelay is an independent automation and redirection tool. **It does not host, store, distribute, or provide movies, series, streams, torrents, or any other audiovisual content.** It has no relationship with Nuvio, Stremio, or the origin or legality of any content you access through those apps - that depends entirely on which apps and add-ons you have installed and configured, under your own responsibility.
 
 TVRelay is completely free, with no subscription, no purchase, and no license checks of any kind. If it's useful to you, there's a Buy Me a Coffee link in the app's Settings and above - entirely optional, and the app works exactly the same either way.
 
 ## How it works
 
-The Google TV launcher exposes the title of each recommendation when you select it. TVRelay picks up on that click, looks up the title (via [TheTVDB](https://www.thetvdb.com/) by default, or optionally TMDB - see [Metadata provider](#metadata-provider-thetvdb--tmdb) below), and shows a confirm button for opening it in Nuvio, Stremio, or Kodi.
+The Google TV launcher exposes the title of each recommendation when you select it. TVRelay picks up on that click, looks up the title (via [TheTVDB](https://www.thetvdb.com/) by default, or optionally TMDB - see [Metadata provider](#metadata-provider-thetvdb--tmdb) below), and shows a confirm button for opening it in Nuvio or Stremio.
 
 Not every recommendation card can be detected this way - see [Titles TVRelay can't detect automatically](#titles-tvrelay-cant-detect-automatically).
 
 ## Requirements
 
 - A device with the **Google TV** launcher (Chromecast with Google TV, or Google TV editions from Sony, TCL, Hisense, etc.) or a **Fire TV** device.
-- **Nuvio**, **Stremio**, and/or **Kodi** installed on the device.
+- **Nuvio** and/or **Stremio** installed on the device.
 
 ## Installation
 
@@ -76,16 +76,6 @@ This needs the **"Display over other apps"** permission, since the button is a s
 
 **Without that permission**, TVRelay falls back to opening your chosen app immediately, with no confirmation step - it still works, just without the accidental-click protection.
 
-### Setting up Kodi
-
-Kodi has no direct deep-link scheme, so TVRelay talks to it over its local JSON-RPC control interface instead:
-
-1. In Kodi: **Settings → Services → Control → turn on "Allow remote control via HTTP"**, and set a username/password if you'd like.
-2. In TVRelay's Settings, open **Kodi connection settings** and enter the host (`127.0.0.1` if Kodi runs on the same device, which is the common case), port (`8080` by default), and credentials.
-3. Use **Test connection** to confirm it can reach Kodi before relying on it.
-
-Kodi support only finds titles already present in your local Kodi library - unlike Nuvio/Stremio, which resolve any title against their own online catalogs regardless of local state.
-
 ## Metadata provider (TheTVDB / TMDB)
 
 TVRelay uses **[TheTVDB](https://www.thetvdb.com/)** by default to identify a clicked title - no setup needed. If TheTVDB ever gives you a wrong match for a title, TVRelay's Settings → **Metadata provider** lets you switch to **TMDB** instead, using **your own free personal TMDB API key** (get one at [themoviedb.org](https://www.themoviedb.org/), under Settings → API - it has to be your own, not one bundled with the app, since TMDB's terms treat an app profiting from a shared key as commercial use; TVRelay charges nothing, but the key itself is still subject to TMDB's own terms of use).
@@ -106,7 +96,7 @@ adb shell am start -a android.intent.action.VIEW -d "nuvio://movie/tt0371746"
 ```
 If that doesn't open Nuvio on Iron Man's page, the issue is with your Nuvio build, not TVRelay. If it works, the click likely isn't being detected - check for that with:
 ```
-adb logcat -s TvRelayService:D TvdbClient:D PlayerLauncher:D KodiClient:D
+adb logcat -s TvRelayService:D TvdbClient:D PlayerLauncher:D
 ```
 
 **TCL devices: service stops working after a while.** Some TCL units lock down background auto-start permissions for third-party apps with no toggle exposed in Settings. Fix via ADB:
@@ -119,7 +109,6 @@ adb shell appops set com.hmartinez94.tvrelay APP_ASSOC_START allow
 
 - Some recommendation rows (personalized/algorithmic ones in particular) don't expose their title to accessibility tools at all - see [Titles TVRelay can't detect automatically](#titles-tvrelay-cant-detect-automatically) above.
 - Occasionally, the metadata provider's search may match a lesser-known movie or show with the same name and open the wrong page - this is a data-coverage gap in the provider's own catalog, not something TVRelay's matching logic can fully guard against. Try [switching provider](#metadata-provider-thetvdb--tmdb) or the manual search with a more specific query (e.g. add the year) if it happens.
-- Kodi support depends on the title already being in your local Kodi library.
 
 ## Building from source
 
@@ -145,7 +134,7 @@ TVRelay does not host, store, distribute, or provide movies, series, streams, to
 
 TVRelay does not provide or control the content sources available within those apps. The user is responsible for their use of third-party apps, and for making sure that use complies with applicable law and the corresponding terms of service.
 
-TVRelay is not affiliated with, sponsored by, authorized by, or endorsed by Google, Google TV, Amazon, Fire TV, Nuvio, Stremio, or the Kodi Foundation. Google, Google TV, Android TV, Amazon, Fire TV, Nuvio, Stremio, and Kodi are trademarks or products of their respective owners.
+TVRelay is not affiliated with, sponsored by, authorized by, or endorsed by Google, Google TV, Amazon, Fire TV, Nuvio, or Stremio. Google, Google TV, Android TV, Amazon, Fire TV, Nuvio, and Stremio are trademarks or products of their respective owners.
 
 ## Credits
 
