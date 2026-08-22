@@ -17,6 +17,7 @@ public class AboutStepFragment extends GuidedStepSupportFragment {
     public GuidanceStylist.Guidance onCreateGuidance(Bundle savedInstanceState) {
         String description = getString(R.string.about_legal)
                 + "\n\n" + getString(R.string.about_tvdb_attribution)
+                + "\n\n" + getString(R.string.about_tmdb_attribution)
                 + "\n\n" + getString(R.string.about_restricted_settings);
         return new GuidanceStylist.Guidance(
                 getString(R.string.about_title),

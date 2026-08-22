@@ -4,7 +4,7 @@
 
 Free app for Android TV / Google TV that changes how recommendations behave on the Google TV launcher.
 
-When you select a compatible movie or show card, TVRelay identifies the content and opens its page directly in **Nuvio**, **Stremio**, or **Kodi** - whichever you've set as your player.
+When you select a compatible movie or show card, TVRelay identifies the content and shows a **"Watch now in {App}"** button for whichever of **Nuvio**, **Stremio**, or **Kodi** you've set as your player - tapping it (and only tapping it) opens that title there, so an accidental click never jumps you into another app on its own.
 
 TVRelay is an independent automation and redirection tool. **It does not host, store, distribute, or provide movies, series, streams, torrents, or any other audiovisual content.** It has no relationship with Nuvio, Stremio, Kodi, or the origin or legality of any content you access through those apps - that depends entirely on which apps and add-ons you have installed and configured, under your own responsibility.
 
@@ -12,7 +12,9 @@ TVRelay is completely free, with no subscription, no purchase, and no license ch
 
 ## How it works
 
-The Google TV launcher exposes the title of each recommendation when you select it. TVRelay picks up on that click, looks up the title in [TheTVDB](https://www.thetvdb.com/), and opens its page directly in Nuvio, Stremio, or Kodi.
+The Google TV launcher exposes the title of each recommendation when you select it. TVRelay picks up on that click, looks up the title (via [TheTVDB](https://www.thetvdb.com/) by default, or optionally TMDB - see [Metadata provider](#metadata-provider-thetvdb--tmdb) below), and shows a confirm button for opening it in Nuvio, Stremio, or Kodi.
+
+Not every recommendation card can be detected this way - see [Titles TVRelay can't detect automatically](#titles-tvrelay-cant-detect-automatically).
 
 ## Requirements
 
@@ -66,6 +68,14 @@ If setting up ADB from a computer sounds like a hassle, **[atvTools](https://pla
 
 On some devices (especially Chinese-manufacturer Android TV boxes with aggressive battery managers), you may also need to exclude TVRelay from any manufacturer "optimizer"/RAM cleaner, or the system will kill the service's process after a few seconds.
 
+### Enabling the "Watch now" confirmation
+
+By default, TVRelay shows a **"Watch now in {App}"** button before opening anything - a loading indicator appears the moment you click a recommendation, then swaps to the confirm button once the title's been identified. It disappears on its own after about 10 seconds if you don't tap it, so an accidental click never silently redirects you.
+
+This needs the **"Display over other apps"** permission, since the button is a small overlay drawn on top of whatever the launcher navigates to. Grant it from TVRelay's Settings → **"Enable 'Watch now' confirmation"**, which takes you straight to the right system screen.
+
+**Without that permission**, TVRelay falls back to opening your chosen app immediately, with no confirmation step - it still works, just without the accidental-click protection.
+
 ### Setting up Kodi
 
 Kodi has no direct deep-link scheme, so TVRelay talks to it over its local JSON-RPC control interface instead:
@@ -75,6 +85,16 @@ Kodi has no direct deep-link scheme, so TVRelay talks to it over its local JSON-
 3. Use **Test connection** to confirm it can reach Kodi before relying on it.
 
 Kodi support only finds titles already present in your local Kodi library - unlike Nuvio/Stremio, which resolve any title against their own online catalogs regardless of local state.
+
+## Metadata provider (TheTVDB / TMDB)
+
+TVRelay uses **[TheTVDB](https://www.thetvdb.com/)** by default to identify a clicked title - no setup needed. If TheTVDB ever gives you a wrong match for a title, TVRelay's Settings → **Metadata provider** lets you switch to **TMDB** instead, using **your own free personal TMDB API key** (get one at [themoviedb.org](https://www.themoviedb.org/), under Settings → API - it has to be your own, not one bundled with the app, since TMDB's terms treat an app profiting from a shared key as commercial use; TVRelay charges nothing, but the key itself is still subject to TMDB's own terms of use).
+
+Typing a 32-character key with a TV remote is painful, so there's a **"Send key from phone…"** option on that screen: it shows a QR code, you scan it with your phone, type or paste the key on the page that opens, and it fills in on the TV automatically within a few seconds - no remote typing required.
+
+## Titles TVRelay can't detect automatically
+
+Not every recommendation card exposes its title to accessibility tools - this is a real limitation of the launcher, not a TVRelay bug, and there's no way to fix it from the app's side. If clicking a recommendation does nothing at all, use Settings → **"Search for a title manually"**: type the title yourself, and everything after that (looking it up, showing the confirm button) works exactly the same way as an automatically-detected click.
 
 ## Troubleshooting
 
@@ -97,7 +117,8 @@ adb shell appops set com.hmartinez94.tvrelay APP_ASSOC_START allow
 
 ## Known limitations
 
-- Occasionally, a title may match a lesser-known movie or show with the same name and open the wrong page.
+- Some recommendation rows (personalized/algorithmic ones in particular) don't expose their title to accessibility tools at all - see [Titles TVRelay can't detect automatically](#titles-tvrelay-cant-detect-automatically) above.
+- Occasionally, the metadata provider's search may match a lesser-known movie or show with the same name and open the wrong page - this is a data-coverage gap in the provider's own catalog, not something TVRelay's matching logic can fully guard against. Try [switching provider](#metadata-provider-thetvdb--tmdb) or the manual search with a more specific query (e.g. add the year) if it happens.
 - Kodi support depends on the title already being in your local Kodi library.
 
 ## Building from source
@@ -107,6 +128,8 @@ Requires Android Studio / JDK 17+ and the Android SDK. Get a free API key from [
 ```
 TVDB_API_KEY=your_key_here
 ```
+
+(A TMDB key is *not* needed to build - that one's entered by each user at runtime in Settings, not baked into the build.)
 
 Then:
 ```
@@ -126,7 +149,9 @@ TVRelay is not affiliated with, sponsored by, authorized by, or endorsed by Goog
 
 ## Credits
 
-TVRelay uses the **[TheTVDB](https://www.thetvdb.com/)** API to identify movies and shows. This product uses the TheTVDB API but is not endorsed or certified by TheTVDB.
+TVRelay uses the **[TheTVDB](https://www.thetvdb.com/)** API by default to identify movies and shows. This product uses the TheTVDB API but is not endorsed or certified by TheTVDB.
+
+If you opt into **[TMDB](https://www.themoviedb.org/)** as an alternative provider (using your own key - see [Metadata provider](#metadata-provider-thetvdb--tmdb) above): this product uses the TMDB API but is not endorsed or certified by TMDB.
 
 ## License
 

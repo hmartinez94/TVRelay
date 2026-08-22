@@ -131,20 +131,9 @@ public class MetadataProviderStepFragment extends GuidedStepSupportFragment {
 
         if (id == ACTION_PROVIDER_TVDB || id == ACTION_PROVIDER_TMDB) {
             provider = id == ACTION_PROVIDER_TMDB ? MetadataProvider.TMDB : MetadataProvider.THETVDB;
-            // Same manual radio-exclusivity fix as SettingsStepFragment -
-            // Leanback's own checkSetId auto-toggle proved unreliable on
-            // real hardware during testing.
-            List<GuidedAction> actions = getActions();
-            for (int i = 0; i < actions.size(); i++) {
-                GuidedAction candidate = actions.get(i);
-                if (candidate.getId() == ACTION_PROVIDER_TVDB || candidate.getId() == ACTION_PROVIDER_TMDB) {
-                    boolean shouldBeChecked = candidate.getId() == id;
-                    if (candidate.isChecked() != shouldBeChecked) {
-                        candidate.setChecked(shouldBeChecked);
-                        notifyActionChanged(i);
-                    }
-                }
-            }
+            RadioActionHelper.enforceExclusivity(getActions(), id,
+                    candidateId -> candidateId == ACTION_PROVIDER_TVDB || candidateId == ACTION_PROVIDER_TMDB,
+                    this::notifyActionChanged);
         } else if (id == ACTION_PAIR_PHONE) {
             GuidedStepSupportFragment.add(getFragmentManager(), new PhonePairingStepFragment());
         } else if (id == ACTION_TEST_KEY) {

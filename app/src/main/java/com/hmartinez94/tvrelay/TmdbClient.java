@@ -102,13 +102,11 @@ final class TmdbClient {
                 return null;
             }
 
-            // Same fix as TvdbClient: TMDB's search is relevance-ranked,
-            // not exact-match, so prefer a result whose own title/name
-            // exactly matches the query before falling back to the top
-            // relevance result - avoids the "Backrooms" -> "The Backrooms"
-            // style mismatch confirmed on TheTVDB's side.
-            String normalizedQuery = normalize(title);
-            Candidate topRelevanceResult = null;
+            // See ExactMatchPicker for why this exists: TMDB's search is
+            // relevance-ranked and title collisions are common (same
+            // "Obsession" case confirmed against TheTVDB - see CLAUDE.md).
+            String normalizedQuery = ExactMatchPicker.normalize(title);
+            ExactMatchPicker<Candidate> picker = new ExactMatchPicker<>();
 
             for (int i = 0; i < results.length(); i++) {
                 JSONObject result = results.getJSONObject(i);
@@ -117,20 +115,20 @@ final class TmdbClient {
                     continue;
                 }
                 Candidate candidate = new Candidate(result.getInt("id"), mediaType);
-                if (topRelevanceResult == null) {
-                    topRelevanceResult = candidate;
-                }
                 boolean isMovie = "movie".equals(mediaType);
                 String name = result.optString(isMovie ? "title" : "name", "");
                 String originalName = result.optString(isMovie ? "original_title" : "original_name", "");
-                if (normalizedQuery.equals(normalize(name)) || normalizedQuery.equals(normalize(originalName))) {
-                    return candidate;
-                }
+                boolean isExactMatch = normalizedQuery.equals(ExactMatchPicker.normalize(name))
+                        || normalizedQuery.equals(ExactMatchPicker.normalize(originalName));
+                String dateField = isMovie ? "release_date" : "first_air_date";
+                int year = ExactMatchPicker.parseYear(result.optString(dateField, ""));
+                picker.offer(candidate, isExactMatch, year);
             }
-            if (topRelevanceResult != null) {
+            Candidate resolved = picker.result();
+            if (resolved != null && !picker.hasExactMatch()) {
                 Log.d(TAG, "No exact title match for \"" + title + "\" - using top relevance result");
             }
-            return topRelevanceResult;
+            return resolved;
         }
     }
 
@@ -151,10 +149,6 @@ final class TmdbClient {
             String imdbId = json.optString("imdb_id", "");
             return (imdbId.isEmpty() || "null".equals(imdbId)) ? null : imdbId;
         }
-    }
-
-    private static String normalize(String s) {
-        return s.trim().toLowerCase(Locale.ROOT);
     }
 
     /**

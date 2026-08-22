@@ -8,7 +8,6 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 import java.net.URLEncoder;
-import java.util.Locale;
 import java.util.regex.Pattern;
 
 import okhttp3.OkHttpClient;
@@ -85,7 +84,14 @@ final class TvdbClient {
     private static TvdbMatch search(String title, boolean allowAuthRetry)
             throws IOException, JSONException, AuthException {
         String bearer = getToken();
-        String url = BASE_URL + "/search?query=" + URLEncoder.encode(title, "UTF-8") + "&limit=5";
+        // limit=5 (the old value) was the actual root cause of a confirmed
+        // on-device mismatch: searching "Obsession" returns 5 older movies
+        // (2019, 1976, 1965, 1949, 1954) before the real, currently-airing
+        // 2026 one, which sits at result index 5 - one past the old cutoff.
+        // The exact-match-by-year logic below never even saw it. 50 is
+        // TheTVDB's default page size and comfortably covers title
+        // collisions like this one.
+        String url = BASE_URL + "/search?query=" + URLEncoder.encode(title, "UTF-8") + "&limit=50";
         Request request = new Request.Builder()
                 .url(url)
                 .header("Authorization", "Bearer " + bearer)
@@ -109,16 +115,13 @@ final class TvdbClient {
                 return null;
             }
 
-            // TheTVDB's search is relevance/popularity-ranked, not
-            // exact-match: querying "Backrooms" can return a distinct,
-            // more popular title like "The Backrooms" ahead of the actual
-            // "Backrooms" entry. Scan every candidate for one whose own
-            // name/title exactly matches the query first, and only fall
-            // back to the top relevance result if nothing matches exactly -
-            // confirmed as a real mismatch on-device (clicking "Backrooms"
-            // opened "The Backrooms" in Nuvio).
-            String normalizedQuery = normalize(title);
-            TvdbMatch topRelevanceResult = null;
+            // See ExactMatchPicker for why this exists: TheTVDB's search
+            // is relevance-ranked and title collisions are common
+            // ("Backrooms" -> "The Backrooms"; "Obsession" matched six
+            // distinct titles across release years) - both confirmed
+            // on-device (see CLAUDE.md).
+            String normalizedQuery = ExactMatchPicker.normalize(title);
+            ExactMatchPicker<TvdbMatch> picker = new ExactMatchPicker<>();
 
             for (int i = 0; i < results.length(); i++) {
                 JSONObject result = results.getJSONObject(i);
@@ -129,6 +132,7 @@ final class TvdbClient {
                 Log.d(TAG, "Candidate " + i + ": type=" + type
                         + " name=[" + result.optString("name", "") + "]"
                         + " title=[" + result.optString("title", "") + "]"
+                        + " year=[" + result.optString("year", "") + "]"
                         + " remote_ids=" + result.optJSONArray("remote_ids"));
                 MediaType mediaType;
                 if ("movie".equals(type)) {
@@ -143,30 +147,22 @@ final class TvdbClient {
                     continue;
                 }
                 TvdbMatch candidate = new TvdbMatch(imdbId, mediaType);
-                if (topRelevanceResult == null) {
-                    topRelevanceResult = candidate;
-                }
-                if (normalizedQuery.equals(normalize(result.optString("name", "")))
-                        || normalizedQuery.equals(normalize(result.optString("title", "")))) {
-                    return candidate;
-                }
+                boolean isExactMatch = normalizedQuery.equals(ExactMatchPicker.normalize(result.optString("name", "")))
+                        || normalizedQuery.equals(ExactMatchPicker.normalize(result.optString("title", "")));
+                int year = ExactMatchPicker.parseYear(result.optString("year", ""));
+                picker.offer(candidate, isExactMatch, year);
             }
 
-            if (topRelevanceResult != null) {
+            TvdbMatch resolved = picker.result();
+            if (resolved == null) {
+                Log.d(TAG, "No usable TheTVDB result for: " + title);
+                return null;
+            }
+            if (!picker.hasExactMatch()) {
                 Log.d(TAG, "No exact title match for \"" + title + "\" - using top relevance result");
-                return topRelevanceResult;
             }
-            Log.d(TAG, "No usable TheTVDB result for: " + title);
-            return null;
+            return resolved;
         }
-    }
-
-    private static String normalize(String s) {
-        // Deliberately no article-stripping ("The Backrooms" -> "backrooms")
-        // or other fuzzing here: that would make the exact-match check
-        // above match "Backrooms" and "The Backrooms" equally again,
-        // undoing the fix this exists for.
-        return s.trim().toLowerCase(Locale.ROOT);
     }
 
     private static String extractImdbId(JSONObject result) {

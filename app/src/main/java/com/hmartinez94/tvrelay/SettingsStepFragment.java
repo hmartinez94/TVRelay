@@ -123,22 +123,8 @@ public class SettingsStepFragment extends GuidedStepSupportFragment {
             if (index >= 0 && index < apps.length) {
                 Preferences.setSelectedApp(context, apps[index]);
             }
-            // Enforce radio exclusivity ourselves instead of trusting the
-            // framework's checkSetId auto-toggle alone - on-device testing
-            // (ONN 4K Pro) showed it leaving multiple player actions
-            // checked at once and one unselectable, so this is a defensive
-            // belt-and-suspenders fix, not just relying on default behavior.
-            List<GuidedAction> actions = getActions();
-            for (int i = 0; i < actions.size(); i++) {
-                GuidedAction candidate = actions.get(i);
-                if (candidate.getId() >= ACTION_PLAYER_BASE) {
-                    boolean shouldBeChecked = candidate.getId() == id;
-                    if (candidate.isChecked() != shouldBeChecked) {
-                        candidate.setChecked(shouldBeChecked);
-                        notifyActionChanged(i);
-                    }
-                }
-            }
+            RadioActionHelper.enforceExclusivity(getActions(), id,
+                    candidateId -> candidateId >= ACTION_PLAYER_BASE, this::notifyActionChanged);
             return;
         }
 
