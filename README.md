@@ -1,29 +1,44 @@
 # TVRelay
 
+[![Latest release](https://img.shields.io/github/v/release/hmartinez94/TVRelay?sort=semver)](../../releases)
+[![License: PolyForm Noncommercial](https://img.shields.io/badge/license-PolyForm%20Noncommercial-blue)](LICENSE)
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20me%20a%20coffee-support%20this%20project-ffdd00?logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/hectormtzm6)
 
-Free app for Android TV / Google TV that changes how recommendations behave on the Google TV launcher.
+Google TV's home screen recommends a movie, you click it, and it opens whatever app the recommendation happened to come from - usually not the one you actually wanted to watch it in. TVRelay intercepts that click and opens the title in **Nuvio** or **Stremio** instead, with a one-tap confirmation so a stray click never redirects you by accident.
 
-When you select a compatible movie or show card, TVRelay identifies the content and shows a **"Watch now in {App}"** button for whichever of **Nuvio** or **Stremio** you've set as your player - tapping it (and only tapping it) opens that title there, so an accidental click never jumps you into another app on its own.
+<img src=".github/screenshots/watch-now-overlay.jpg" alt="A Google TV recommendation page for the movie Obsession, with a 'Watch now in Nuvio' button from TVRelay floating over it" width="720">
 
-TVRelay is an independent automation and redirection tool. **It does not host, store, distribute, or provide movies, series, streams, torrents, or any other audiovisual content.** It has no relationship with Nuvio, Stremio, or the origin or legality of any content you access through those apps - that depends entirely on which apps and add-ons you have installed and configured, under your own responsibility.
+*A real recommendation page, with TVRelay's confirm button floating over it.*
 
-TVRelay is completely free, with no subscription, no purchase, and no license checks of any kind. If it's useful to you, there's a Buy Me a Coffee link in the app's Settings and above - entirely optional, and the app works exactly the same either way.
+Free, no account, no subscription, no license check - just a Buy Me a Coffee link if it's useful to you. It doesn't host or provide any content itself; it only reads the title of the thing you clicked, looks that title up, and hands you off to an app you already chose in Settings.
+
+## Contents
+
+- [How it works](#how-it-works)
+- [Requirements](#requirements)
+- [Installation](#installation)
+- [Setup](#setup)
+- [Metadata provider](#metadata-provider-thetvdb--tmdb)
+- [Limitations](#limitations)
+- [Troubleshooting](#troubleshooting)
+- [Building from source](#building-from-source)
+- [Legal notice](#legal-notice)
+- [Credits](#credits)
 
 ## How it works
 
-The Google TV launcher exposes the title of each recommendation when you select it. TVRelay picks up on that click, looks up the title (via [TheTVDB](https://www.thetvdb.com/) by default, or optionally TMDB - see [Metadata provider](#metadata-provider-thetvdb--tmdb) below), and shows a confirm button for opening it in Nuvio or Stremio.
+Android's Accessibility API lets an app observe what's on screen for assistive purposes - TVRelay uses it narrowly, watching only for clicks on the Google TV launcher. When a click's payload includes a movie/show title, TVRelay looks it up (via [TheTVDB](https://www.thetvdb.com/) by default, or optionally TMDB) and offers to open it in your chosen player. Every other click - app icons, menus, anything that isn't a recommendation - is left completely alone, and nothing is read, stored, or sent anywhere beyond that one lookup.
 
-Not every recommendation card can be detected this way - see [Titles TVRelay can't detect automatically](#titles-tvrelay-cant-detect-automatically).
+Not every recommendation card exposes a title this way; see [Limitations](#limitations).
 
 ## Requirements
 
-- A device with the **Google TV** launcher (Chromecast with Google TV, or Google TV editions from Sony, TCL, Hisense, etc.) or a **Fire TV** device.
+- A device with the **Google TV** launcher (Chromecast with Google TV, or Google TV editions from Sony, TCL, Hisense, etc.). Fire TV is not currently supported - see [Limitations](#limitations).
 - **Nuvio** and/or **Stremio** installed on the device.
 
 ## Installation
 
-TVRelay isn't distributed through Google Play or the Amazon Appstore yet - install the APK from this repository's [Releases](../../releases) page.
+TVRelay isn't on Google Play yet - install the APK from this repository's [Releases](../../releases) page.
 
 ### Option A: from your phone, using Send Files to TV
 
@@ -44,9 +59,15 @@ TVRelay isn't distributed through Google Play or the Amazon Appstore yet - insta
    adb install app-release.apk
    ```
 
-### Activating the service
+## Setup
 
-Open **TVRelay** from the TV's launcher, accept the first-run disclosure, then select **"Enable in Accessibility settings"**. Enable the service there.
+<img src=".github/screenshots/settings.png" alt="TVRelay's Settings screen on Google TV, showing the player choice and accessibility/overlay toggles" width="720">
+
+Open **TVRelay** from the TV's launcher, accept the first-run disclosure, pick Nuvio or Stremio as your player, then work through the two toggles below.
+
+### Enable in Accessibility settings
+
+Select **"Enable in Accessibility settings"** and turn the service on there. This is the permission that lets TVRelay see launcher clicks at all - without it, nothing else in this app does anything.
 
 #### The toggle turns itself off immediately
 
@@ -68,23 +89,27 @@ If setting up ADB from a computer sounds like a hassle, **[atvTools](https://pla
 
 On some devices (especially Chinese-manufacturer Android TV boxes with aggressive battery managers), you may also need to exclude TVRelay from any manufacturer "optimizer"/RAM cleaner, or the system will kill the service's process after a few seconds.
 
-### Enabling the "Watch now" confirmation
+### Enable the "Watch now" confirmation
 
 By default, TVRelay shows a **"Watch now in {App}"** button before opening anything - a loading indicator appears the moment you click a recommendation, then swaps to the confirm button once the title's been identified. It disappears on its own after about 10 seconds if you don't tap it, so an accidental click never silently redirects you.
 
-This needs the **"Display over other apps"** permission, since the button is a small overlay drawn on top of whatever the launcher navigates to. Grant it from TVRelay's Settings → **"Enable 'Watch now' confirmation"**, which takes you straight to the right system screen.
+This needs the **"Display over other apps"** permission, since the button is a small overlay drawn on top of whatever the launcher navigates to. Grant it from Settings → **"Enable 'Watch now' confirmation"**, which takes you straight to the right system screen.
 
 **Without that permission**, TVRelay falls back to opening your chosen app immediately, with no confirmation step - it still works, just without the accidental-click protection.
 
 ## Metadata provider (TheTVDB / TMDB)
 
-TVRelay uses **[TheTVDB](https://www.thetvdb.com/)** by default to identify a clicked title - no setup needed. If TheTVDB ever gives you a wrong match for a title, TVRelay's Settings → **Metadata provider** lets you switch to **TMDB** instead, using **your own free personal TMDB API key** (get one at [themoviedb.org](https://www.themoviedb.org/), under Settings → API - it has to be your own, not one bundled with the app, since TMDB's terms treat an app profiting from a shared key as commercial use; TVRelay charges nothing, but the key itself is still subject to TMDB's own terms of use).
+TVRelay uses **[TheTVDB](https://www.thetvdb.com/)** by default to identify a clicked title - no setup needed. If TheTVDB ever gives you a wrong match, switch to **TMDB** instead from Settings → **Metadata provider**, using **your own free personal TMDB API key** (get one at [themoviedb.org](https://www.themoviedb.org/), under Settings → API - it has to be your own, not one bundled with the app, since TMDB's terms treat an app profiting from a shared key as commercial use; TVRelay charges nothing, but the key itself is still subject to TMDB's own terms of use).
 
-Typing a 32-character key with a TV remote is painful, so there's a **"Send key from phone…"** option on that screen: it shows a QR code, you scan it with your phone, type or paste the key on the page that opens, and it fills in on the TV automatically within a few seconds - no remote typing required.
+<img src=".github/screenshots/phone-pairing.png" alt="TVRelay's phone-pairing screen, showing a QR code to send a TMDB API key from a phone" width="720">
 
-## Titles TVRelay can't detect automatically
+Typing a 32-character key with a TV remote is painful, so that screen has a **"Send key from phone…"** option: scan the QR code, type or paste the key on the page that opens, and it fills in on the TV automatically within a few seconds - no remote typing required.
 
-Not every recommendation card exposes its title to accessibility tools - this is a real limitation of the launcher, not a TVRelay bug, and there's no way to fix it from the app's side. If clicking a recommendation does nothing at all, use Settings → **"Search for a title manually"**: type the title yourself, and everything after that (looking it up, showing the confirm button) works exactly the same way as an automatically-detected click.
+## Limitations
+
+- **Fire TV is not currently supported.** Tested end-to-end on a real Fire TV Stick, and recommendation clicks never reach TVRelay's detection at all - almost certainly because Amazon's newly-redesigned Fire TV home screen (rolling out through 2026) doesn't expose standard Android accessibility events to third-party apps the way Google TV's launcher does. No known workaround; TVRelay is Google TV only for now.
+- **Some recommendation cards can't be detected automatically** - a real limitation of what the launcher exposes to accessibility tools, not a TVRelay bug, and there's no way to fix it from the app's side. If clicking a recommendation does nothing at all, use Settings → **"Search for a title manually"**: type the title yourself, and everything after that works exactly the same way as an automatically-detected click.
+- **The metadata provider can occasionally match the wrong title** - a same-named but different movie or show, if that happens to be what the provider's catalog ranks first. This is a data-coverage gap in the provider itself, not something TVRelay's matching logic can fully guard against. Try [switching provider](#metadata-provider-thetvdb--tmdb) or the manual search with a more specific query (e.g. add the year) if it happens.
 
 ## Troubleshooting
 
@@ -105,11 +130,6 @@ adb shell appops set com.hmartinez94.tvrelay APP_AUTO_START allow
 adb shell appops set com.hmartinez94.tvrelay APP_ASSOC_START allow
 ```
 
-## Known limitations
-
-- Some recommendation rows (personalized/algorithmic ones in particular) don't expose their title to accessibility tools at all - see [Titles TVRelay can't detect automatically](#titles-tvrelay-cant-detect-automatically) above.
-- Occasionally, the metadata provider's search may match a lesser-known movie or show with the same name and open the wrong page - this is a data-coverage gap in the provider's own catalog, not something TVRelay's matching logic can fully guard against. Try [switching provider](#metadata-provider-thetvdb--tmdb) or the manual search with a more specific query (e.g. add the year) if it happens.
-
 ## Building from source
 
 Requires Android Studio / JDK 17+ and the Android SDK. Get a free API key from [TheTVDB](https://www.thetvdb.com/dashboard/account/apikeys) and add it to `local.properties` (not committed):
@@ -128,11 +148,7 @@ The APK is written to `app\build\outputs\apk\debug\app-debug.apk`.
 
 ## Legal notice
 
-TVRelay is an independent navigation and automation tool for Android TV / Google TV / Fire TV devices.
-
-TVRelay does not host, store, distribute, or provide movies, series, streams, torrents, or audiovisual content sources. Its function is limited to detecting certain recommendations shown by the device's launcher, identifying the selected content, and facilitating the opening of its page through third-party apps installed and configured by the user.
-
-TVRelay does not provide or control the content sources available within those apps. The user is responsible for their use of third-party apps, and for making sure that use complies with applicable law and the corresponding terms of service.
+TVRelay's function is limited to detecting certain recommendations shown by the device's launcher, identifying the selected content, and opening its page in a third-party app you've already installed and configured yourself - it does not host, store, distribute, or provide any movies, series, streams, torrents, or other audiovisual content, and has no visibility into or control over what those third-party apps and their add-ons actually serve. You're responsible for your own use of them, including making sure that use complies with applicable law and their respective terms of service.
 
 TVRelay is not affiliated with, sponsored by, authorized by, or endorsed by Google, Google TV, Amazon, Fire TV, Nuvio, or Stremio. Google, Google TV, Android TV, Amazon, Fire TV, Nuvio, and Stremio are trademarks or products of their respective owners.
 

@@ -1,6 +1,7 @@
 *.iml
 .gradle
 /local.properties
+/keystore
 # Whole folder, not just specific files inside it: pure IDE-local state,
 # no value for a public repo, and cherry-picking sub-paths only covers
 # what Android Studio happens to have generated so far.
