@@ -15,6 +15,7 @@ public final class Preferences {
     private static final String KEY_PLAYER_APP = "player_app";
     private static final String KEY_METADATA_PROVIDER = "metadata_provider";
     private static final String KEY_TMDB_API_KEY = "tmdb_api_key";
+    private static final String KEY_SHOW_CHOOSER = "show_match_chooser";
 
     private Preferences() {
     }
@@ -50,12 +51,12 @@ public final class Preferences {
     public static MetadataProvider getMetadataProvider(Context context) {
         String stored = prefs(context).getString(KEY_METADATA_PROVIDER, null);
         if (stored == null) {
-            return MetadataProvider.THETVDB;
+            return MetadataProvider.TMDB;
         }
         try {
             return MetadataProvider.valueOf(stored);
         } catch (IllegalArgumentException e) {
-            return MetadataProvider.THETVDB;
+            return MetadataProvider.TMDB;
         }
     }
 
@@ -63,12 +64,39 @@ public final class Preferences {
         prefs(context).edit().putString(KEY_METADATA_PROVIDER, provider.name()).apply();
     }
 
-    /** The user's own personal TMDB API key - only used when MetadataProvider.TMDB is selected. */
+    /**
+     * The user's own personal TMDB API key, exactly as typed into Settings -
+     * empty if they haven't entered one. Used only for the editable Settings
+     * field itself; actual lookups go through getEffectiveTmdbApiKey()
+     * instead, so this stays blank (rather than showing the bundled default
+     * pre-filled) until the user deliberately overrides it.
+     */
     public static String getTmdbApiKey(Context context) {
         return prefs(context).getString(KEY_TMDB_API_KEY, "");
     }
 
     public static void setTmdbApiKey(Context context, String apiKey) {
         prefs(context).edit().putString(KEY_TMDB_API_KEY, apiKey).apply();
+    }
+
+    /**
+     * The key actual TMDB lookups should use: the user's own, if they've set
+     * one, otherwise the app's bundled default (BuildConfig.TMDB_API_KEY,
+     * from TMDB_API_KEY in local.properties - see TvdbClient's TVDB_API_KEY
+     * for the same pattern). A user's own key is still fully supported and
+     * takes priority - e.g. if the shared default ever gets rate-limited.
+     */
+    public static String getEffectiveTmdbApiKey(Context context) {
+        String own = getTmdbApiKey(context).trim();
+        return !own.isEmpty() ? own : BuildConfig.TMDB_API_KEY.trim();
+    }
+
+    /** Whether an ambiguous title match shows a "which one did you mean?" chooser instead of guessing. */
+    public static boolean isChooserEnabled(Context context) {
+        return prefs(context).getBoolean(KEY_SHOW_CHOOSER, true);
+    }
+
+    public static void setChooserEnabled(Context context, boolean enabled) {
+        prefs(context).edit().putBoolean(KEY_SHOW_CHOOSER, enabled).apply();
     }
 }

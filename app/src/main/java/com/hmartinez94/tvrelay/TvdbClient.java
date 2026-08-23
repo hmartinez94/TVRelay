@@ -8,6 +8,8 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 import java.net.URLEncoder;
+import java.util.Collections;
+import java.util.List;
 import java.util.regex.Pattern;
 
 import okhttp3.OkHttpClient;
@@ -49,21 +51,16 @@ final class TvdbClient {
     }
 
     /**
-     * Blocking network call(s) - must only ever run on a background
+     * Every plausible match for a title, most-likely first - see
+     * ExactMatchPicker.ranked(). Empty (never null) if nothing usable came
+     * back. Blocking network call(s) - must only ever run on a background
      * thread, never the accessibility service's main thread.
      */
-    static TvdbMatch findImdbId(String title) {
-        String cleaned = TitleCleanup.stripTrailingParentheticals(title);
-        if (!cleaned.isEmpty() && !cleaned.equals(title)) {
-            TvdbMatch match = resolveTitle(cleaned);
-            if (match != null) {
-                return match;
-            }
-        }
-        return resolveTitle(title);
+    static List<TitleCandidate> findCandidates(String title) {
+        return TitleSearchFallbacks.resolve(title, TvdbClient::resolveCandidates);
     }
 
-    private static TvdbMatch resolveTitle(String title) {
+    private static List<TitleCandidate> resolveCandidates(String title) {
         try {
             return search(title, true);
         } catch (AuthException e) {
@@ -73,15 +70,15 @@ final class TvdbClient {
                 return search(title, false);
             } catch (Exception retryFailure) {
                 Log.e(TAG, "Search retry after re-login failed", retryFailure);
-                return null;
+                return Collections.emptyList();
             }
         } catch (Exception e) {
             Log.e(TAG, "Search failed for: " + title, e);
-            return null;
+            return Collections.emptyList();
         }
     }
 
-    private static TvdbMatch search(String title, boolean allowAuthRetry)
+    private static List<TitleCandidate> search(String title, boolean allowAuthRetry)
             throws IOException, JSONException, AuthException {
         String bearer = getToken();
         // limit=5 (the old value) was the actual root cause of a confirmed
@@ -103,16 +100,16 @@ final class TvdbClient {
             }
             if (!response.isSuccessful()) {
                 Log.w(TAG, "TheTVDB search failed: " + response.code());
-                return null;
+                return Collections.emptyList();
             }
             String body = response.body() != null ? response.body().string() : null;
             if (body == null) {
-                return null;
+                return Collections.emptyList();
             }
             JSONObject json = new JSONObject(body);
             JSONArray results = json.optJSONArray("data");
             if (results == null) {
-                return null;
+                return Collections.emptyList();
             }
 
             // See ExactMatchPicker for why this exists: TheTVDB's search
@@ -121,18 +118,26 @@ final class TvdbClient {
             // distinct titles across release years) - both confirmed
             // on-device (see CLAUDE.md).
             String normalizedQuery = ExactMatchPicker.normalize(title);
-            ExactMatchPicker<TvdbMatch> picker = new ExactMatchPicker<>();
+            ExactMatchPicker<TitleCandidate> picker = new ExactMatchPicker<>();
 
             for (int i = 0; i < results.length(); i++) {
                 JSONObject result = results.getJSONObject(i);
                 String type = result.optString("type", "");
+                String name = result.optString("name", "");
+                String altTitle = result.optString("title", "");
+                String yearRaw = result.optString("year", "");
                 // Temporary diagnostic logging while confirming the
-                // exact-match fix actually sees the right candidates -
-                // remove once confirmed working across real queries.
+                // exact-match fix actually sees the right candidates, and
+                // checking whether network/image_url are populated on a
+                // real search (neither is displayed yet - see
+                // TitleCandidate/CLAUDE.md) - remove once confirmed working
+                // across real queries.
                 Log.d(TAG, "Candidate " + i + ": type=" + type
-                        + " name=[" + result.optString("name", "") + "]"
-                        + " title=[" + result.optString("title", "") + "]"
-                        + " year=[" + result.optString("year", "") + "]"
+                        + " name=[" + name + "]"
+                        + " title=[" + altTitle + "]"
+                        + " year=[" + yearRaw + "]"
+                        + " network=[" + result.optString("network", "") + "]"
+                        + " image_url=[" + result.optString("image_url", "") + "]"
                         + " remote_ids=" + result.optJSONArray("remote_ids"));
                 MediaType mediaType;
                 if ("movie".equals(type)) {
@@ -146,22 +151,21 @@ final class TvdbClient {
                 if (imdbId == null) {
                     continue;
                 }
-                TvdbMatch candidate = new TvdbMatch(imdbId, mediaType);
-                boolean isExactMatch = normalizedQuery.equals(ExactMatchPicker.normalize(result.optString("name", "")))
-                        || normalizedQuery.equals(ExactMatchPicker.normalize(result.optString("title", "")));
-                int year = ExactMatchPicker.parseYear(result.optString("year", ""));
+                String displayTitle = !name.isEmpty() ? name : altTitle;
+                boolean isExactMatch = normalizedQuery.equals(ExactMatchPicker.normalize(name))
+                        || normalizedQuery.equals(ExactMatchPicker.normalize(altTitle));
+                int year = ExactMatchPicker.parseYear(yearRaw);
+                TitleCandidate candidate = TitleCandidate.fromTvdb(displayTitle, year, mediaType, isExactMatch, imdbId);
                 picker.offer(candidate, isExactMatch, year);
             }
 
-            TvdbMatch resolved = picker.result();
-            if (resolved == null) {
+            List<TitleCandidate> ranked = picker.ranked();
+            if (ranked.isEmpty()) {
                 Log.d(TAG, "No usable TheTVDB result for: " + title);
-                return null;
-            }
-            if (!picker.hasExactMatch()) {
+            } else if (!picker.hasExactMatch()) {
                 Log.d(TAG, "No exact title match for \"" + title + "\" - using top relevance result");
             }
-            return resolved;
+            return ranked;
         }
     }
 

@@ -12,9 +12,10 @@ import androidx.leanback.widget.GuidedAction;
 import java.util.List;
 
 /**
- * Choose TheTVDB (default, no setup) or TMDB (requires the user's own
- * personal free API key - see TmdbClient for why it must be their own,
- * not one bundled with the app).
+ * Choose TMDB (default, works out of the box via a bundled key - see
+ * Preferences.getEffectiveTmdbApiKey) or TheTVDB (alternative, also no
+ * setup needed). The TMDB key field here is optional: entering one
+ * overrides the bundled default, e.g. if it's ever rate-limited.
  */
 public class MetadataProviderStepFragment extends GuidedStepSupportFragment {
 
@@ -148,7 +149,10 @@ public class MetadataProviderStepFragment extends GuidedStepSupportFragment {
 
     private void testKey() {
         Context appContext = requireContext().getApplicationContext();
-        String keyToTest = tmdbApiKey;
+        // Blank field -> test the bundled default instead of unconditionally
+        // failing, since that's what lookups actually use in that case (see
+        // Preferences.getEffectiveTmdbApiKey).
+        String keyToTest = !tmdbApiKey.trim().isEmpty() ? tmdbApiKey.trim() : BuildConfig.TMDB_API_KEY.trim();
         new Thread(() -> {
             boolean ok = TmdbClient.testApiKey(keyToTest);
             if (!isAdded()) {

@@ -62,14 +62,29 @@ final class WatchNowOverlay {
         resetAutoDismiss();
     }
 
-    /** Swaps to the real confirm state once TheTVDB resolution completes. */
-    void showConfirm(TvdbMatch match, PlayerApp app, Runnable onConfirm) {
+    /** Swaps to the real confirm state once resolution completes (or, for the Nuvio+TMDB fast path, needed no resolution at all - see PlayerLauncher.prepare). */
+    void showConfirm(PlayerApp app, Runnable onConfirm) {
+        Log.d(TAG, "Showing confirm via " + app.getLabel());
+        showConfirmWithText(appContext.getString(R.string.watch_now_confirm, app.getLabel()), onConfirm);
+    }
+
+    /**
+     * Same confirm step, but for a title that turned out to have more than
+     * one exact match (see MetadataResolver.isAmbiguous) - there's no
+     * single resolved match yet to name in the button, so "onConfirm" is
+     * expected to show the chooser rather than launch anything directly.
+     */
+    void showConfirmAmbiguous(PlayerApp app, Runnable onConfirm) {
+        Log.d(TAG, "Showing ambiguous-match confirm via " + app.getLabel());
+        showConfirmWithText(appContext.getString(R.string.watch_now_choose, app.getLabel()), onConfirm);
+    }
+
+    private void showConfirmWithText(String text, Runnable onConfirm) {
         ensureButton();
         if (button == null) {
             return;
         }
-        Log.d(TAG, "Showing confirm for " + match + " via " + app.getLabel());
-        button.setText(appContext.getString(R.string.watch_now_confirm, app.getLabel()));
+        button.setText(text);
         button.setOnClickListener(v -> {
             hide();
             onConfirm.run();

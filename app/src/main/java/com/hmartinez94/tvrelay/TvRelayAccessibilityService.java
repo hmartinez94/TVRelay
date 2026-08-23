@@ -17,9 +17,10 @@ import java.util.regex.Pattern;
  * Watches for clicks on the Google TV launcher
  * (com.google.android.apps.tv.launcherx) and the Fire TV launcher
  * (com.amazon.tv.launcher). When the clicked item is a movie/show
- * recommendation card, extracts its title, resolves it to an IMDB id via
- * TheTVDB, and opens it in the app chosen in Settings (Nuvio or Stremio)
- * instead of whatever the launcher would normally do.
+ * recommendation card, extracts its title, resolves it via TMDB or TheTVDB
+ * (see Preferences.getMetadataProvider), and opens it in the app chosen in
+ * Settings (Nuvio or Stremio) instead of whatever the launcher would
+ * normally do.
  *
  * Every other click is left alone - normal launcher behavior (app icons,
  * the "Your apps" row, etc.) is untouched.
@@ -61,6 +62,7 @@ public class TvRelayAccessibilityService extends AccessibilityService {
     private final ExecutorService backgroundExecutor = Executors.newSingleThreadExecutor();
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private WatchNowOverlay overlay;
+    private MatchTrayOverlay trayOverlay;
 
     @Override
     protected void onServiceConnected() {
@@ -125,18 +127,17 @@ public class TvRelayAccessibilityService extends AccessibilityService {
             return;
         }
 
-        // Unconditional diagnostic log: the OS already filters delivery to
-        // just the watched launcher packages (see onServiceConnected), so
-        // this only fires for real launcher clicks, not app-wide noise.
-        // Needed because every branch below returns silently when a click
-        // doesn't match the expected card format - without this there is
-        // no way to see what a real card's event actually looks like on a
-        // given device/locale. Remove once title extraction is confirmed
-        // working across real devices.
+        // Unconditional diagnostic log: needed because every branch below
+        // returns silently when a click doesn't match the expected card
+        // format - without this there is no way to see what a real card's
+        // event actually looks like on a given device/locale/screen. Remove
+        // once title extraction is confirmed working across real devices.
+        AccessibilityNodeInfo diagSource = event.getSource();
         Log.d(TAG, "Click event: pkg=" + event.getPackageName()
                 + " class=" + event.getClassName()
                 + " contentDesc=[" + event.getContentDescription() + "]"
-                + " text=" + event.getText());
+                + " text=" + event.getText()
+                + " srcViewId=" + (diagSource != null ? diagSource.getViewIdResourceName() : null));
 
         CharSequence packageName = event.getPackageName();
         if (packageName != null && AMAZON_LAUNCHER_PACKAGE.contentEquals(packageName)) {
@@ -313,23 +314,54 @@ public class TvRelayAccessibilityService extends AccessibilityService {
         }
 
         backgroundExecutor.execute(() -> {
-            TvdbMatch match = MetadataResolver.findImdbId(this, title);
-            if (match == null) {
+            List<TitleCandidate> candidates = MetadataResolver.resolveCandidates(this, title);
+            if (candidates.isEmpty()) {
                 Log.w(TAG, "Could not resolve an IMDB id for: " + title);
                 if (confirmFirst) {
                     mainHandler.post(overlay::hide);
                 }
                 return;
             }
-            Log.d(TAG, "Resolved " + title + " -> " + match);
+
+            if (Preferences.isChooserEnabled(this) && MetadataResolver.isAmbiguous(candidates)) {
+                Log.d(TAG, "Ambiguous match for " + title + " (" + candidates.size() + " candidates)");
+                if (confirmFirst) {
+                    // Same confirm-before-launch step as an unambiguous
+                    // match, just relabeled - the chooser only appears once
+                    // the user presses it, exactly like a normal launch.
+                    PlayerApp app = Preferences.getSelectedApp(this);
+                    mainHandler.post(() -> overlay.showConfirmAmbiguous(app, () -> showChooser(title, candidates)));
+                } else {
+                    mainHandler.post(() -> showChooser(title, candidates));
+                }
+                return;
+            }
+
+            Runnable launch = PlayerLauncher.prepare(this, candidates.get(0));
+            if (launch == null) {
+                Log.w(TAG, "Could not resolve an IMDB id for: " + title);
+                if (confirmFirst) {
+                    mainHandler.post(overlay::hide);
+                }
+                return;
+            }
+            Log.d(TAG, "Resolved " + title);
 
             if (confirmFirst) {
                 PlayerApp app = Preferences.getSelectedApp(this);
-                mainHandler.post(() -> overlay.showConfirm(match, app, () -> PlayerLauncher.open(this, match)));
+                mainHandler.post(() -> overlay.showConfirm(app, launch));
             } else {
-                PlayerLauncher.open(this, match);
+                launch.run();
             }
         });
+    }
+
+    /** Runs on the main thread - see the mainHandler.post() call sites above. */
+    private void showChooser(String title, List<TitleCandidate> candidates) {
+        if (trayOverlay == null) {
+            trayOverlay = new MatchTrayOverlay(this);
+        }
+        trayOverlay.show(title, candidates);
     }
 
     @Override
@@ -343,6 +375,9 @@ public class TvRelayAccessibilityService extends AccessibilityService {
         backgroundExecutor.shutdown();
         if (overlay != null) {
             overlay.hide();
+        }
+        if (trayOverlay != null) {
+            trayOverlay.hide();
         }
     }
 }

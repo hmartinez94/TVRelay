@@ -33,6 +33,15 @@ android {
             "TVDB_API_KEY",
             "\"${localProperties.getProperty("TVDB_API_KEY", "")}\""
         )
+        // Same pattern as TVDB_API_KEY above. This is the shared default used
+        // when a user hasn't entered their own TMDB key in Settings (see
+        // Preferences.getEffectiveTmdbApiKey) - get a free key at
+        // https://www.themoviedb.org/settings/api
+        buildConfigField(
+            "String",
+            "TMDB_API_KEY",
+            "\"${localProperties.getProperty("TMDB_API_KEY", "")}\""
+        )
     }
 
     buildFeatures {

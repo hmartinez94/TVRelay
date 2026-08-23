@@ -8,7 +8,7 @@ import androidx.leanback.widget.GuidedAction;
 
 import java.util.List;
 
-/** Legal notice, TheTVDB attribution (required by its free-tier license), and the Restricted Settings workaround. */
+/** Legal notice, TMDB/TheTVDB attribution (required by their free-tier licenses), and the Restricted Settings workaround. */
 public class AboutStepFragment extends GuidedStepSupportFragment {
 
     private static final long ACTION_CLOSE = 1;
@@ -16,8 +16,8 @@ public class AboutStepFragment extends GuidedStepSupportFragment {
     @Override
     public GuidanceStylist.Guidance onCreateGuidance(Bundle savedInstanceState) {
         String description = getString(R.string.about_legal)
-                + "\n\n" + getString(R.string.about_tvdb_attribution)
                 + "\n\n" + getString(R.string.about_tmdb_attribution)
+                + "\n\n" + getString(R.string.about_tvdb_attribution)
                 + "\n\n" + getString(R.string.about_restricted_settings);
         return new GuidanceStylist.Guidance(
                 getString(R.string.about_title),

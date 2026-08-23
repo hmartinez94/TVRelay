@@ -20,7 +20,7 @@ public class SettingsStepFragment extends GuidedStepSupportFragment {
 
     private static final long ACTION_PLAYER_BASE = 100;
     private static final long ACTION_ENABLE_ACCESSIBILITY = 1;
-    private static final long ACTION_DONATE = 3;
+    private static final long ACTION_SHOW_CHOOSER = 2;
     private static final long ACTION_ABOUT = 4;
     private static final long ACTION_SEARCH_MANUALLY = 5;
     private static final long ACTION_ENABLE_OVERLAY = 6;
@@ -81,6 +81,17 @@ public class SettingsStepFragment extends GuidedStepSupportFragment {
                         : R.string.settings_overlay_status_disabled))
                 .build());
 
+        boolean chooserEnabled = Preferences.isChooserEnabled(context);
+        actions.add(new GuidedAction.Builder(context)
+                .id(ACTION_SHOW_CHOOSER)
+                .title(getString(R.string.settings_show_chooser))
+                .description(getString(chooserEnabled
+                        ? R.string.settings_chooser_status_enabled
+                        : R.string.settings_chooser_status_disabled))
+                .checkSetId(GuidedAction.CHECKBOX_CHECK_SET_ID)
+                .checked(chooserEnabled)
+                .build());
+
         actions.add(new GuidedAction.Builder(context)
                 .id(ACTION_SEARCH_MANUALLY)
                 .title(getString(R.string.settings_search_manually))
@@ -91,11 +102,6 @@ public class SettingsStepFragment extends GuidedStepSupportFragment {
                 .id(ACTION_METADATA_PROVIDER)
                 .title(getString(R.string.settings_metadata_provider))
                 .description(provider == MetadataProvider.TMDB ? "TMDB" : "TheTVDB")
-                .build());
-
-        actions.add(new GuidedAction.Builder(context)
-                .id(ACTION_DONATE)
-                .title(getString(R.string.settings_donate))
                 .build());
 
         actions.add(new GuidedAction.Builder(context)
@@ -122,6 +128,17 @@ public class SettingsStepFragment extends GuidedStepSupportFragment {
             return;
         }
 
+        if (id == ACTION_SHOW_CHOOSER) {
+            boolean enabled = !Preferences.isChooserEnabled(context);
+            Preferences.setChooserEnabled(context, enabled);
+            action.setChecked(enabled);
+            action.setDescription(getString(enabled
+                    ? R.string.settings_chooser_status_enabled
+                    : R.string.settings_chooser_status_disabled));
+            notifyActionChanged(getActions().indexOf(action));
+            return;
+        }
+
         if (id == ACTION_ENABLE_ACCESSIBILITY) {
             startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS));
         } else if (id == ACTION_ENABLE_OVERLAY) {
@@ -131,8 +148,6 @@ public class SettingsStepFragment extends GuidedStepSupportFragment {
             startActivity(new Intent(context, SearchActivity.class));
         } else if (id == ACTION_METADATA_PROVIDER) {
             GuidedStepSupportFragment.add(getFragmentManager(), new MetadataProviderStepFragment());
-        } else if (id == ACTION_DONATE) {
-            GuidedStepSupportFragment.add(getFragmentManager(), new DonateStepFragment());
         } else if (id == ACTION_ABOUT) {
             GuidedStepSupportFragment.add(getFragmentManager(), new AboutStepFragment());
         }

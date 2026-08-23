@@ -3,6 +3,7 @@ package com.hmartinez94.tvrelay;
 import android.content.Context;
 import android.os.Bundle;
 import android.text.InputType;
+import android.util.Log;
 import android.widget.Toast;
 
 import androidx.leanback.app.GuidedStepSupportFragment;
@@ -19,6 +20,8 @@ import java.util.List;
  * opening the chosen player) is identical to the automatic path.
  */
 public class SearchStepFragment extends GuidedStepSupportFragment {
+
+    private static final String TAG = "SearchStepFragment";
 
     private static final long ACTION_TITLE = 1;
     private static final long ACTION_SEARCH = 2;
@@ -55,6 +58,7 @@ public class SearchStepFragment extends GuidedStepSupportFragment {
     public long onGuidedActionEditedAndProceed(GuidedAction action) {
         if (action.getId() == ACTION_TITLE) {
             title = action.getDescription() != null ? action.getDescription().toString() : "";
+            Log.d(TAG, "Title field edited, now=[" + title + "]");
         }
         return GuidedAction.ACTION_ID_NEXT;
     }
@@ -68,7 +72,9 @@ public class SearchStepFragment extends GuidedStepSupportFragment {
 
     private void performSearch() {
         String query = title.trim();
+        Log.d(TAG, "performSearch: rawTitle=[" + title + "] trimmedQuery=[" + query + "] searching=" + searching);
         if (query.isEmpty() || searching) {
+            Log.d(TAG, "performSearch: aborting (empty query or already searching)");
             return;
         }
         searching = true;
@@ -76,17 +82,40 @@ public class SearchStepFragment extends GuidedStepSupportFragment {
         Toast.makeText(appContext, R.string.search_searching, Toast.LENGTH_SHORT).show();
 
         new Thread(() -> {
-            TvdbMatch match = MetadataResolver.findImdbId(appContext, query);
+            List<TitleCandidate> candidates = MetadataResolver.resolveCandidates(appContext, query);
+            Log.d(TAG, "performSearch: MetadataResolver.resolveCandidates(\"" + query + "\") -> "
+                    + candidates.size() + " candidate(s)");
+            if (!isAdded()) {
+                Log.w(TAG, "performSearch: fragment no longer added, dropping result");
+                return;
+            }
+            if (candidates.isEmpty()) {
+                requireActivity().runOnUiThread(() -> {
+                    searching = false;
+                    Toast.makeText(appContext, R.string.search_not_found, Toast.LENGTH_LONG).show();
+                });
+                return;
+            }
+            if (Preferences.isChooserEnabled(appContext) && MetadataResolver.isAmbiguous(candidates)) {
+                requireActivity().runOnUiThread(() -> {
+                    searching = false;
+                    GuidedStepSupportFragment.add(getFragmentManager(),
+                            MatchChooserStepFragment.create(query, candidates));
+                });
+                return;
+            }
+            // Still on the background thread: opening the top candidate can
+            // be a blocking network call - see PlayerLauncher.prepare.
+            boolean opened = PlayerLauncher.openCandidate(appContext, candidates.get(0));
             if (!isAdded()) {
                 return;
             }
             requireActivity().runOnUiThread(() -> {
                 searching = false;
-                if (match == null) {
+                if (!opened) {
                     Toast.makeText(appContext, R.string.search_not_found, Toast.LENGTH_LONG).show();
                     return;
                 }
-                PlayerLauncher.open(appContext, match);
                 requireActivity().finish();
             });
         }).start();

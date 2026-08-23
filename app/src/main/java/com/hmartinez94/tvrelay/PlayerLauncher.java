@@ -6,10 +6,16 @@ import android.net.Uri;
 import android.util.Log;
 
 /**
- * Opens a resolved title in whichever app the user picked in Settings.
+ * Opens a title in whichever app the user picked in Settings.
  *
- * Nuvio: nuvio://movie/{imdbId} (movies), nuvio://detail/tv/{imdbId} (series).
- * Stremio: stremio:///detail/movie/{imdbId}, stremio:///detail/series/{imdbId}.
+ * Nuvio: nuvio://movie/{imdbId} (movies), nuvio://detail/tv/{imdbId} (series) -
+ * OR, when the candidate came from TMDB, nuvio://tmdb/{movie|tv}/{tmdbId}
+ * directly (see prepare()/openCandidate() - confirmed working on-device
+ * 2026-08-23, verified against com.nuvio.app the same way the IMDb scheme
+ * already was, via `adb shell am start`).
+ * Stremio: stremio:///detail/movie/{imdbId}, stremio:///detail/series/{imdbId} -
+ * always IMDb-based, no TMDB-native equivalent exists in Stremio's addon
+ * ecosystem, which is built around IMDb ids universally.
  *
  * Takes a plain Context (not specifically AccessibilityService) so it can be
  * called both from the accessibility service and from a regular Activity
@@ -22,6 +28,51 @@ final class PlayerLauncher {
     private PlayerLauncher() {
     }
 
+    /**
+     * Resolves (if needed) and opens a candidate in one step. For Nuvio with
+     * a TMDB-provenance candidate, this needs no network call at all - see
+     * prepare(). Otherwise this is a blocking network call for TMDB (the
+     * external_ids fetch) - call only from a background thread. Returns
+     * whether it succeeded (false if resolution failed).
+     */
+    static boolean openCandidate(Context context, TitleCandidate candidate) {
+        Runnable launch = prepare(context, candidate);
+        if (launch == null) {
+            return false;
+        }
+        launch.run();
+        return true;
+    }
+
+    /**
+     * Returns a Runnable that opens this candidate, or null if it couldn't
+     * be resolved - without actually opening anything yet. Exists so a
+     * caller can decide to open it later (e.g. only once a confirm button
+     * is tapped - see TvRelayAccessibilityService) while still doing any
+     * necessary network resolution up front, on the same background thread
+     * it already had to be on.
+     *
+     * For Nuvio + a TMDB-provenance candidate, nothing needs resolving:
+     * Nuvio accepts a TMDB id directly (nuvio://tmdb/{movie|tv}/{id}), so
+     * the returned Runnable is a plain, already-built Intent launch with no
+     * network call in it at all - faster, and it works even for a
+     * candidate TMDB hasn't cross-referenced to an IMDb id yet (see
+     * TmdbClient.resolveImdbId, which would otherwise fail those). Every
+     * other case (TheTVDB candidates, or Stremio - which has no TMDB-native
+     * scheme) resolves an IMDb id first, exactly as before this existed -
+     * a blocking network call for TMDB in that case.
+     */
+    static Runnable prepare(Context context, TitleCandidate candidate) {
+        PlayerApp app = Preferences.getSelectedApp(context);
+        if (app == PlayerApp.NUVIO && candidate.tmdbMediaPath != null) {
+            Uri uri = Uri.parse("nuvio://tmdb/" + candidate.tmdbMediaPath + "/" + candidate.tmdbId);
+            return () -> openWithFallback(context, uri, app.getPackageName(), app.getLabel());
+        }
+        TvdbMatch match = MetadataResolver.resolve(context, candidate);
+        return match != null ? () -> open(context, match) : null;
+    }
+
+    /** IMDb-id-based launch for an already-resolved match - see prepare() for the TMDB-native fast path. */
     static void open(Context context, TvdbMatch match) {
         PlayerApp app = Preferences.getSelectedApp(context);
 
