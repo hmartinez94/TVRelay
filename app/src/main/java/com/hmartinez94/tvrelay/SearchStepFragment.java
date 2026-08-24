@@ -81,6 +81,28 @@ public class SearchStepFragment extends GuidedStepSupportFragment {
         Context appContext = requireContext().getApplicationContext();
         Toast.makeText(appContext, R.string.search_searching, Toast.LENGTH_SHORT).show();
 
+        if (PlayerLauncher.usesTitleSearch(appContext)) {
+            // Plex/Jellyfin have no content deep link - skip
+            // MetadataResolver and the ambiguity chooser entirely and just
+            // hand the typed query straight to the player's own search
+            // screen. See PlayerLauncher.prepareTitleSearch().
+            new Thread(() -> {
+                boolean opened = PlayerLauncher.openTitleSearch(appContext, query);
+                if (!isAdded()) {
+                    return;
+                }
+                requireActivity().runOnUiThread(() -> {
+                    searching = false;
+                    if (!opened) {
+                        Toast.makeText(appContext, R.string.search_not_found, Toast.LENGTH_LONG).show();
+                        return;
+                    }
+                    requireActivity().finish();
+                });
+            }).start();
+            return;
+        }
+
         new Thread(() -> {
             List<TitleCandidate> candidates = MetadataResolver.resolveCandidates(appContext, query);
             Log.d(TAG, "performSearch: MetadataResolver.resolveCandidates(\"" + query + "\") -> "

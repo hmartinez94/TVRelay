@@ -28,6 +28,10 @@
     <queries>
         <package android:name="com.nuvio.app" />
         <package android:name="com.stremio.one" />
+        <package android:name="com.plexapp.android" />
+        <package android:name="org.jellyfin.androidtv" />
+        <package android:name="org.smarttube.stable" />
+        <package android:name="org.smarttube.beta" />
     </queries>
 
     <application

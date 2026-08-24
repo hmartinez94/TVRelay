@@ -16,6 +16,7 @@ public final class Preferences {
     private static final String KEY_METADATA_PROVIDER = "metadata_provider";
     private static final String KEY_TMDB_API_KEY = "tmdb_api_key";
     private static final String KEY_SHOW_CHOOSER = "show_match_chooser";
+    private static final String KEY_SMARTTUBE_ENABLED = "smarttube_redirect_enabled";
 
     private Preferences() {
     }
@@ -98,5 +99,20 @@ public final class Preferences {
 
     public static void setChooserEnabled(Context context, boolean enabled) {
         prefs(context).edit().putBoolean(KEY_SHOW_CHOOSER, enabled).apply();
+    }
+
+    /**
+     * Whether a YouTube video recommendation card (as opposed to a
+     * movie/show card) gets redirected to SmartTube instead of being left
+     * alone - see TvRelayAccessibilityService's YouTube-marker detection
+     * and PlayerLauncher.prepareSmartTube(). Independent of getSelectedApp()
+     * - this fires regardless of which movie/show player is selected.
+     */
+    public static boolean isSmartTubeEnabled(Context context) {
+        return prefs(context).getBoolean(KEY_SMARTTUBE_ENABLED, true);
+    }
+
+    public static void setSmartTubeEnabled(Context context, boolean enabled) {
+        prefs(context).edit().putBoolean(KEY_SMARTTUBE_ENABLED, enabled).apply();
     }
 }

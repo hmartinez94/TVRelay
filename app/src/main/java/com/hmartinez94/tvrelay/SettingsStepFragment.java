@@ -25,6 +25,7 @@ public class SettingsStepFragment extends GuidedStepSupportFragment {
     private static final long ACTION_SEARCH_MANUALLY = 5;
     private static final long ACTION_ENABLE_OVERLAY = 6;
     private static final long ACTION_METADATA_PROVIDER = 7;
+    private static final long ACTION_SMARTTUBE_REDIRECT = 8;
 
     @Override
     public GuidanceStylist.Guidance onCreateGuidance(Bundle savedInstanceState) {
@@ -55,12 +56,18 @@ public class SettingsStepFragment extends GuidedStepSupportFragment {
         PlayerApp[] apps = PlayerApp.values();
         for (int i = 0; i < apps.length; i++) {
             PlayerApp app = apps[i];
-            actions.add(new GuidedAction.Builder(context)
+            GuidedAction.Builder builder = new GuidedAction.Builder(context)
                     .id(ACTION_PLAYER_BASE + i)
                     .title(app.getLabel())
                     .checkSetId(GuidedAction.DEFAULT_CHECK_SET_ID)
-                    .checked(app == selected)
-                    .build());
+                    .checked(app == selected);
+            // Plex/Jellyfin only get a title search hand-off, not a direct
+            // open - see PlayerApp.usesTitleSearch(). Said plainly here so
+            // it's never mistaken for the same kind of open Nuvio/Stremio do.
+            if (app.getDescriptionRes() != 0) {
+                builder.description(getString(app.getDescriptionRes()));
+            }
+            actions.add(builder.build());
         }
 
         boolean serviceEnabled = isAccessibilityServiceEnabled(context);
@@ -90,6 +97,17 @@ public class SettingsStepFragment extends GuidedStepSupportFragment {
                         : R.string.settings_chooser_status_disabled))
                 .checkSetId(GuidedAction.CHECKBOX_CHECK_SET_ID)
                 .checked(chooserEnabled)
+                .build());
+
+        boolean smartTubeEnabled = Preferences.isSmartTubeEnabled(context);
+        actions.add(new GuidedAction.Builder(context)
+                .id(ACTION_SMARTTUBE_REDIRECT)
+                .title(getString(R.string.settings_smarttube_redirect))
+                .description(getString(smartTubeEnabled
+                        ? R.string.settings_smarttube_status_enabled
+                        : R.string.settings_smarttube_status_disabled))
+                .checkSetId(GuidedAction.CHECKBOX_CHECK_SET_ID)
+                .checked(smartTubeEnabled)
                 .build());
 
         actions.add(new GuidedAction.Builder(context)
@@ -135,6 +153,17 @@ public class SettingsStepFragment extends GuidedStepSupportFragment {
             action.setDescription(getString(enabled
                     ? R.string.settings_chooser_status_enabled
                     : R.string.settings_chooser_status_disabled));
+            notifyActionChanged(getActions().indexOf(action));
+            return;
+        }
+
+        if (id == ACTION_SMARTTUBE_REDIRECT) {
+            boolean enabled = !Preferences.isSmartTubeEnabled(context);
+            Preferences.setSmartTubeEnabled(context, enabled);
+            action.setChecked(enabled);
+            action.setDescription(getString(enabled
+                    ? R.string.settings_smarttube_status_enabled
+                    : R.string.settings_smarttube_status_disabled));
             notifyActionChanged(getActions().indexOf(action));
             return;
         }

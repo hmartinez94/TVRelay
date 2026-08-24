@@ -3,7 +3,7 @@
 [![Latest release](https://img.shields.io/github/v/release/hmartinez94/TVRelay?sort=semver)](../../releases)
 [![License: PolyForm Noncommercial](https://img.shields.io/badge/license-PolyForm%20Noncommercial-blue)](LICENSE)
 
-Google TV's home screen recommends a movie, you click it, and it opens whatever app the recommendation happened to come from - usually not the one you actually wanted to watch it in. TVRelay intercepts that click and opens the title in **Nuvio** or **Stremio** instead, with a one-tap confirmation so a stray click never redirects you by accident.
+Google TV's home screen recommends a movie, you click it, and it opens whatever app the recommendation happened to come from - usually not the one you actually wanted to watch it in. TVRelay intercepts that click and opens the title in **Nuvio**, **Stremio**, **Plex**, or **Jellyfin** instead, with a one-tap confirmation so a stray click never redirects you by accident.
 
 <img src=".github/screenshots/watch-now-overlay.jpg" alt="A Google TV recommendation page for the movie Obsession, with a 'Watch now in Nuvio' button from TVRelay floating over it" width="720">
 
@@ -33,7 +33,7 @@ Not every recommendation card exposes a title this way; see [Limitations](#limit
 ## Requirements
 
 - A device with the **Google TV** launcher (Chromecast with Google TV, or Google TV editions from Sony, TCL, Hisense, etc.). Fire TV is not currently supported - see [Limitations](#limitations).
-- **Nuvio** and/or **Stremio** installed on the device.
+- **Nuvio**, **Stremio**, **Plex**, and/or **Jellyfin** installed on the device - whichever one you plan to pick in Settings. See [Limitations](#limitations) for how Plex/Jellyfin differ from Nuvio/Stremio.
 
 ## Installation
 
@@ -62,7 +62,7 @@ TVRelay isn't on Google Play yet - install the APK from this repository's [Relea
 
 <img src=".github/screenshots/settings.png" alt="TVRelay's Settings screen on Google TV, showing the player choice and accessibility/overlay toggles" width="720">
 
-Open **TVRelay** from the TV's launcher, accept the first-run disclosure, pick Nuvio or Stremio as your player, then work through the two toggles below.
+Open **TVRelay** from the TV's launcher, accept the first-run disclosure, pick your player, then work through the two toggles below.
 
 ### Enable in Accessibility settings
 
@@ -106,6 +106,8 @@ Typing a 32-character key with a TV remote is painful, so that screen has a **"S
 
 ## Limitations
 
+- **YouTube video recommendations can optionally redirect to SmartTube** (Settings → "Redirect YouTube recommendations to SmartTube", on by default) instead of being left alone - independent of whichever movie/show player you've picked above. **Experimental and unconfirmed**: unlike everything else in this list, this hasn't been confirmed against a real YouTube-video recommendation click yet, so it may currently just do nothing.
+- **Plex and Jellyfin open a search, not the title itself.** Neither app has a way for another app to open a specific title directly, so picking one of them just hands the clicked/typed title to that app's own search screen - it'll only find something if it's already in your personal Plex or Jellyfin library/server. Nuvio and Stremio don't have this limitation: they resolve against their own online catalogs, so they can open a title you don't already have.
 - **Fire TV is not currently supported.** Tested end-to-end on a real Fire TV Stick, and recommendation clicks never reach TVRelay's detection at all - almost certainly because Amazon's newly-redesigned Fire TV home screen (rolling out through 2026) doesn't expose standard Android accessibility events to third-party apps the way Google TV's launcher does. No known workaround; TVRelay is Google TV only for now.
 - **WuPlay isn't supported as a player.** Its only deep link is for switching profiles remotely, not for opening a specific title - there's currently no way for TVRelay (or anything else) to hand it a title to open directly.
 - **Some recommendation cards can't be detected automatically** - a real limitation of what the launcher exposes to accessibility tools, not a TVRelay bug, and there's no way to fix it from the app's side. If clicking a recommendation does nothing at all, use Settings → **"Search for a title manually"**: type the title yourself, and everything after that works exactly the same way as an automatically-detected click.
@@ -121,7 +123,21 @@ To narrow it down (needs ADB access), test the deep link directly, bypassing TVR
 adb shell am start -a android.intent.action.VIEW -d "nuvio://movie/tt0371746"
 adb shell am start -a android.intent.action.VIEW -d "nuvio://tmdb/movie/1726"
 ```
-Both should open Nuvio on Iron Man's page - the first by IMDb id (used for TheTVDB matches, and for Stremio), the second by TMDB id (used for TMDB matches, TVRelay's default provider). If neither works, the issue is with your Nuvio build, not TVRelay. If they work, the click likely isn't being detected - check for that with:
+Both should open Nuvio on Iron Man's page - the first by IMDb id (used for TheTVDB matches, and for Stremio), the second by TMDB id (used for TMDB matches, TVRelay's default provider). If neither works, the issue is with your Nuvio build, not TVRelay.
+
+For Plex or Jellyfin, test the search hand-off the same way:
+```
+adb shell am start -a android.intent.action.VIEW -d "https://watch.plex.tv/search?q=iron%20man" -p com.plexapp.android
+adb shell am start -a android.intent.action.SEARCH -e query "iron man" -p org.jellyfin.androidtv
+```
+Both should land on a search results screen for "iron man" inside that app.
+
+For SmartTube:
+```
+adb shell am start -a android.intent.action.VIEW -d "https://www.youtube.com/results?search_query=iron%20man" -p org.smarttube.stable
+```
+
+If none of these work, the issue is with the target app's build, not TVRelay. If they work, the click likely isn't being detected - check for that with:
 ```
 adb logcat -s TvRelayService:D TvdbClient:D PlayerLauncher:D
 ```
@@ -158,7 +174,7 @@ The APK is written to `app\build\outputs\apk\debug\app-debug.apk`.
 
 TVRelay's function is limited to detecting certain recommendations shown by the device's launcher, identifying the selected content, and opening its page in a third-party app you've already installed and configured yourself - it does not host, store, distribute, or provide any movies, series, streams, torrents, or other audiovisual content, and has no visibility into or control over what those third-party apps and their add-ons actually serve. You're responsible for your own use of them, including making sure that use complies with applicable law and their respective terms of service.
 
-TVRelay is not affiliated with, sponsored by, authorized by, or endorsed by Google, Google TV, Amazon, Fire TV, Nuvio, or Stremio. Google, Google TV, Android TV, Amazon, Fire TV, Nuvio, and Stremio are trademarks or products of their respective owners.
+TVRelay is not affiliated with, sponsored by, authorized by, or endorsed by Google, Google TV, Amazon, Fire TV, Nuvio, Stremio, Plex, or Jellyfin. Google, Google TV, Android TV, Amazon, Fire TV, Nuvio, Stremio, Plex, and Jellyfin are trademarks or products of their respective owners.
 
 ## Credits
 

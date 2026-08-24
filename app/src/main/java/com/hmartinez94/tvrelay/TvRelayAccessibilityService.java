@@ -11,16 +11,20 @@ import android.view.accessibility.AccessibilityNodeInfo;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.function.BooleanSupplier;
 import java.util.regex.Pattern;
 
 /**
  * Watches for clicks on the Google TV launcher
  * (com.google.android.apps.tv.launcherx) and the Fire TV launcher
  * (com.amazon.tv.launcher). When the clicked item is a movie/show
- * recommendation card, extracts its title, resolves it via TMDB or TheTVDB
- * (see Preferences.getMetadataProvider), and opens it in the app chosen in
- * Settings (Nuvio or Stremio) instead of whatever the launcher would
- * normally do.
+ * recommendation card, extracts its title, and opens it in the app chosen
+ * in Settings instead of whatever the launcher would normally do. For
+ * Nuvio/Stremio that means resolving the title via TMDB or TheTVDB first
+ * (see Preferences.getMetadataProvider) to get an IMDb/TMDB id for a
+ * direct content deep link; Plex/Jellyfin skip resolution entirely and
+ * just hand the title to the player's own search screen (see PlayerApp's
+ * class doc, PlayerLauncher.prepareTitleSearch()).
  *
  * Every other click is left alone - normal launcher behavior (app icons,
  * the "Your apps" row, etc.) is untouched.
@@ -51,6 +55,28 @@ public class TvRelayAccessibilityService extends AccessibilityService {
     // which turned out to be the wrong wording entirely - confirmed via
     // real content-desc strings like "requires Prime Video subscription".)
     private static final Pattern SUBSCRIPTION_MARKER = Pattern.compile("requires .+ subscription");
+
+    // Distinguishes a YouTube video recommendation card from a movie/show
+    // card, so it can be redirected to SmartTube instead (see
+    // PlayerLauncher.prepareSmartTube(), Preferences.isSmartTubeEnabled())
+    // rather than being treated as a movie/show search - which, left
+    // unchecked, is exactly what the generic "{Title}, {rest}" fallback in
+    // isMovieOrShowCard() would otherwise do to it.
+    //
+    // UNVERIFIED on this device/launcher build - no real YouTube-video
+    // recommendation click has been captured and confirmed yet, unlike
+    // every other marker in this file (see "Title extraction" in
+    // CLAUDE.md). Mirrors Bananz0/OpenTVBridge's own marker choice
+    // (2026-08-24, see CLAUDE.md) as the best available evidence, not a
+    // confirmed real content-desc string. This check runs BEFORE
+    // isMovieOrShowCard() specifically so a wrong guess here can only ever
+    // mean the redirect silently never fires (same as today, before this
+    // existed) - it can't misclassify a real movie/show card, since movie
+    // markers are checked separately, afterward, only for content this
+    // doesn't match.
+    private static final String[] YOUTUBE_MARKERS = {"duración:", "duration:"};
+
+    private static final String SMARTTUBE_LABEL = "SmartTube";
 
     private static final String FIRE_TV_MAIN_IMAGE_ID = "com.amazon.tv.launcher:id/main_image";
 
@@ -155,6 +181,14 @@ public class TvRelayAccessibilityService extends AccessibilityService {
         CharSequence descCharSeq = event.getContentDescription();
         String desc = descCharSeq != null ? descCharSeq.toString() : null;
         if (desc != null && !desc.trim().isEmpty()) {
+            if (isYouTubeCard(desc)) {
+                String title = extractTitle(desc);
+                if (!title.isEmpty()) {
+                    Log.d(TAG, "YouTube video detected: " + title);
+                    handleYouTubeClick(title);
+                }
+                return;
+            }
             if (isMovieOrShowCard(event, desc)) {
                 String title = extractTitle(desc);
                 if (!title.isEmpty()) {
@@ -187,7 +221,18 @@ public class TvRelayAccessibilityService extends AccessibilityService {
             source.refresh();
             CharSequence delayed = source.getContentDescription();
             String delayedDesc = delayed != null ? delayed.toString() : null;
-            if (delayedDesc != null && !delayedDesc.trim().isEmpty() && isMovieOrShowCard(event, delayedDesc)) {
+            if (delayedDesc == null || delayedDesc.trim().isEmpty()) {
+                return;
+            }
+            if (isYouTubeCard(delayedDesc)) {
+                String title = extractTitle(delayedDesc);
+                if (!title.isEmpty()) {
+                    Log.d(TAG, "YouTube video detected (delayed): " + title);
+                    handleYouTubeClick(title);
+                }
+                return;
+            }
+            if (isMovieOrShowCard(event, delayedDesc)) {
                 String title = extractTitle(delayedDesc);
                 if (!title.isEmpty()) {
                     Log.d(TAG, "Movie/show detected (delayed): " + title);
@@ -243,6 +288,15 @@ public class TvRelayAccessibilityService extends AccessibilityService {
             return null;
         }
         return first;
+    }
+
+    private boolean isYouTubeCard(String contentDesc) {
+        for (String marker : YOUTUBE_MARKERS) {
+            if (contentDesc.contains(marker)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private boolean isMovieOrShowCard(AccessibilityEvent event, String contentDesc) {
@@ -313,6 +367,22 @@ public class TvRelayAccessibilityService extends AccessibilityService {
             overlay.showLoading();
         }
 
+        PlayerApp app = Preferences.getSelectedApp(this);
+        if (app.usesTitleSearch()) {
+            // Plex/Jellyfin have no content deep link (see PlayerApp's
+            // class doc) - just hand the clicked title straight to their
+            // own search screen. No MetadataResolver call at all: no
+            // network, and nothing that can fail to "resolve" - see
+            // PlayerLauncher.prepareTitleSearch().
+            BooleanSupplier launch = PlayerLauncher.prepareTitleSearch(this, title);
+            if (confirmFirst) {
+                mainHandler.post(() -> overlay.showConfirmSearch(app, launch::getAsBoolean));
+            } else {
+                launch.getAsBoolean();
+            }
+            return;
+        }
+
         backgroundExecutor.execute(() -> {
             List<TitleCandidate> candidates = MetadataResolver.resolveCandidates(this, title);
             if (candidates.isEmpty()) {
@@ -329,7 +399,7 @@ public class TvRelayAccessibilityService extends AccessibilityService {
                     // Same confirm-before-launch step as an unambiguous
                     // match, just relabeled - the chooser only appears once
                     // the user presses it, exactly like a normal launch.
-                    PlayerApp app = Preferences.getSelectedApp(this);
+                    // (app already read above, outside this lambda.)
                     mainHandler.post(() -> overlay.showConfirmAmbiguous(app, () -> showChooser(title, candidates)));
                 } else {
                     mainHandler.post(() -> showChooser(title, candidates));
@@ -337,7 +407,7 @@ public class TvRelayAccessibilityService extends AccessibilityService {
                 return;
             }
 
-            Runnable launch = PlayerLauncher.prepare(this, candidates.get(0));
+            BooleanSupplier launch = PlayerLauncher.prepare(this, candidates.get(0));
             if (launch == null) {
                 Log.w(TAG, "Could not resolve an IMDB id for: " + title);
                 if (confirmFirst) {
@@ -348,12 +418,45 @@ public class TvRelayAccessibilityService extends AccessibilityService {
             Log.d(TAG, "Resolved " + title);
 
             if (confirmFirst) {
-                PlayerApp app = Preferences.getSelectedApp(this);
-                mainHandler.post(() -> overlay.showConfirm(app, launch));
+                mainHandler.post(() -> overlay.showConfirm(app, launch::getAsBoolean));
             } else {
-                launch.run();
+                launch.getAsBoolean();
             }
         });
+    }
+
+    /**
+     * SmartTube redirect for a YouTube video recommendation card - see
+     * YOUTUBE_MARKERS and PlayerLauncher.prepareSmartTube(). Independent of
+     * PlayerApp/handleMovieClick(): this fires (or doesn't) based only on
+     * Preferences.isSmartTubeEnabled(), regardless of which movie/show
+     * player is selected. No MetadataResolver call, same reasoning as the
+     * title-search players in handleMovieClick() - just a YouTube search,
+     * nothing to resolve.
+     */
+    private void handleYouTubeClick(String title) {
+        if (!Preferences.isSmartTubeEnabled(this)) {
+            return;
+        }
+
+        long now = System.currentTimeMillis();
+        if (title.equals(lastHandledTitle) && (now - lastHandledAtMillis) < DEBOUNCE_MS) {
+            return;
+        }
+        lastHandledTitle = title;
+        lastHandledAtMillis = now;
+
+        boolean confirmFirst = overlay != null && overlay.isPermissionGranted();
+        if (confirmFirst) {
+            overlay.showLoading();
+        }
+
+        BooleanSupplier launch = PlayerLauncher.prepareSmartTube(this, title);
+        if (confirmFirst) {
+            mainHandler.post(() -> overlay.showConfirmSearch(SMARTTUBE_LABEL, launch::getAsBoolean));
+        } else {
+            launch.getAsBoolean();
+        }
     }
 
     /** Runs on the main thread - see the mainHandler.post() call sites above. */

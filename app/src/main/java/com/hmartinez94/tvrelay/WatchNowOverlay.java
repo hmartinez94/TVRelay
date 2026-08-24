@@ -79,6 +79,27 @@ final class WatchNowOverlay {
         showConfirmWithText(appContext.getString(R.string.watch_now_choose, app.getLabel()), onConfirm);
     }
 
+    /**
+     * Same confirm step, but honestly labeled "Search in {App}" rather than
+     * "Watch now" - for a title-search player (Plex, Jellyfin), which has
+     * no content deep link and only ever opens a search screen, not the
+     * title itself. See PlayerApp.usesTitleSearch() / PlayerLauncher.
+     */
+    void showConfirmSearch(PlayerApp app, Runnable onConfirm) {
+        showConfirmSearch(app.getLabel(), onConfirm);
+    }
+
+    /**
+     * Same as showConfirmSearch(PlayerApp, Runnable), but for a target that
+     * isn't a PlayerApp at all - namely SmartTube's YouTube redirect (see
+     * PlayerLauncher.prepareSmartTube()), which is an independent toggle,
+     * not one of the mutually-exclusive player choices in Settings.
+     */
+    void showConfirmSearch(String appLabel, Runnable onConfirm) {
+        Log.d(TAG, "Showing search confirm via " + appLabel);
+        showConfirmWithText(appContext.getString(R.string.watch_now_search, appLabel), onConfirm);
+    }
+
     private void showConfirmWithText(String text, Runnable onConfirm) {
         ensureButton();
         if (button == null) {
