@@ -23,8 +23,8 @@ android {
         // the field. The wizard default of 35 would exclude almost all of them.
         minSdk = 24
         targetSdk = 37
-        versionCode = 2
-        versionName = "1.1.0"
+        versionCode = 3
+        versionName = "1.2.0"
 
         // Read from local.properties (gitignored, not versioned). Get a free key
         // at https://www.thetvdb.com/dashboard/account/apikeys
