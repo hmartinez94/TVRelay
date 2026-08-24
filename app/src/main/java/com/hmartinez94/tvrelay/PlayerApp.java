@@ -3,21 +3,27 @@ package com.hmartinez94.tvrelay;
 /**
  * The app a resolved title gets opened in.
  *
- * NUVIO and STREMIO get a direct content deep link (see
- * PlayerLauncher.open()/prepare()). PLEX and JELLYFIN have no usable
- * content deep link - see CLAUDE.md's "Plex and Jellyfin" notes, and the
- * Cinemeta/OpenTVBridge investigation it's based on - so they only ever get
- * a plain title search hand-off (see PlayerLauncher.prepareTitleSearch()).
- * That's the same limitation that got Kodi support removed entirely: it
- * only searches whatever's already in the user's own library/server, not
- * an online catalog like Nuvio/Stremio - kept here (unlike Kodi) because
- * it's still honestly labeled as a search, not presented as a direct open.
+ * NUVIO, STREMIO, and WUPLAY get a direct content deep link (see
+ * PlayerLauncher.open()/prepare()) - WuPlay's `wuplay://{movie|series}/{imdbId}`
+ * scheme confirmed working on-device 2026-08-24, added in WuPlay's own
+ * v0.8.3-beta release the same day (see CLAUDE.md's "WuPlay wall" - this
+ * reverses that section's original finding, which is why it's dated and
+ * kept rather than deleted). JELLYFIN has no usable content deep link - see
+ * CLAUDE.md's "Plex and Jellyfin" notes - so it gets a plain title search
+ * hand-off instead (see PlayerLauncher.prepareTitleSearch()).
+ *
+ * PLEX is disabled (enabled=false) rather than removed - see CLAUDE.md.
+ * Its code (here and in PlayerLauncher) is left fully intact; only
+ * SettingsStepFragment and Preferences.getSelectedApp() actually enforce
+ * the disable, by skipping/falling-back on a disabled entry. Re-enable by
+ * flipping this flag back to true if that's ever warranted again.
  */
 public enum PlayerApp {
-    NUVIO("com.nuvio.app", "Nuvio", LaunchStyle.DEEP_LINK, 0),
-    STREMIO("com.stremio.one", "Stremio", LaunchStyle.DEEP_LINK, 0),
-    PLEX("com.plexapp.android", "Plex", LaunchStyle.TITLE_SEARCH, R.string.settings_player_plex_description),
-    JELLYFIN("org.jellyfin.androidtv", "Jellyfin", LaunchStyle.TITLE_SEARCH, R.string.settings_player_jellyfin_description);
+    NUVIO("com.nuvio.app", "Nuvio", LaunchStyle.DEEP_LINK, 0, true),
+    STREMIO("com.stremio.one", "Stremio", LaunchStyle.DEEP_LINK, 0, true),
+    WUPLAY("app.wuplay.androidtv", "WuPlay", LaunchStyle.DEEP_LINK, 0, true),
+    PLEX("com.plexapp.android", "Plex", LaunchStyle.TITLE_SEARCH, R.string.settings_player_plex_description, false),
+    JELLYFIN("org.jellyfin.androidtv", "Jellyfin", LaunchStyle.TITLE_SEARCH, R.string.settings_player_jellyfin_description, true);
 
     enum LaunchStyle {
         DEEP_LINK,
@@ -28,12 +34,14 @@ public enum PlayerApp {
     private final String label;
     private final LaunchStyle launchStyle;
     private final int descriptionRes; // 0 = no description shown in Settings
+    private final boolean enabled;
 
-    PlayerApp(String packageName, String label, LaunchStyle launchStyle, int descriptionRes) {
+    PlayerApp(String packageName, String label, LaunchStyle launchStyle, int descriptionRes, boolean enabled) {
         this.packageName = packageName;
         this.label = label;
         this.launchStyle = launchStyle;
         this.descriptionRes = descriptionRes;
+        this.enabled = enabled;
     }
 
     public String getPackageName() {
@@ -52,5 +60,10 @@ public enum PlayerApp {
     /** 0 when this player needs no extra explanation in the Settings radio row. */
     int getDescriptionRes() {
         return descriptionRes;
+    }
+
+    /** False for a player kept in the codebase but not currently offered - see PLEX above and CLAUDE.md. */
+    boolean isEnabled() {
+        return enabled;
     }
 }

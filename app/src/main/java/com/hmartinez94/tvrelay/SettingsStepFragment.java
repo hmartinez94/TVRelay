@@ -56,6 +56,13 @@ public class SettingsStepFragment extends GuidedStepSupportFragment {
         PlayerApp[] apps = PlayerApp.values();
         for (int i = 0; i < apps.length; i++) {
             PlayerApp app = apps[i];
+            if (!app.isEnabled()) {
+                // Disabled, not removed - see PlayerApp.isEnabled()/CLAUDE.md
+                // (currently: Plex). Index i is left as-is (not
+                // renumbered) so ACTION_PLAYER_BASE + i still lines up with
+                // PlayerApp.values() in onGuidedActionClicked below.
+                continue;
+            }
             GuidedAction.Builder builder = new GuidedAction.Builder(context)
                     .id(ACTION_PLAYER_BASE + i)
                     .title(app.getLabel())
@@ -138,7 +145,7 @@ public class SettingsStepFragment extends GuidedStepSupportFragment {
         if (id >= ACTION_PLAYER_BASE) {
             int index = (int) (id - ACTION_PLAYER_BASE);
             PlayerApp[] apps = PlayerApp.values();
-            if (index >= 0 && index < apps.length) {
+            if (index >= 0 && index < apps.length && apps[index].isEnabled()) {
                 Preferences.setSelectedApp(context, apps[index]);
             }
             RadioActionHelper.enforceExclusivity(getActions(), id,

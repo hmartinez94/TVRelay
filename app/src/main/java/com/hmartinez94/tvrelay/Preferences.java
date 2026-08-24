@@ -39,7 +39,12 @@ public final class Preferences {
             return PlayerApp.NUVIO;
         }
         try {
-            return PlayerApp.valueOf(stored);
+            PlayerApp app = PlayerApp.valueOf(stored);
+            // Covers a player disabled after being saved (e.g. Plex, on a
+            // device that had it selected before it was disabled - see
+            // PlayerApp.isEnabled()/CLAUDE.md) - falls back the same way an
+            // unrecognized stored value already did below.
+            return app.isEnabled() ? app : PlayerApp.NUVIO;
         } catch (IllegalArgumentException e) {
             return PlayerApp.NUVIO;
         }

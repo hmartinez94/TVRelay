@@ -17,7 +17,7 @@
     <string name="settings_show_chooser">Ask when a match is ambiguous</string>
     <string name="settings_chooser_status_enabled">Status: enabled - shows a chooser when a title matches more than one thing exactly, instead of guessing</string>
     <string name="settings_chooser_status_disabled">Status: disabled - always opens the newest exact match automatically</string>
-    <string name="settings_player_plex_description">Opens a search in Plex - only finds titles already in your library, doesn\'t open the title directly</string>
+    <string name="settings_player_plex_description">Opens Plex\'s search screen - you\'ll need to type the title yourself, and it only finds titles already in your library</string>
     <string name="settings_player_jellyfin_description">Opens a search in Jellyfin - only finds titles on your own server, doesn\'t open the title directly</string>
     <string name="settings_smarttube_redirect">Redirect YouTube recommendations to SmartTube</string>
     <string name="settings_smarttube_status_enabled">Status: enabled - a YouTube video recommendation opens a search in SmartTube instead, independent of your movie/show player above</string>
@@ -27,7 +27,7 @@
     <string name="settings_about">About &amp; help</string>
 
     <string name="about_title">About &amp; help</string>
-    <string name="about_legal">TVRelay is an independent automation and redirection tool. It does not host, store, distribute, or provide movies, series, streams, torrents, or any other audiovisual content. It has no relationship with Nuvio, Stremio, Plex, or Jellyfin, or the origin or legality of any content you access through those apps - that depends entirely on which apps and add-ons you have installed and configured, under your own responsibility. TVRelay is not affiliated with, sponsored by, authorized by, or endorsed by Google, Nuvio, Stremio, Plex, or Jellyfin.</string>
+    <string name="about_legal">TVRelay is an independent automation and redirection tool. It does not host, store, distribute, or provide movies, series, streams, torrents, or any other audiovisual content. It has no relationship with Nuvio, Stremio, WuPlay, Plex, or Jellyfin, or the origin or legality of any content you access through those apps - that depends entirely on which apps and add-ons you have installed and configured, under your own responsibility. TVRelay is not affiliated with, sponsored by, authorized by, or endorsed by Google, Nuvio, Stremio, WuPlay, Plex, or Jellyfin.</string>
     <string name="about_tmdb_attribution">This product uses the TMDB API but is not endorsed or certified by TMDB. themoviedb.org</string>
     <string name="about_tvdb_attribution">If you switch to TheTVDB as your metadata provider: this product uses the TheTVDB API but is not endorsed or certified by TheTVDB. thetvdb.com</string>
     <!-- Order swapped in AboutStepFragment: TMDB is the default provider now, so its attribution reads first. -->

@@ -19,12 +19,22 @@ import java.util.function.BooleanSupplier;
  * Stremio: stremio:///detail/movie/{imdbId}, stremio:///detail/series/{imdbId} -
  * always IMDb-based, no TMDB-native equivalent exists in Stremio's addon
  * ecosystem, which is built around IMDb ids universally.
+ * WuPlay: wuplay://movie/{imdbId}, wuplay://series/{imdbId} - IMDb-based,
+ * confirmed working on-device 2026-08-24. Added in WuPlay's own
+ * v0.8.3-beta release the same day - CLAUDE.md's "WuPlay wall" originally
+ * (2026-08-23) found no content deep link existed at all, only a
+ * profile-switcher; that finding is now reversed, not still true.
  * Plex / Jellyfin: neither has a usable content deep link (see PlayerApp's
  * class doc and CLAUDE.md) - both get a plain title search hand-off
- * instead, via prepareTitleSearch(). Unlike the three players above, this
- * never touches MetadataResolver at all - see TvRelayAccessibilityService
- * and SearchStepFragment, which branch on PlayerApp.usesTitleSearch()
- * before ever calling resolveCandidates().
+ * instead, via prepareTitleSearch(). Jellyfin pre-fills the query;
+ * Plex's ACTION_SEARCH route (the only working one - see CLAUDE.md for a
+ * decompiled trace) opens Plex's real search screen but does NOT pre-fill
+ * it, a confirmed gap in Plex's own app, not something fixable here. (Plex
+ * is currently disabled - not removed - see PlayerApp.isEnabled().) Unlike
+ * the deep-link players above, title search never touches MetadataResolver
+ * at all - see TvRelayAccessibilityService and SearchStepFragment, which
+ * branch on PlayerApp.usesTitleSearch() before ever calling
+ * resolveCandidates().
  *
  * Takes a plain Context (not specifically AccessibilityService) so it can be
  * called both from the accessibility service and from a regular Activity
@@ -110,11 +120,13 @@ final class PlayerLauncher {
     /**
      * Builds (but doesn't run) a search hand-off for a title-search player
      * (Plex, Jellyfin) - see PlayerApp's class doc. Neither has a usable
-     * content deep link, so this just opens the player's own search screen
-     * with the clicked/typed title pre-filled. No network call, so unlike
-     * the IMDb/TMDB paths this can't fail to "resolve" - the only way the
-     * returned supplier can report false is if the target app itself
-     * couldn't be launched (e.g. not installed).
+     * content deep link, so this just opens the player's own search screen -
+     * pre-filled with the clicked/typed title for Jellyfin, but NOT for
+     * Plex (see the PLEX case below - confirmed via decompilation to be a
+     * gap in Plex's own app, not fixable from here). No network call, so
+     * unlike the IMDb/TMDB paths this can't fail to "resolve" - the only
+     * way the returned supplier can report false is if the target app
+     * itself couldn't be launched (e.g. not installed).
      */
     static BooleanSupplier prepareTitleSearch(Context context, String rawTitle) {
         PlayerApp app = Preferences.getSelectedApp(context);
@@ -123,13 +135,25 @@ final class PlayerLauncher {
         Intent intent;
         switch (app) {
             case PLEX:
-                // Only /movie/{slug} is confirmed by Plex staff to work
-                // (see CLAUDE.md); /search?q= is unverified - probe it
-                // on-device (adb am start) before shipping. No token-based
-                // slug lookup - deliberately skipped, see CLAUDE.md.
-                Uri searchUri = Uri.parse("https://watch.plex.tv/search?q=" + Uri.encode(title));
-                intent = new Intent(Intent.ACTION_VIEW, searchUri);
-                intent.setPackage(app.getPackageName());
+                // https://watch.plex.tv/search?q= is dead - confirmed on
+                // real hardware (ActivityNotFoundException; no /search path
+                // is registered at all, see CLAUDE.md). This ACTION_SEARCH
+                // route is real and confirmed working (SplashActivity does
+                // have a matching, if uncategorized, intent-filter - hence
+                // the explicit component below) but does NOT pre-fill the
+                // query: traced via decompilation all the way through
+                // Plex's own internal SearchActivity -> ... -> c2() relay,
+                // which correctly forwards "query" right up until the final
+                // hand-off to MobileSearchActivity, which doesn't consume
+                // it - a real bug in Plex's own app on this build, not
+                // something wrong on our end. Still sent here (harmless,
+                // and free if Plex ever fixes it) because this at least
+                // reliably opens Plex's real search screen instead of
+                // nothing at all - see CLAUDE.md's "Plex removed" section
+                // for the full decompiled trace.
+                intent = new Intent(Intent.ACTION_SEARCH);
+                intent.putExtra(SearchManager.QUERY, title);
+                intent.setClassName(app.getPackageName(), "com.plexapp.plex.activities.SplashActivity");
                 break;
             case JELLYFIN:
                 // StartupActivity declares an ACTION_SEARCH filter and
@@ -206,6 +230,15 @@ final class PlayerLauncher {
             case STREMIO:
                 String stremioType = match.getType() == MediaType.SERIES ? "series" : "movie";
                 intent = new Intent(Intent.ACTION_VIEW, Uri.parse("stremio:///detail/" + stremioType + "/" + match.getImdbId()));
+                break;
+            case WUPLAY:
+                // wuplay://{movie|series}/{imdbId} - confirmed working
+                // on-device 2026-08-24, added in WuPlay's own v0.8.3-beta
+                // release the same day (see PlayerApp's class doc and
+                // CLAUDE.md's "WuPlay wall" - this reverses that section's
+                // original "no content deep link exists" finding).
+                String wuplayType = match.getType() == MediaType.SERIES ? "series" : "movie";
+                intent = new Intent(Intent.ACTION_VIEW, Uri.parse("wuplay://" + wuplayType + "/" + match.getImdbId()));
                 break;
             default:
                 // PLEX/JELLYFIN never reach here - prepare() routes
