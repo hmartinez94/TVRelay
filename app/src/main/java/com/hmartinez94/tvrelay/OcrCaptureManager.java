@@ -100,6 +100,29 @@ final class OcrCaptureManager {
         instance.onConsentResult(granted, resultCode, data);
     }
 
+    /**
+     * Same kind of static bridge as pendingConsentInstance above, for the
+     * same reason: PlayerLauncher (a static utility, no instance state at
+     * all) needs to reach whichever OcrCaptureManager instance
+     * TvRelayAccessibilityService currently owns - there's normally only
+     * ever one alive at a time. Set whenever a session actually becomes
+     * SESSION_ACTIVE, cleared in resetSession() - see
+     * stopActiveSessionAfterLaunch().
+     */
+    private static volatile OcrCaptureManager activeSessionInstance;
+
+    /**
+     * Called by PlayerLauncher right after a launch succeeds - see its
+     * stopOcrSessionIfRunning() javadoc for why. A no-op if no session is
+     * currently active (or starting).
+     */
+    static void stopActiveSessionAfterLaunch() {
+        OcrCaptureManager instance = activeSessionInstance;
+        if (instance != null) {
+            instance.stopSessionIfActive();
+        }
+    }
+
     // Real on-device testing (2026-08-25) found that a warm-session capture
     // (see class doc: no consent prompt, captureAndRecognize() runs
     // essentially the instant a trigger fires) can land mid-animation, while
@@ -115,6 +138,7 @@ final class OcrCaptureManager {
     private static final long CAPTURE_SETTLE_DELAY_MS = 1200;
 
     private final Context appContext;
+    private final WatchNowOverlay overlay;
     private final TextRecognizer textRecognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS);
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
@@ -123,8 +147,10 @@ final class OcrCaptureManager {
     private OcrCaptureForegroundService.CaptureBinder binder;
     private ServiceConnection serviceConnection;
 
-    OcrCaptureManager(Context context) {
+    /** @param overlay used to force a fresh compositor frame right before each capture - see captureAndRecognize() and WatchNowOverlay.nudgeForFreshFrame(). */
+    OcrCaptureManager(Context context, WatchNowOverlay overlay) {
         this.appContext = context.getApplicationContext();
+        this.overlay = overlay;
     }
 
     /**
@@ -235,6 +261,7 @@ final class OcrCaptureManager {
                 Log.d(TAG, "OCR capture session bound and active");
                 binder = (OcrCaptureForegroundService.CaptureBinder) service;
                 state = State.SESSION_ACTIVE;
+                activeSessionInstance = OcrCaptureManager.this;
                 Callback callback = pendingCallback;
                 pendingCallback = null;
                 if (callback != null) {
@@ -292,6 +319,18 @@ final class OcrCaptureManager {
                     safeFailure(callback, FailureReason.CAPTURE_ERROR);
                 }
             });
+            // MUST come after captureFrame() above, not before - see
+            // WatchNowOverlay.nudgeForFreshFrame()'s javadoc for exactly
+            // why the ordering matters (imageAvailableListener drains and
+            // closes any frame produced before pendingFrameCallback is
+            // armed, so a nudge fired too early is wasted). By the time
+            // this line runs, captureFrame() has already synchronously
+            // armed its callback on this same thread - see
+            // OcrCaptureForegroundService.captureFrame()'s compareAndSet,
+            // which happens before that method returns.
+            if (overlay != null) {
+                overlay.nudgeForFreshFrame();
+            }
         }, CAPTURE_SETTLE_DELAY_MS);
     }
 
@@ -326,6 +365,9 @@ final class OcrCaptureManager {
     private void resetSession() {
         state = State.NO_SESSION;
         binder = null;
+        if (activeSessionInstance == this) {
+            activeSessionInstance = null;
+        }
         if (serviceConnection != null) {
             try {
                 appContext.unbindService(serviceConnection);
@@ -333,6 +375,29 @@ final class OcrCaptureManager {
                 // Already unbound - nothing to do.
             }
             serviceConnection = null;
+        }
+    }
+
+    /**
+     * Tears down a live session in response to a successful launch
+     * elsewhere (see stopActiveSessionAfterLaunch()) - unbinds, stops the
+     * foreground service, and resets state, but (unlike shutdown()) does
+     * NOT close the text recognizer or touch pendingConsentInstance, since
+     * the owning TvRelayAccessibilityService is still alive and may trigger
+     * OCR again later - that will simply request a fresh consent grant,
+     * same as the very first time (see class doc). A no-op if no session
+     * is currently active or starting.
+     */
+    private void stopSessionIfActive() {
+        if (state == State.NO_SESSION) {
+            return;
+        }
+        Log.d(TAG, "Stopping OCR session: a launch succeeded, leaving the lobby");
+        resetSession();
+        try {
+            appContext.stopService(new Intent(appContext, OcrCaptureForegroundService.class));
+        } catch (Exception e) {
+            Log.e(TAG, "Error stopping OcrCaptureForegroundService", e);
         }
     }
 

@@ -269,10 +269,56 @@ final class PlayerLauncher {
      * reason as prepareSmartTube() and prepareTitleSearch(): a bare YouTube
      * search URL without setPackage could open a browser or the real YouTube
      * app instead, defeating the point of redirecting away from either.
+     *
+     * NOT the same action as SmartTube, despite sharing the same search URL
+     * shape - confirmed real bug (2026-08-25): Intent.ACTION_VIEW with this
+     * URL does launch TizenTube Cobalt (its manifest's intent-filter matches
+     * it), but the app just opens to its own home feed and silently ignores
+     * the search_query param - confirmed via a real on-device screenshot,
+     * not just an unconfirmed am-start probe like the original integration
+     * check. "android.media.action.MEDIA_PLAY_FROM_SEARCH" (declared in the
+     * SAME intent-filter block per dumpsys - see TIZENTUBE_COBALT_PACKAGE's
+     * dumpsys evidence) with the identical data URI is what actually works -
+     * confirmed via another real screenshot: "Search results for sauteed
+     * potatoes" with the real matching video as the top hit.
+     *
+     * UNRELIABLE ONCE COBALT IS ALREADY RUNNING - confirmed real, reproduced
+     * limitation (2026-08-25), not a TVRelay bug: the exact same Intent that
+     * correctly opens real search results on a genuine cold start (Cobalt's
+     * process not already alive) instead lands on Cobalt's plain home feed,
+     * silently ignoring the query, once Cobalt is already resident - even
+     * though openWithFallback()'s FLAG_ACTIVITY_CLEAR_TASK does force a
+     * fresh Activity/task (confirmed via its splash screen reappearing),
+     * Cobalt's underlying Starboard/Cobalt runtime process apparently
+     * persists underneath and ignores the new intent's data on that second
+     * launch. Reproduced twice back-to-back with identical intents, only the
+     * process's alive/dead state differed. TVRelay has no way to force
+     * another app's process to fully restart - FORCE_STOP_PACKAGES is a
+     * signature-level permission no third-party app can hold, sideloaded or
+     * not.
+     *
+     * Per user decision (2026-08-25): TizenTube Cobalt as a YouTube-redirect
+     * target is only officially supported for a user who has also installed
+     * TizenTube Bridge (https://github.com/TobiPeterG/tizentube-bridge, a
+     * separate sideloaded app that takes over the official YouTube TV
+     * package id and forwards YouTube-targeted intents to Cobalt). NOT
+     * verified to actually fix the warm-restart issue above - its own
+     * README describes it as a pure intent pass-through ("It cannot make
+     * Cobalt support a deep link that Cobalt itself does not understand"),
+     * so this codebase's read is that the underlying limitation likely
+     * still applies even with Bridge installed. Not tested directly:
+     * Bridge requires uninstalling the device's official YouTube TV app
+     * first (often a non-removable system app on certified Google TV
+     * devices), a real, possibly-irreversible device change judged not
+     * worth making just to test a fix this project doesn't expect to work.
+     * "Supported only with Bridge installed" is a support-boundary decision
+     * the user made deliberately aware of this, not a claim that Bridge is
+     * confirmed to resolve it - see README's Limitations section.
      */
     static BooleanSupplier prepareTizenTubeCobalt(Context context, String rawTitle) {
         Uri uri = buildYouTubeSearchUri(rawTitle);
-        Intent intent = new Intent(Intent.ACTION_VIEW, uri).setPackage(TIZENTUBE_COBALT_PACKAGE);
+        Intent intent = new Intent("android.media.action.MEDIA_PLAY_FROM_SEARCH", uri)
+                .setPackage(TIZENTUBE_COBALT_PACKAGE);
         return () -> openWithFallback(context, intent, TIZENTUBE_COBALT_LABEL, false);
     }
 
@@ -383,6 +429,7 @@ final class PlayerLauncher {
         try {
             context.startActivity(intent);
             Log.d(TAG, "Opening " + appLabel + ": " + intent);
+            stopOcrSessionIfRunning();
             return true;
         } catch (Exception e) {
             // intent.getPackage() is null here whenever the target was set
@@ -397,11 +444,49 @@ final class PlayerLauncher {
                 Intent fallback = new Intent(intent);
                 fallback.setPackage(null);
                 context.startActivity(fallback);
+                stopOcrSessionIfRunning();
                 return true;
             } catch (Exception fallbackFailure) {
                 Log.e(TAG, "Fallback failed too. Is " + appLabel + " installed?", fallbackFailure);
                 return false;
             }
         }
+    }
+
+    /**
+     * Tears down the OCR screen-capture session (see OcrCaptureManager),
+     * if one happens to be running, whenever a launch actually succeeds -
+     * this is the one place every real launch path funnels through
+     * (openWithFallback() above), so it's the most reliable available
+     * signal that the user is leaving the launcher lobby for another app,
+     * without needing to widen TvRelayAccessibilityService's event
+     * filtering to watch every package (a real battery/perf/privacy cost
+     * already ruled out elsewhere in this codebase - see the "voice search
+     * wall" in CLAUDE.md).
+     *
+     * Routed through OcrCaptureManager.stopActiveSessionAfterLaunch()
+     * rather than calling Context.stopService() directly here - confirmed
+     * real bug the first version of this had (2026-08-25): the OCR session
+     * is BOTH started AND bound (OcrCaptureManager holds a live
+     * ServiceConnection - see its class doc), and a service that's still
+     * bound does not actually get destroyed by stopService() alone, even
+     * though the call itself doesn't throw or report failure - the
+     * recording indicator stayed visible with the service and its
+     * MediaProjection still fully alive, confirmed via dumpsys. Only
+     * OcrCaptureManager's own instance can properly unbind AND stop it
+     * together (see stopSessionIfActive()) - PlayerLauncher, a static
+     * utility with no reference to that instance, reaches it via the same
+     * kind of static bridge already used for OcrConsentActivity's result
+     * callback.
+     *
+     * The real cost of this: the next OCR trigger after returning to the
+     * lobby needs a fresh screen-capture consent grant, since Android's
+     * MediaProjection consent is single-use per session (see
+     * OcrCaptureManager's class doc) - accepted as the correct trade-off
+     * for not leaving the system's persistent recording indicator showing
+     * while the user is off watching something in a different app.
+     */
+    private static void stopOcrSessionIfRunning() {
+        OcrCaptureManager.stopActiveSessionAfterLaunch();
     }
 }

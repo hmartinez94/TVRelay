@@ -233,12 +233,15 @@ public class SettingsStepFragment extends GuidedStepSupportFragment {
         YouTubeRedirectTarget[] targets = YouTubeRedirectTarget.values();
         for (int i = 0; i < targets.length; i++) {
             YouTubeRedirectTarget target = targets[i];
-            subActions.add(new GuidedAction.Builder(context)
+            GuidedAction.Builder builder = new GuidedAction.Builder(context)
                     .id(ACTION_YOUTUBE_TARGET_BASE + i)
                     .title(target.getLabel())
                     .checkSetId(GuidedAction.DEFAULT_CHECK_SET_ID)
-                    .checked(target == selected)
-                    .build());
+                    .checked(target == selected);
+            if (target.getDescriptionRes() != 0) {
+                builder.description(getString(target.getDescriptionRes()));
+            }
+            subActions.add(builder.build());
         }
         return new GuidedAction.Builder(context)
                 .id(ACTION_YOUTUBE_TARGET)

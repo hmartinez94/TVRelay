@@ -67,6 +67,23 @@ public final class OcrCaptureForegroundService extends Service {
     private static final String CHANNEL_ID = "ocr_capture";
     private static final int NOTIFICATION_ID = 7301;
 
+    // Confirmed real bug (2026-08-25), a deeper case than
+    // tryAcquireBufferedFrame() alone fixes: Android's compositor only
+    // produces a new mirrored frame when something on screen actually
+    // changes ("damage") - if the screen has been fully static for a while
+    // (the buffered frame from the last change already consumed and closed,
+    // nothing since), BOTH acquireLatestImage() and onImageAvailable() can
+    // go silent indefinitely, since there is genuinely no new frame for
+    // either to find. Reproduced on-device: a capture sat with no result at
+    // all for 16+ seconds, resolving only the instant the user pressed a
+    // key (which redrew the screen - the overlay button's own visibility
+    // change counts as damage). This can't be fixed by waiting smarter -
+    // there may really be nothing to wait for - so this bounds the wait
+    // instead: fail the request outright if no frame arrives in time,
+    // rather than leaving OcrCaptureManager's caller (and the "Looking that
+    // up" button) hanging forever. See captureFrame()/timeoutIfStillPending().
+    private static final long CAPTURE_TIMEOUT_MS = 4000;
+
     /** Result of a single requested capture - always delivered on the main thread. */
     interface FrameCallback {
         void onFrameCaptured(Bitmap bitmap);
@@ -270,6 +287,11 @@ public final class OcrCaptureForegroundService extends Service {
      * this: it returns whatever the mirror already produced (the settled,
      * fully-transitioned frame we actually want to OCR) without needing a
      * NEW frame to arrive at all.
+     *
+     * Also arms a CAPTURE_TIMEOUT_MS timeout (see that constant's javadoc) -
+     * even the immediate-acquire attempt above can still find nothing
+     * buffered and fall back to waiting on a frame that may never come, if
+     * the screen has been fully static since before this request started.
      */
     private void captureFrame(FrameCallback callback) {
         if (imageReader == null || mediaProjection == null || captureHandler == null) {
@@ -283,6 +305,25 @@ public final class OcrCaptureForegroundService extends Service {
             return;
         }
         captureHandler.post(this::tryAcquireBufferedFrame);
+        captureHandler.postDelayed(() -> timeoutIfStillPending(callback), CAPTURE_TIMEOUT_MS);
+    }
+
+    /**
+     * Fails a capture that's been waiting too long for a frame - see
+     * CAPTURE_TIMEOUT_MS's javadoc. compareAndSet (not a plain null-check)
+     * is what makes this safe to race against a real, late-arriving frame:
+     * if the frame already won (imageAvailableListener/
+     * tryAcquireBufferedFrame already cleared pendingFrameCallback via
+     * getAndSet(null)), this finds the field no longer equal to `callback`
+     * and does nothing - no double delivery either way, regardless of which
+     * one runs first.
+     */
+    private void timeoutIfStillPending(FrameCallback callback) {
+        if (pendingFrameCallback.compareAndSet(callback, null)) {
+            Log.w(TAG, "Capture timed out after " + CAPTURE_TIMEOUT_MS
+                    + "ms with no frame produced - screen is likely fully static");
+            deliverError(callback);
+        }
     }
 
     /**

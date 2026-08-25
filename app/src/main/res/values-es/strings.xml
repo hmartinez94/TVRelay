@@ -28,6 +28,7 @@
     <string name="settings_smarttube_status_enabled">Estado: activado - una recomendación de vídeo de YouTube abre una búsqueda en la app elegida abajo, independientemente de tu app de películas/series de arriba</string>
     <string name="settings_smarttube_status_disabled">Estado: desactivado - las recomendaciones de vídeo de YouTube se dejan intactas</string>
     <string name="settings_youtube_target">App de destino</string>
+    <string name="settings_youtube_target_tizentube_cobalt_description">No funciona de fábrica - consulta la sección de Limitaciones del README para ver qué se necesita</string>
 
     <string name="settings_section_overlay">Superposición de confirmación</string>
     <string name="settings_enable_overlay">Activar confirmación \"Ver ahora\"</string>

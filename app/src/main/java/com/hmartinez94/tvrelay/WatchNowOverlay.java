@@ -256,6 +256,49 @@ final class WatchNowOverlay {
     }
 
     /**
+     * Forces a real compositor frame by briefly toggling this window's own
+     * visibility, then restoring it - used by OcrCaptureManager right before
+     * requesting a screen capture. No-op if no window is currently up
+     * (button == null - e.g. OCR was triggered without the "display over
+     * other apps" permission this overlay needs, or no match happens to be
+     * pending at all right now).
+     *
+     * Grounded in confirmed on-device behavior (2026-08-25), not a guess:
+     * MediaProjection's mirrored VirtualDisplay can stop producing new
+     * frames entirely once the screen is fully static, and a real capture
+     * sat with no result for 16+ seconds, resolving the instant the user
+     * happened to press a key - which runs conceal()/reveal() below,
+     * toggling this exact button between VISIBLE and INVISIBLE. That was
+     * the only thing ever observed to unstick a hung capture, so this
+     * reproduces the same toggle deliberately instead of waiting on the
+     * user to do it by chance. See CAPTURE_TIMEOUT_MS's javadoc in
+     * OcrCaptureForegroundService for the full investigation, and
+     * OcrCaptureManager.captureAndRecognize() for where this is called -
+     * specifically AFTER binder.captureFrame() has already armed its
+     * pending callback, not before: imageAvailableListener drains and
+     * closes every frame the instant it arrives regardless of whether a
+     * capture is pending, so a frame produced too early (e.g. while still
+     * waiting out the settle delay) gets silently thrown away before ever
+     * being requested - confirmed the actual reason the earlier
+     * "grab whatever's already buffered" fix rarely found anything.
+     */
+    void nudgeForFreshFrame() {
+        if (button == null || params == null) {
+            return;
+        }
+        try {
+            int originalVisibility = button.getVisibility();
+            int toggled = originalVisibility == View.VISIBLE ? View.INVISIBLE : View.VISIBLE;
+            button.setVisibility(toggled);
+            windowManager.updateViewLayout(button, params);
+            button.setVisibility(originalVisibility);
+            windowManager.updateViewLayout(button, params);
+        } catch (Exception e) {
+            Log.w(TAG, "Could not nudge overlay for a fresh frame", e);
+        }
+    }
+
+    /**
      * Called by TvRelayAccessibilityService when it detects the user is
      * back at the launcher home/lobby screen - abandons whatever match is
      * pending, since there's no longer a "detail page" context for it to

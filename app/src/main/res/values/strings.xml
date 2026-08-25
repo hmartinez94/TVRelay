@@ -30,6 +30,7 @@
     <string name="settings_smarttube_status_enabled">Status: enabled - a YouTube video recommendation opens a search in the app chosen below, independent of your movie/show player above</string>
     <string name="settings_smarttube_status_disabled">Status: disabled - YouTube video recommendations are left alone</string>
     <string name="settings_youtube_target">Target app</string>
+    <string name="settings_youtube_target_tizentube_cobalt_description">Doesn\'t work out of the box - see the README\'s Limitations section for what\'s needed</string>
 
     <string name="settings_section_overlay">Confirmation Overlay</string>
     <string name="settings_enable_overlay">Enable \"Watch now\" confirmation</string>

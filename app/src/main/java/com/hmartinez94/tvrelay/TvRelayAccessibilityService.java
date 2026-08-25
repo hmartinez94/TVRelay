@@ -65,17 +65,17 @@ public class TvRelayAccessibilityService extends AccessibilityService {
     // generic "{Title}, {rest}" fallback in isMovieOrShowCard() would
     // otherwise do to it.
     //
-    // UNVERIFIED on this device/launcher build - no real YouTube-video
-    // recommendation click has been captured and confirmed yet, unlike
-    // every other marker in this file (see "Title extraction" in
-    // CLAUDE.md). Mirrors Bananz0/OpenTVBridge's own marker choice
-    // (2026-08-24, see CLAUDE.md) as the best available evidence, not a
-    // confirmed real content-desc string. This check runs BEFORE
-    // isMovieOrShowCard() specifically so a wrong guess here can only ever
-    // mean the redirect silently never fires (same as today, before this
-    // existed) - it can't misclassify a real movie/show card, since movie
-    // markers are checked separately, afterward, only for content this
-    // doesn't match.
+    // Originally a blind guess (mirrored Bananz0/OpenTVBridge's own marker
+    // choice, 2026-08-24) never confirmed against a real click. CONFIRMED
+    // WRONG 2026-08-25 via a real captured YouTube-video click ("The BEST
+    // Crispy Sautéed Potatoes", a cooking video): the real content-desc is
+    // JUST the bare title, no duration marker anywhere, no comma, nothing
+    // else - so this array never matched, and (since isMovieOrShowCard()
+    // separately requires a comma to match anything) the click was simply
+    // dropped, unhandled. Kept as a still-plausible marker for a locale/
+    // launcher-build variant that DOES include one - checked first, before
+    // the real fallback below - but isYouTubeCard() no longer depends on
+    // it alone.
     private static final String[] YOUTUBE_MARKERS = {"duración:", "duration:"};
 
     private static final String FIRE_TV_MAIN_IMAGE_ID = "com.amazon.tv.launcher:id/main_image";
@@ -212,7 +212,7 @@ public class TvRelayAccessibilityService extends AccessibilityService {
         info.flags |= AccessibilityServiceInfo.FLAG_REPORT_VIEW_IDS;
         setServiceInfo(info);
 
-        ocrCaptureManager = new OcrCaptureManager(this);
+        ocrCaptureManager = new OcrCaptureManager(this, overlay);
 
         // Keeps TYPE_WINDOW_STATE_CHANGED live-conditional on preference
         // changes (the OCR toggle) - see currentEventTypes()/
@@ -315,7 +315,7 @@ public class TvRelayAccessibilityService extends AccessibilityService {
         CharSequence descCharSeq = event.getContentDescription();
         String desc = descCharSeq != null ? descCharSeq.toString() : null;
         if (desc != null && !desc.trim().isEmpty()) {
-            if (isYouTubeCard(desc)) {
+            if (isYouTubeCard(event, desc)) {
                 String title = extractTitle(desc);
                 if (!title.isEmpty()) {
                     Log.d(TAG, "YouTube video detected: " + title);
@@ -366,7 +366,7 @@ public class TvRelayAccessibilityService extends AccessibilityService {
                 triggerOcrCapture();
                 return;
             }
-            if (isYouTubeCard(delayedDesc)) {
+            if (isYouTubeCard(event, delayedDesc)) {
                 String title = extractTitle(delayedDesc);
                 if (!title.isEmpty()) {
                     Log.d(TAG, "YouTube video detected (delayed): " + title);
@@ -632,13 +632,31 @@ public class TvRelayAccessibilityService extends AccessibilityService {
         return first;
     }
 
-    private boolean isYouTubeCard(String contentDesc) {
+    private boolean isYouTubeCard(AccessibilityEvent event, String contentDesc) {
         for (String marker : YOUTUBE_MARKERS) {
             if (contentDesc.contains(marker)) {
                 return true;
             }
         }
-        return false;
+        // Real fallback, confirmed 2026-08-25 - see YOUTUBE_MARKERS' javadoc.
+        // A YouTube video card is the same android.view.View/empty-text
+        // shape as a real movie/show card (see isMovieOrShowCard() below),
+        // but with a BARE title and no comma-separated segment at all -
+        // every real movie/show card seen so far always has at least one
+        // (a price, rating, provider, or synopsis fragment after a comma).
+        // Mutually exclusive with isMovieOrShowCard() by construction - a
+        // comma-less content-desc could never have matched there anyway
+        // (it requires one), so this can't misclassify a real movie/show
+        // card regardless of which check runs first.
+        CharSequence className = event.getClassName();
+        if (className == null || !"android.view.View".contentEquals(className)) {
+            return false;
+        }
+        List<CharSequence> text = event.getText();
+        if (text != null && !text.isEmpty()) {
+            return false;
+        }
+        return !contentDesc.contains(",");
     }
 
     private boolean isMovieOrShowCard(AccessibilityEvent event, String contentDesc) {
@@ -796,18 +814,28 @@ public class TvRelayAccessibilityService extends AccessibilityService {
      *
      * Targets SmartTube or TizenTube Cobalt (io.gh.reisxd.tizentube.cobalt -
      * a real, separate Android TV port of the well-known "TizenTube" ad-block
-     * mod, confirmed installed and functional via dumpsys/am start/logcat on
-     * the ONN, 2026-08-25 - see PlayerLauncher's TIZENTUBE_COBALT_* constants
-     * for the full evidence and CLAUDE.md's "SmartTube redirect" section),
-     * whichever is actually installed - see
-     * PlayerLauncher.prepareYouTubeRedirect() for the exact order and the
-     * "neither installed" default. The preference name/method
+     * mod - see PlayerLauncher's TIZENTUBE_COBALT_* constants for the full
+     * evidence and CLAUDE.md's "SmartTube redirect" section), per the user's
+     * explicit Settings choice (Preferences.getYouTubeRedirectTarget(), a
+     * dropdown - see PlayerLauncher.prepareYouTubeRedirect()), not
+     * auto-detected install state. The preference name/method
      * (isSmartTubeEnabled) predates TizenTube Cobalt support and was kept
      * as-is rather than renamed - see Preferences.isSmartTubeEnabled()'s
      * javadoc - but the Settings strings shown to the user
      * (settings_smarttube_redirect / settings_smarttube_status_enabled) now
      * describe both targets, not just SmartTube, so the toggle's own
      * description doesn't lie about what it does.
+     *
+     * Unlike handleMovieClick(), this never shows the "Watch now"/confirm
+     * overlay - launches straight to the target app's search, per explicit
+     * user request (2026-08-25). A YouTube redirect is always just a search,
+     * never a direct "open this exact thing" the way a resolved movie/show
+     * match can be (see PlayerLauncher.prepareYouTubeRedirect()'s javadoc -
+     * there's no video-id deep link attempted for either target), so it
+     * doesn't carry the same "an accidental click silently opens the wrong
+     * title" risk the confirm step exists to guard against for
+     * handleMovieClick() - worst case here is an unwanted search opening,
+     * not an unwanted title playing.
      */
     private void handleYouTubeClick(String title) {
         if (!Preferences.isSmartTubeEnabled(this)) {
@@ -821,24 +849,8 @@ public class TvRelayAccessibilityService extends AccessibilityService {
         lastHandledTitle = title;
         lastHandledAtMillis = now;
 
-        boolean confirmFirst = overlay != null && overlay.isPermissionGranted();
-        if (confirmFirst) {
-            overlay.showLoading();
-            refreshEventTypes();
-            markOwnOverlayActivity();
-        }
-
-        // Label and launch target are decided together, right here, before
-        // anything is shown - see PlayerLauncher.YouTubeRedirect's javadoc
-        // for why picking them separately (e.g. inside the deferred launch
-        // supplier itself) risked the confirm button showing the wrong
-        // app's name.
         PlayerLauncher.YouTubeRedirect redirect = PlayerLauncher.prepareYouTubeRedirect(this, title);
-        if (confirmFirst) {
-            mainHandler.post(() -> overlay.showConfirmSearch(redirect.label, redirect.launch::getAsBoolean));
-        } else {
-            redirect.launch.getAsBoolean();
-        }
+        redirect.launch.getAsBoolean();
     }
 
     /** Runs on the main thread - see the mainHandler.post() call sites above. */
