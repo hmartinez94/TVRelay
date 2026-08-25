@@ -51,6 +51,37 @@ final class PlayerLauncher {
     private static final String SMARTTUBE_STABLE_PACKAGE = "org.smarttube.stable";
     private static final String SMARTTUBE_BETA_PACKAGE = "org.smarttube.beta";
 
+    // TizenTube Cobalt (reisxd/TizenTubeCobalt, https://tizentube.app): a
+    // real, separate, actively-maintained Android TV port of the well-known
+    // "TizenTube" ad-block mod - NOT the original TizenTube itself, which is
+    // confirmed Tizen-OS-only (Samsung Smart TVs, installed via TizenBrew)
+    // and cannot run on Android TV at all. Built on Google's own open-source
+    // Cobalt HTML5-app-container runtime (the same tech YouTube's own
+    // official TV app historically used). Added 2026-08-25 as a second
+    // fallback target for the same YouTube-redirect toggle, alongside
+    // SmartTube - see prepareYouTubeRedirect() for how the two are chosen
+    // between. Confirmed real and functional on the ONN test device, not
+    // just a hopeful guess:
+    //  - v2.0.2's `cobalt-arm.apk` release asset installed via `adb install
+    //    -r`; real installed package name confirmed via `adb shell pm list
+    //    packages | grep cobalt`.
+    //  - `adb shell dumpsys package io.gh.reisxd.tizentube.cobalt` shows a
+    //    real ACTION_VIEW/MEDIA_PLAY_FROM_SEARCH intent-filter (Category:
+    //    DEFAULT, BROWSABLE) for youtube.com/www.youtube.com/m.youtube.com/
+    //    youtu.be with a GLOB ".*" path pattern - the exact same URL contract
+    //    SmartTube already uses (see buildYouTubeSearchUri() below) - plus
+    //    separate LAUNCHER/LEANBACK_LAUNCHER/DEFAULT categories confirming
+    //    it's a real, launcher-visible Android TV (leanback) app.
+    //  - `adb shell am start -a android.intent.action.VIEW -d
+    //    "https://www.youtube.com/results?search_query=..." -p
+    //    io.gh.reisxd.tizentube.cobalt" was confirmed to actually focus and
+    //    run the app (dumpsys window mFocusedApp, pidof, and a clean logcat
+    //    with no FATAL/AndroidRuntime exceptions) - not just "no crash".
+    // No stable/beta split exists for this app (checked release history back
+    // to v1.0.2) - only one package to try, unlike SmartTube.
+    private static final String TIZENTUBE_COBALT_LABEL = "TizenTube Cobalt";
+    private static final String TIZENTUBE_COBALT_PACKAGE = "io.gh.reisxd.tizentube.cobalt";
+
     private PlayerLauncher() {
     }
 
@@ -188,23 +219,36 @@ final class PlayerLauncher {
     }
 
     /**
-     * SmartTube redirect for a YouTube video recommendation card - entirely
-     * separate from the PlayerApp movie/show player choice (a user can have
-     * Nuvio selected for movies and still get YouTube videos redirected to
-     * SmartTube). See Preferences.isSmartTubeEnabled() and
-     * TvRelayAccessibilityService's YouTube-marker detection, which decides
-     * when this gets called at all - this method itself doesn't check the
-     * setting. Opens a YouTube search for the title (no direct video-id
-     * deep link attempted - see CLAUDE.md), trying SmartTube's stable
-     * package first, then its beta package if that fails. No packageless
-     * fallback for either attempt, same reasoning as prepareTitleSearch():
-     * a bare YouTube search URL would otherwise silently open in a browser
-     * or the official YouTube app instead of SmartTube, which defeats the
-     * point of this feature.
+     * Shared by prepareSmartTube() and prepareTizenTubeCobalt() - both target
+     * the exact same YouTube search URL contract
+     * (https://www.youtube.com/results?search_query={title}), just a
+     * different package. Extracted so the two paths can't drift apart the
+     * way CLAUDE.md's TitleSearchFallbacks section describes real bugs
+     * arising from duplicating near-identical logic across code paths.
+     */
+    private static Uri buildYouTubeSearchUri(String rawTitle) {
+        String title = TitleCleanup.stripTrailingParentheticals(rawTitle);
+        return Uri.parse("https://www.youtube.com/results?search_query=" + Uri.encode(title));
+    }
+
+    /**
+     * SmartTube redirect for a YouTube video recommendation card - one of
+     * two sideloaded YouTube TV clients this toggle can target (see
+     * prepareYouTubeRedirect()) - entirely separate from the PlayerApp
+     * movie/show player choice (a user can have Nuvio selected for movies
+     * and still get YouTube videos redirected to SmartTube). See
+     * Preferences.isSmartTubeEnabled() and TvRelayAccessibilityService's
+     * YouTube-marker detection, which decides when this gets called at all -
+     * this method itself doesn't check the setting. Opens a YouTube search
+     * for the title (no direct video-id deep link attempted - see
+     * CLAUDE.md), trying SmartTube's stable package first, then its beta
+     * package if that fails. No packageless fallback for either attempt,
+     * same reasoning as prepareTitleSearch(): a bare YouTube search URL
+     * would otherwise silently open in a browser or the official YouTube
+     * app instead of SmartTube, which defeats the point of this feature.
      */
     static BooleanSupplier prepareSmartTube(Context context, String rawTitle) {
-        String title = TitleCleanup.stripTrailingParentheticals(rawTitle);
-        Uri uri = Uri.parse("https://www.youtube.com/results?search_query=" + Uri.encode(title));
+        Uri uri = buildYouTubeSearchUri(rawTitle);
         return () -> {
             Intent stable = new Intent(Intent.ACTION_VIEW, uri).setPackage(SMARTTUBE_STABLE_PACKAGE);
             if (openWithFallback(context, stable, SMARTTUBE_LABEL, false)) {
@@ -213,6 +257,63 @@ final class PlayerLauncher {
             Intent beta = new Intent(Intent.ACTION_VIEW, uri).setPackage(SMARTTUBE_BETA_PACKAGE);
             return openWithFallback(context, beta, SMARTTUBE_LABEL, false);
         };
+    }
+
+    /**
+     * TizenTube Cobalt redirect for a YouTube video recommendation card - the
+     * second fallback target for the same toggle prepareSmartTube() serves;
+     * see the TIZENTUBE_COBALT_* constants above for what confirms this is a
+     * real, working target, and prepareYouTubeRedirect() for how the two are
+     * chosen between. Single package attempt (no stable/beta split exists for
+     * this app, unlike SmartTube), no packageless fallback for the same
+     * reason as prepareSmartTube() and prepareTitleSearch(): a bare YouTube
+     * search URL without setPackage could open a browser or the real YouTube
+     * app instead, defeating the point of redirecting away from either.
+     */
+    static BooleanSupplier prepareTizenTubeCobalt(Context context, String rawTitle) {
+        Uri uri = buildYouTubeSearchUri(rawTitle);
+        Intent intent = new Intent(Intent.ACTION_VIEW, uri).setPackage(TIZENTUBE_COBALT_PACKAGE);
+        return () -> openWithFallback(context, intent, TIZENTUBE_COBALT_LABEL, false);
+    }
+
+    /**
+     * Bundles the confirm-overlay label together with the already-decided
+     * launch supplier for the YouTube redirect toggle - see
+     * prepareYouTubeRedirect(). The two are always computed together from
+     * the same Preferences.getYouTubeRedirectTarget() read, so they can
+     * never disagree - see TvRelayAccessibilityService.handleYouTubeClick().
+     */
+    static final class YouTubeRedirect {
+        final String label;
+        final BooleanSupplier launch;
+
+        private YouTubeRedirect(String label, BooleanSupplier launch) {
+            this.label = label;
+            this.launch = launch;
+        }
+    }
+
+    /**
+     * Picks which sideloaded YouTube client to redirect to and returns both
+     * the matching confirm-overlay label and the already-built launch
+     * supplier for that choice, computed together (see YouTubeRedirect's
+     * javadoc).
+     *
+     * The target is an explicit Settings choice (Preferences.
+     * getYouTubeRedirectTarget()), not auto-detected install-state guessing -
+     * see that method's javadoc for why (a user with both apps installed
+     * had no way to actually pick TizenTube Cobalt under the old
+     * auto-detection design). If the chosen app isn't actually installed,
+     * this doesn't silently substitute the other one - prepareSmartTube()/
+     * prepareTizenTubeCobalt() already report that failure the normal way
+     * (openWithFallback() returning false), same as picking an uninstalled
+     * PlayerApp does.
+     */
+    static YouTubeRedirect prepareYouTubeRedirect(Context context, String rawTitle) {
+        if (Preferences.getYouTubeRedirectTarget(context) == YouTubeRedirectTarget.TIZENTUBE_COBALT) {
+            return new YouTubeRedirect(TIZENTUBE_COBALT_LABEL, prepareTizenTubeCobalt(context, rawTitle));
+        }
+        return new YouTubeRedirect(SMARTTUBE_LABEL, prepareSmartTube(context, rawTitle));
     }
 
     /** IMDb-id-based launch for an already-resolved match - see prepare() for the TMDB-native and title-search fast paths. */

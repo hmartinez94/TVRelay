@@ -52,45 +52,37 @@ TVRelay isn't on Google Play yet - install the APK from this repository's [Relea
 1. Download the APK from [Releases](../../releases).
 2. Enable developer options on the TV: **Settings → Device Preferences → About → tap "Build" 7 times**.
 3. Enable **USB debugging** or **Network debugging**, depending on the device.
-4. From your computer:
+4. From your computer, install the app and enable its accessibility service in one go:
    ```
    adb connect <tv-ip>:5555
    adb install app-release.apk
+   adb shell appops set com.hmartinez94.tvrelay ACCESS_RESTRICTED_SETTINGS allow
+   adb shell settings put secure enabled_accessibility_services com.hmartinez94.tvrelay/com.hmartinez94.tvrelay.TvRelayAccessibilityService
+   adb shell settings put secure accessibility_enabled 1
    ```
+   The last three lines turn on the permission that lets TVRelay see launcher clicks at all, bypassing a restriction some Android versions place on sideloaded apps (see [Setup](#setup) below) - safe to run on any device, needed or not. The `settings put secure enabled_accessibility_services` line **replaces** the whole list of enabled accessibility services - if you already use another one (like TalkBack), separate them with a colon (`:`) instead of overwriting it.
+
+   With this done, the Accessibility toggle should already show as enabled once you open the app - skip straight to picking a player in [Setup](#setup).
 
 ## Setup
 
 <img src=".github/screenshots/settings.png" alt="TVRelay's Settings screen on Google TV, showing the player choice and accessibility/overlay toggles" width="720">
 
-Open **TVRelay** from the TV's launcher, accept the first-run disclosure, pick your player, then work through the two toggles below.
+Open **TVRelay** from the TV's launcher, accept the first-run disclosure, and pick your player.
 
 ### Enable in Accessibility settings
 
-Select **"Enable in Accessibility settings"** and turn the service on there. This is the permission that lets TVRelay see launcher clicks at all - without it, nothing else in this app does anything.
+If you installed via ADB (Option B above) and ran the extra commands there, this is already done. Otherwise, select **"Enable in Accessibility settings"** and turn the service on there - without it, nothing else in this app does anything.
 
 #### The toggle turns itself off immediately
 
-On Android 13 and newer, the system blocks any sideloaded app (anything not installed from an app store, which currently includes TVRelay) from enabling Accessibility by default, as a security measure. If the toggle switches itself back off right after you enable it - sometimes immediately, sometimes a few seconds later, with no warning - this is why.
-
-On some devices you can lift this from **Settings → Apps → TVRelay → app info screen**, by looking for an option along the lines of "Allow restricted setting" (the exact wording and location varies by manufacturer). If you find it, enable it, then go back into Accessibility and enable the service again.
-
-**If you can't find any such option** (this is the case on the Google TV Streamer, for example), you'll need the ADB workaround instead:
-
-```
-adb connect <tv-ip>:5555
-adb shell settings put secure enabled_accessibility_services com.hmartinez94.tvrelay/com.hmartinez94.tvrelay.TvRelayAccessibilityService
-adb shell settings put secure accessibility_enabled 1
-```
-
-This writes the setting directly at the system level, which isn't subject to the same restriction as the Settings app toggle. Note the second command **replaces** the whole list of enabled accessibility services - if you already use another one (like TalkBack), separate them with a colon (`:`) instead of overwriting it.
-
-If setting up ADB from a computer sounds like a hassle, **[atvTools](https://play.google.com/store/apps/details?id=dev.vodik7.atvtools)** (free, on Google Play) does the same thing from your phone.
+On Android 13+, the system blocks sideloaded apps from turning Accessibility on through the normal toggle, as a security measure - if it switches back off right after you enable it, this is why, not a bug. When this happens, TVRelay adds an **"Accessibility not turning on? Get help"** row to Settings, which walks you through the fix (look for "Allow restricted setting" on the app's system info screen). If your device doesn't have that option, use the ADB commands from [Installation](#installation) instead - **[atvTools](https://play.google.com/store/apps/details?id=dev.vodik7.atvtools)** (free, on Google Play) can run them from your phone if setting up ADB on a computer isn't an option.
 
 On some devices (especially Chinese-manufacturer Android TV boxes with aggressive battery managers), you may also need to exclude TVRelay from any manufacturer "optimizer"/RAM cleaner, or the system will kill the service's process after a few seconds.
 
 ### Enable the "Watch now" confirmation
 
-By default, TVRelay shows a **"Watch now in {App}"** button before opening anything - a loading indicator appears the moment you click a recommendation, then swaps to the confirm button once the title's been identified. It disappears on its own after about 10 seconds if you don't tap it, so an accidental click never silently redirects you.
+By default, TVRelay shows a **"Watch now in {App}"** button before opening anything - a loading indicator appears the moment you click a recommendation, then swaps to the confirm button once the title's been identified. Dismissing it with Back or a D-pad press only hides it; it reappears a few seconds later and keeps doing so until you return to the launcher's home screen, so a moment's distraction doesn't lose your result (turn this off from Settings → **"Reappear after dismissing"** if you'd rather a dismissal be final).
 
 This needs the **"Display over other apps"** permission, since the button is a small overlay drawn on top of whatever the launcher navigates to. Grant it from Settings → **"Enable 'Watch now' confirmation"**, which takes you straight to the right system screen.
 
@@ -106,52 +98,33 @@ Typing a 32-character key with a TV remote is painful, so that screen has a **"S
 
 ## Limitations
 
-- **YouTube video recommendations can optionally redirect to SmartTube** (Settings → "Redirect YouTube recommendations to SmartTube", on by default) instead of being left alone - independent of whichever movie/show player you've picked above. **Experimental and unconfirmed**: unlike everything else in this list, this hasn't been confirmed against a real YouTube-video recommendation click yet, so it may currently just do nothing.
+- **YouTube video recommendations can optionally redirect to SmartTube or TizenTube Cobalt** (Settings → "Redirect YouTube recommendations", on by default, with a "Target app" dropdown to pick which of the two) instead of being left alone - independent of whichever movie/show player you've picked above. **Experimental and unconfirmed**: the signal TVRelay uses to tell a YouTube-video card apart from a movie/show card hasn't been confirmed against a real click yet, so this may currently just do nothing.
 - **Jellyfin opens a search, not the title itself.** It has no way for another app to open a specific title directly, so picking it just opens Jellyfin's own search screen, pre-filled with the title - it'll only find something if it's already on your personal server. Nuvio, Stremio, and WuPlay don't have this limitation: they resolve against their own online catalogs, so they can open a title you don't already have.
 - **Fire TV isn't supported running Amazon's own launcher** - tested end-to-end on a real Fire TV Stick, and recommendation clicks never reach TVRelay's detection at all, almost certainly because Amazon's newly-redesigned Fire TV home screen (rolling out through 2026) doesn't expose standard Android accessibility events to third-party apps the way Google TV's launcher does. **The recommended fix is to replace Fire OS's launcher with the real Google TV launcher instead of looking for any other way to find movies on Fire OS's own home screen** - once that's installed, TVRelay works exactly as it does on a real Google TV device, since it's no longer Amazon's launcher TVRelay has to deal with. This needs temporary root access on the Fire TV Stick, which isn't something TVRelay does or is involved in - it's a device-level change you make yourself, at your own risk, using these guides:
   - [Temp root - Fire TV Stick 4K 2nd Gen (Karat/Mantra series)](https://xdaforums.com/t/temp-root-fire-tv-stick-4k-2nd-gen-series-karat-mantra.4798627/) - grants temporary root access and lets you install a custom launcher.
   - [Install the Google TV launcher on Fire OS 8 (Karat 2nd Gen 4K)](https://xdaforums.com/t/guide-how-to-install-android-tv-google-play-store-on-fire-os-8-karat-2nd-gen-4k.4798990/#post-90707579) - uses that root access to install Google's own launcher in place of Fire OS's.
-- **Some recommendation cards can't be detected automatically** - a real limitation of what the launcher exposes to accessibility tools, not a TVRelay bug, and there's no way to fix it from the app's side. If clicking a recommendation does nothing at all, use Settings → **"Search for a title manually"**: type the title yourself, and everything after that works exactly the same way as an automatically-detected click.
-- **Voice search isn't detected.** Using the launcher's mic to speak a title jumps straight to that title's page without any click TVRelay can see - a different limitation from the one above, and not fixable the same way either. Type your search instead (the launcher's own search bar works fine), or use Settings → **"Search for a title manually"**.
+- **Some recommendation cards, and voice search results, don't expose a title directly** - a real limitation of what the launcher hands third-party apps, not a TVRelay bug, and clicking one does nothing by default. Two ways to still get there:
+  - **Search for a title manually** (Settings) - type it yourself; everything after that works exactly like an automatically-detected click.
+  - **Screen-reading fallback** (Settings → "Screen-reading fallback for undetectable cards", off by default): reads the title straight off the screen using on-device text recognition when a card or voice-search result has no title in its click event, then continues automatically from there. Nothing captured ever leaves the device, but turning this on means Android shows its own persistent screen-recording indicator the whole time it's active, since it uses the same system permission a screen recorder would - that's a system-level notice, not something TVRelay can hide.
 - **The metadata provider can occasionally match the wrong title** if a same-named but different movie or show also exists. When a search returns two or more titles that match *exactly*, TVRelay now asks which one you meant instead of guessing (turn this off from Settings → **"Ask when a match is ambiguous"** if you'd rather it always pick automatically). This can't fully close the gap on its own, though - a genuine data-coverage issue where the provider's catalog simply doesn't have a better candidate at all can still happen. Try [switching provider](#metadata-provider-tmdb--thetvdb) or the manual search with a more specific query (e.g. add the year) if it does.
 
 ## Troubleshooting
 
-**Service is enabled, but selecting a recommendation doesn't open anything.** Check that your chosen player is up to date - outdated or unofficial builds (common since none of Nuvio, Stremio, or WuPlay are on Google Play) sometimes don't register their deep link scheme correctly.
+**Service is enabled, but selecting a recommendation doesn't open anything.** Check that your chosen player is up to date - outdated or unofficial builds (common since none of these are on Google Play) sometimes don't register their deep link scheme correctly. Test the deep link directly, bypassing TVRelay entirely:
 
-To narrow it down (needs ADB access), test the deep link directly, bypassing TVRelay entirely:
 ```
-adb shell am start -a android.intent.action.VIEW -d "nuvio://movie/tt0371746"
-adb shell am start -a android.intent.action.VIEW -d "nuvio://tmdb/movie/1726"
-```
-Both should open Nuvio on Iron Man's page - the first by IMDb id (used for TheTVDB matches, and for Stremio/WuPlay), the second by TMDB id (used for TMDB matches, TVRelay's default provider). If neither works, the issue is with your Nuvio build, not TVRelay.
-
-For WuPlay:
-```
-adb shell am start -a android.intent.action.VIEW -d "wuplay://movie/tt0371746"
-```
-Should open WuPlay directly on Iron Man's page.
-
-For Jellyfin, test the search hand-off the same way:
-```
-adb shell am start -a android.intent.action.SEARCH -e query "iron man" -p org.jellyfin.androidtv
-```
-Should land on search results for "iron man" inside the app.
-
-For SmartTube:
-```
-adb shell am start -a android.intent.action.VIEW -d "https://www.youtube.com/results?search_query=iron%20man" -p org.smarttube.stable
+adb shell am start -a android.intent.action.VIEW -d "nuvio://movie/tt0371746"                                                          # Nuvio, by IMDb id
+adb shell am start -a android.intent.action.VIEW -d "nuvio://tmdb/movie/1726"                                                          # Nuvio, by TMDB id (TVRelay's default provider)
+adb shell am start -a android.intent.action.VIEW -d "wuplay://movie/tt0371746"                                                         # WuPlay
+adb shell am start -a android.intent.action.SEARCH -e query "iron man" -p org.jellyfin.androidtv                                       # Jellyfin (search hand-off)
+adb shell am start -a android.intent.action.VIEW -d "https://www.youtube.com/results?search_query=iron+man" -p org.smarttube.stable    # SmartTube
+adb shell am start -a android.intent.action.VIEW -d "https://www.youtube.com/results?search_query=iron+man" -p io.gh.reisxd.tizentube.cobalt   # TizenTube Cobalt
 ```
 
-If none of these work, the issue is with the target app's build, not TVRelay. If they work, the click likely isn't being detected - check for that with:
-```
-adb logcat -s TvRelayService:D TvdbClient:D PlayerLauncher:D
-```
+Each should land on Iron Man's page (or a search for "iron man"). If none of them do, the issue is with the target app's own build, not TVRelay. If they work, the click likely isn't being detected - check for that with:
 
-**TCL devices: service stops working after a while.** Some TCL units lock down background auto-start permissions for third-party apps with no toggle exposed in Settings. Fix via ADB:
 ```
-adb shell appops set com.hmartinez94.tvrelay APP_AUTO_START allow
-adb shell appops set com.hmartinez94.tvrelay APP_ASSOC_START allow
+adb logcat -s TvRelayService:D WatchNowOverlay:D
 ```
 
 ## Building from source

@@ -5,24 +5,55 @@
     <string name="disclosure_description">TVRelay usa un Servicio de Accesibilidad para detectar cuándo pulsas una recomendación de película o serie en la pantalla de inicio de tu TV. Cuando lo hace, envía únicamente el texto de ese título a un servicio de metadatos (TMDB por defecto, o TheTVDB - ver Ajustes) para identificarlo, y luego muestra un botón \"Ver ahora\" para la app que elegiste en Ajustes - solo al pulsarlo se abre ese título ahí, así un clic accidental nunca te lleva a otra app por sí solo.\n\nNo se lee, recopila ni envía nada más. Cualquier otro clic (aplicaciones, menús, cualquier cosa que no sea una recomendación de contenido) se deja completamente intacto.\n\nPuedes desactivar el servicio en cualquier momento desde los Ajustes de esta app.</string>
     <string name="disclosure_accept">Entendido, continuar</string>
 
+    <string name="ocr_disclosure_title">Sobre el método alternativo de lectura de pantalla</string>
+    <string name="ocr_disclosure_description">Algunas tarjetas de recomendación - sobre todo la fila \"Top picks for you\" - no incluyen ningún título legible en el clic que recibe TVRelay, y la búsqueda por voz evita por completo la detección de títulos. Cuando este método alternativo está activado, TVRelay usa el permiso de grabación de pantalla de Android para capturar lo que se muestra en pantalla en esos casos y leer el título mediante reconocimiento de texto en el propio dispositivo - nunca se sube nada a ningún sitio.\n\nMientras este método esté activado, Android mostrará un indicador persistente de \"grabación/emisión\" todo el tiempo, no solo mientras se realiza una captura - es un aviso del sistema que no se puede ocultar, y está ahí para que siempre sepas que el permiso está activo.\n\nPuedes desactivarlo en cualquier momento desde Ajustes.</string>
+
     <string name="settings_description">Elige qué app se abre al seleccionar una recomendación en la pantalla de inicio de tu TV.</string>
-    <string name="settings_enable_accessibility">Activar en Ajustes de Accesibilidad</string>
-    <string name="settings_accessibility_status_enabled">Estado: activado</string>
-    <string name="settings_accessibility_status_disabled">Estado: no activado - selecciona para abrir los ajustes del sistema</string>
-    <string name="settings_enable_overlay">Activar confirmación \"Ver ahora\"</string>
-    <string name="settings_overlay_status_enabled">Estado: activado - aparece un botón de confirmación antes de abrir otra app</string>
-    <string name="settings_overlay_status_disabled">Estado: no activado - los clics reconocidos abren la app directamente sin confirmación. Selecciona para conceder \"mostrar sobre otras apps\"</string>
+
+    <string name="settings_section_player">Reproductor</string>
+    <string name="settings_player_app">App del reproductor</string>
+
+    <string name="settings_section_detection">Detección y coincidencias</string>
     <string name="settings_show_chooser">Preguntar cuando una coincidencia sea ambigua</string>
     <string name="settings_chooser_status_enabled">Estado: activado - muestra un selector cuando un título coincide exactamente con más de un resultado, en lugar de adivinar</string>
     <string name="settings_chooser_status_disabled">Estado: desactivado - abre siempre automáticamente la coincidencia exacta más reciente</string>
     <string name="settings_player_plex_description">Abre la pantalla de búsqueda de Plex - tendrás que escribir el título tú mismo, y solo encuentra títulos que ya están en tu biblioteca</string>
     <string name="settings_player_jellyfin_description">Abre una búsqueda en Jellyfin - solo encuentra títulos en tu propio servidor, no abre el título directamente</string>
-    <string name="settings_smarttube_redirect">Redirigir recomendaciones de YouTube a SmartTube</string>
-    <string name="settings_smarttube_status_enabled">Estado: activado - una recomendación de vídeo de YouTube abre una búsqueda en SmartTube en su lugar, independientemente de tu app de películas/series de arriba</string>
+    <string name="settings_ocr_fallback">Método alternativo de lectura de pantalla para tarjetas no detectables</string>
+    <string name="settings_ocr_status_enabled">Estado: activado - se muestra un indicador de grabación persistente mientras esté activo. Captura la pantalla en el propio dispositivo (no se sube nada) cuando una tarjeta o un resultado de búsqueda por voz no tiene título legible</string>
+    <string name="settings_ocr_status_disabled">Estado: desactivado - las tarjetas y resultados de búsqueda por voz sin título legible se dejan intactos</string>
+
+    <string name="settings_section_youtube">Redirección de YouTube</string>
+    <string name="settings_smarttube_redirect">Redirigir recomendaciones de YouTube</string>
+    <string name="settings_smarttube_status_enabled">Estado: activado - una recomendación de vídeo de YouTube abre una búsqueda en la app elegida abajo, independientemente de tu app de películas/series de arriba</string>
     <string name="settings_smarttube_status_disabled">Estado: desactivado - las recomendaciones de vídeo de YouTube se dejan intactas</string>
+    <string name="settings_youtube_target">App de destino</string>
+
+    <string name="settings_section_overlay">Superposición de confirmación</string>
+    <string name="settings_enable_overlay">Activar confirmación \"Ver ahora\"</string>
+    <string name="settings_overlay_status_enabled">Estado: activado - aparece un botón de confirmación antes de abrir otra app</string>
+    <string name="settings_overlay_status_disabled">Estado: no activado - los clics reconocidos abren la app directamente sin confirmación. Selecciona para conceder \"mostrar sobre otras apps\"</string>
+    <string name="settings_overlay_reappear">Reaparecer al descartar</string>
+    <string name="settings_overlay_reappear_status_enabled">Estado: activado - descartar el botón de confirmación con Atrás o una pulsación del D-pad solo lo oculta; reaparece unos segundos después hasta que vuelvas a la pantalla de inicio del launcher</string>
+    <string name="settings_overlay_reappear_status_disabled">Estado: desactivado - descartar el botón de confirmación lo elimina definitivamente, como el comportamiento original</string>
+
+    <string name="settings_section_accessibility">Accesibilidad y permisos</string>
+    <string name="settings_enable_accessibility">Activar en Ajustes de Accesibilidad</string>
+    <string name="settings_accessibility_status_enabled">Estado: activado</string>
+    <string name="settings_accessibility_status_disabled">Estado: no activado - selecciona para abrir los ajustes del sistema</string>
+    <string name="settings_restricted_settings_help">¿La Accesibilidad no se activa? Obtén ayuda</string>
+    <string name="settings_restricted_settings_help_description">Parece que el interruptor no se queda activado - mira cómo solucionarlo</string>
+
+    <string name="settings_section_more">Más</string>
     <string name="settings_search_manually">Buscar un título manualmente</string>
     <string name="settings_metadata_provider">Proveedor de metadatos</string>
     <string name="settings_about">Acerca de y ayuda</string>
+
+    <string name="restricted_settings_help_title">La Accesibilidad no se activa</string>
+    <string name="restricted_settings_help_intro">TVRelay notó que intentaste activar la Accesibilidad, pero todavía no aparece como activada. Normalmente esto significa que Android la bloqueó - así es como solucionarlo.</string>
+    <string name="restricted_settings_open_app_info">Abrir la información de la app de TVRelay</string>
+    <string name="restricted_settings_open_app_info_description">Busca \"Permitir ajuste restringido\" en el menú de tres puntos/más, luego vuelve e intenta Accesibilidad de nuevo</string>
+    <string name="restricted_settings_retry_accessibility">Intentar Ajustes de Accesibilidad de nuevo</string>
 
     <string name="about_title">Acerca de y ayuda</string>
     <string name="about_legal">TVRelay es una herramienta independiente de automatización y redirección. No aloja, almacena, distribuye ni proporciona películas, series, streams, torrents ni ningún otro contenido audiovisual. No tiene relación con Nuvio, Stremio, WuPlay, Plex ni Jellyfin, ni con el origen o legalidad de ningún contenido al que accedas a través de esas apps - eso depende por completo de qué apps y complementos tengas instalados y configurados, bajo tu propia responsabilidad. TVRelay no está afiliada, patrocinada, autorizada ni respaldada por Google, Nuvio, Stremio, WuPlay, Plex ni Jellyfin.</string>

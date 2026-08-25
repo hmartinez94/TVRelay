@@ -3,11 +3,22 @@ agp = "9.3.1"
 leanback = "1.2.0"
 okhttp = "4.12.0"
 zxingCore = "3.5.3"
+mlkitTextRecognition = "16.0.1"
+# Only androidx.activity itself is needed here (registerForActivityResult /
+# ComponentActivity, for OcrConsentActivity's one-shot MediaProjection
+# consent flow) - leanback 1.2.0 transitively pulls a much older
+# androidx.fragment (1.0.0, see the getParentFragmentManager() note in
+# CLAUDE.md) that predates the split-out androidx.activity artifact ever
+# reaching this project's compile classpath, so it's declared explicitly
+# rather than assumed to already be resolvable.
+androidxActivity = "1.9.3"
 
 [libraries]
 androidx-leanback = { group = "androidx.leanback", name = "leanback", version.ref = "leanback" }
 okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
 zxing-core = { group = "com.google.zxing", name = "core", version.ref = "zxingCore" }
+mlkit-text-recognition = { group = "com.google.mlkit", name = "text-recognition", version.ref = "mlkitTextRecognition" }
+androidx-activity = { group = "androidx.activity", name = "activity", version.ref = "androidxActivity" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

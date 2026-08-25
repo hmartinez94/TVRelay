@@ -85,4 +85,15 @@ dependencies {
     // Core artifact only (QR generation). The full zxing-android-embedded
     // library adds a camera-based scanner we don't need.
     implementation(libs.zxing.core)
+    // Bundled/offline ML Kit Text Recognition (Latin script) - no Google
+    // Play Services dependency, no API key, ~4MB. Used by the OCR capture
+    // fallback (OcrCaptureManager) for the "Top picks for you" cards that
+    // carry no accessible text at all - see "The capabilities wall" in
+    // CLAUDE.md for why this exists as a MediaProjection-based workaround
+    // rather than another AccessibilityService capability attempt.
+    implementation(libs.mlkit.text.recognition)
+    // registerForActivityResult()/ComponentActivity for OcrConsentActivity
+    // - see the version catalog comment for why this can't be assumed
+    // already resolvable via leanback's transitive fragment dependency.
+    implementation(libs.androidx.activity)
 }

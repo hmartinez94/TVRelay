@@ -15,17 +15,47 @@ import androidx.leanback.widget.GuidedAction;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Main menu: choose a player app, enable the accessibility service, and reach the rest of Settings. */
+/**
+ * Main menu: choose a player app, enable the accessibility service, and reach
+ * the rest of Settings.
+ *
+ * Redesigned 2026-08-25 for clarity: related rows are grouped under
+ * non-interactive section-header actions (infoOnly - see addHeader()) rather
+ * than one long undifferentiated list, and two multi-choice settings (player
+ * app, YouTube redirect target) are now dropdown-style rows using leanback's
+ * GuidedAction.subActions - a single row that expands an inline popup of
+ * choices - instead of being spelled out as separate top-level radio rows.
+ * See onSubGuidedActionClicked() for the popup-selection handling, which is
+ * separate from onGuidedActionClicked() (top-level rows only) since sub-
+ * actions live in their own per-row list, not the fragment's main action list.
+ */
 public class SettingsStepFragment extends GuidedStepSupportFragment {
 
+    private static final long ACTION_PLAYER_APP = 1;
     private static final long ACTION_PLAYER_BASE = 100;
-    private static final long ACTION_ENABLE_ACCESSIBILITY = 1;
-    private static final long ACTION_SHOW_CHOOSER = 2;
-    private static final long ACTION_ABOUT = 4;
-    private static final long ACTION_SEARCH_MANUALLY = 5;
-    private static final long ACTION_ENABLE_OVERLAY = 6;
-    private static final long ACTION_METADATA_PROVIDER = 7;
-    private static final long ACTION_SMARTTUBE_REDIRECT = 8;
+    private static final long ACTION_ENABLE_ACCESSIBILITY = 2;
+    private static final long ACTION_RESTRICTED_SETTINGS_HELP = 3;
+    private static final long ACTION_SHOW_CHOOSER = 4;
+    private static final long ACTION_OCR_FALLBACK = 5;
+    private static final long ACTION_SMARTTUBE_REDIRECT = 6;
+    private static final long ACTION_YOUTUBE_TARGET = 7;
+    private static final long ACTION_YOUTUBE_TARGET_BASE = 300;
+    private static final long ACTION_ENABLE_OVERLAY = 8;
+    private static final long ACTION_OVERLAY_REAPPEAR = 9;
+    private static final long ACTION_SEARCH_MANUALLY = 10;
+    private static final long ACTION_METADATA_PROVIDER = 11;
+    private static final long ACTION_ABOUT = 12;
+
+    // Section headers - infoOnly, so leanback skips them in D-pad focus
+    // navigation and never routes a click to them. Distinct ids only matter
+    // for leanback's internal list diffing (RecyclerView-style) when
+    // buildActions() rebuilds the whole list - never branched on anywhere.
+    private static final long ACTION_HEADER_PLAYER = 900;
+    private static final long ACTION_HEADER_DETECTION = 901;
+    private static final long ACTION_HEADER_YOUTUBE = 902;
+    private static final long ACTION_HEADER_OVERLAY = 903;
+    private static final long ACTION_HEADER_ACCESSIBILITY = 904;
+    private static final long ACTION_HEADER_MORE = 905;
 
     @Override
     public GuidanceStylist.Guidance onCreateGuidance(Bundle savedInstanceState) {
@@ -51,16 +81,128 @@ public class SettingsStepFragment extends GuidedStepSupportFragment {
 
     private List<GuidedAction> buildActions(Context context) {
         List<GuidedAction> actions = new ArrayList<>();
-        PlayerApp selected = Preferences.getSelectedApp(context);
 
+        addHeader(actions, context, ACTION_HEADER_PLAYER, R.string.settings_section_player);
+        actions.add(buildPlayerAppAction(context));
+
+        addHeader(actions, context, ACTION_HEADER_DETECTION, R.string.settings_section_detection);
+        boolean chooserEnabled = Preferences.isChooserEnabled(context);
+        actions.add(new GuidedAction.Builder(context)
+                .id(ACTION_SHOW_CHOOSER)
+                .title(getString(R.string.settings_show_chooser))
+                .description(getString(chooserEnabled
+                        ? R.string.settings_chooser_status_enabled
+                        : R.string.settings_chooser_status_disabled))
+                .checkSetId(GuidedAction.CHECKBOX_CHECK_SET_ID)
+                .checked(chooserEnabled)
+                .build());
+        boolean ocrFallbackEnabled = Preferences.isOcrFallbackEnabled(context);
+        actions.add(new GuidedAction.Builder(context)
+                .id(ACTION_OCR_FALLBACK)
+                .title(getString(R.string.settings_ocr_fallback))
+                .description(getString(ocrFallbackEnabled
+                        ? R.string.settings_ocr_status_enabled
+                        : R.string.settings_ocr_status_disabled))
+                .checkSetId(GuidedAction.CHECKBOX_CHECK_SET_ID)
+                .checked(ocrFallbackEnabled)
+                .build());
+
+        addHeader(actions, context, ACTION_HEADER_YOUTUBE, R.string.settings_section_youtube);
+        boolean smartTubeEnabled = Preferences.isSmartTubeEnabled(context);
+        actions.add(new GuidedAction.Builder(context)
+                .id(ACTION_SMARTTUBE_REDIRECT)
+                .title(getString(R.string.settings_smarttube_redirect))
+                .description(getString(smartTubeEnabled
+                        ? R.string.settings_smarttube_status_enabled
+                        : R.string.settings_smarttube_status_disabled))
+                .checkSetId(GuidedAction.CHECKBOX_CHECK_SET_ID)
+                .checked(smartTubeEnabled)
+                .build());
+        if (smartTubeEnabled) {
+            // Only offered while the toggle above is on - nothing to target
+            // otherwise. Rebuilding the whole list on that toggle (rather
+            // than a single notifyActionChanged) is what makes this row
+            // appear/disappear immediately - see its click handler below.
+            actions.add(buildYouTubeTargetAction(context));
+        }
+
+        addHeader(actions, context, ACTION_HEADER_OVERLAY, R.string.settings_section_overlay);
+        boolean overlayGranted = Settings.canDrawOverlays(context);
+        actions.add(new GuidedAction.Builder(context)
+                .id(ACTION_ENABLE_OVERLAY)
+                .title(getString(R.string.settings_enable_overlay))
+                .description(getString(overlayGranted
+                        ? R.string.settings_overlay_status_enabled
+                        : R.string.settings_overlay_status_disabled))
+                .build());
+        boolean overlayReappearEnabled = Preferences.isOverlayReappearEnabled(context);
+        actions.add(new GuidedAction.Builder(context)
+                .id(ACTION_OVERLAY_REAPPEAR)
+                .title(getString(R.string.settings_overlay_reappear))
+                .description(getString(overlayReappearEnabled
+                        ? R.string.settings_overlay_reappear_status_enabled
+                        : R.string.settings_overlay_reappear_status_disabled))
+                .checkSetId(GuidedAction.CHECKBOX_CHECK_SET_ID)
+                .checked(overlayReappearEnabled)
+                .build());
+
+        addHeader(actions, context, ACTION_HEADER_ACCESSIBILITY, R.string.settings_section_accessibility);
+        boolean serviceEnabled = isAccessibilityServiceEnabled(context);
+        actions.add(new GuidedAction.Builder(context)
+                .id(ACTION_ENABLE_ACCESSIBILITY)
+                .title(getString(R.string.settings_enable_accessibility))
+                .description(getString(serviceEnabled
+                        ? R.string.settings_accessibility_status_enabled
+                        : R.string.settings_accessibility_status_disabled))
+                .build());
+        if (shouldOfferRestrictedSettingsHelp(context, serviceEnabled)) {
+            actions.add(new GuidedAction.Builder(context)
+                    .id(ACTION_RESTRICTED_SETTINGS_HELP)
+                    .title(getString(R.string.settings_restricted_settings_help))
+                    .description(getString(R.string.settings_restricted_settings_help_description))
+                    .build());
+        }
+
+        addHeader(actions, context, ACTION_HEADER_MORE, R.string.settings_section_more);
+        actions.add(new GuidedAction.Builder(context)
+                .id(ACTION_SEARCH_MANUALLY)
+                .title(getString(R.string.settings_search_manually))
+                .build());
+        MetadataProvider provider = Preferences.getMetadataProvider(context);
+        actions.add(new GuidedAction.Builder(context)
+                .id(ACTION_METADATA_PROVIDER)
+                .title(getString(R.string.settings_metadata_provider))
+                .description(provider == MetadataProvider.TMDB ? "TMDB" : "TheTVDB")
+                .build());
+        actions.add(new GuidedAction.Builder(context)
+                .id(ACTION_ABOUT)
+                .title(getString(R.string.settings_about))
+                .build());
+
+        return actions;
+    }
+
+    private void addHeader(List<GuidedAction> actions, Context context, long id, int titleRes) {
+        actions.add(new GuidedAction.Builder(context)
+                .id(id)
+                .title(getString(titleRes))
+                .infoOnly(true)
+                .focusable(false)
+                .build());
+    }
+
+    /** The player-app row: a dropdown (subActions) rather than N separate top-level radio rows - see class doc. */
+    private GuidedAction buildPlayerAppAction(Context context) {
+        PlayerApp selected = Preferences.getSelectedApp(context);
+        List<GuidedAction> subActions = new ArrayList<>();
         PlayerApp[] apps = PlayerApp.values();
         for (int i = 0; i < apps.length; i++) {
             PlayerApp app = apps[i];
             if (!app.isEnabled()) {
                 // Disabled, not removed - see PlayerApp.isEnabled()/CLAUDE.md
-                // (currently: Plex). Index i is left as-is (not
-                // renumbered) so ACTION_PLAYER_BASE + i still lines up with
-                // PlayerApp.values() in onGuidedActionClicked below.
+                // (currently: Plex). Index i is left as-is (not renumbered)
+                // so ACTION_PLAYER_BASE + i still lines up with
+                // PlayerApp.values() in onSubGuidedActionClicked below.
                 continue;
             }
             GuidedAction.Builder builder = new GuidedAction.Builder(context)
@@ -74,84 +216,42 @@ public class SettingsStepFragment extends GuidedStepSupportFragment {
             if (app.getDescriptionRes() != 0) {
                 builder.description(getString(app.getDescriptionRes()));
             }
-            actions.add(builder.build());
+            subActions.add(builder.build());
         }
+        return new GuidedAction.Builder(context)
+                .id(ACTION_PLAYER_APP)
+                .title(getString(R.string.settings_player_app))
+                .description(selected.getLabel())
+                .subActions(subActions)
+                .build();
+    }
 
-        boolean serviceEnabled = isAccessibilityServiceEnabled(context);
-        actions.add(new GuidedAction.Builder(context)
-                .id(ACTION_ENABLE_ACCESSIBILITY)
-                .title(getString(R.string.settings_enable_accessibility))
-                .description(getString(serviceEnabled
-                        ? R.string.settings_accessibility_status_enabled
-                        : R.string.settings_accessibility_status_disabled))
-                .build());
-
-        boolean overlayGranted = Settings.canDrawOverlays(context);
-        actions.add(new GuidedAction.Builder(context)
-                .id(ACTION_ENABLE_OVERLAY)
-                .title(getString(R.string.settings_enable_overlay))
-                .description(getString(overlayGranted
-                        ? R.string.settings_overlay_status_enabled
-                        : R.string.settings_overlay_status_disabled))
-                .build());
-
-        boolean chooserEnabled = Preferences.isChooserEnabled(context);
-        actions.add(new GuidedAction.Builder(context)
-                .id(ACTION_SHOW_CHOOSER)
-                .title(getString(R.string.settings_show_chooser))
-                .description(getString(chooserEnabled
-                        ? R.string.settings_chooser_status_enabled
-                        : R.string.settings_chooser_status_disabled))
-                .checkSetId(GuidedAction.CHECKBOX_CHECK_SET_ID)
-                .checked(chooserEnabled)
-                .build());
-
-        boolean smartTubeEnabled = Preferences.isSmartTubeEnabled(context);
-        actions.add(new GuidedAction.Builder(context)
-                .id(ACTION_SMARTTUBE_REDIRECT)
-                .title(getString(R.string.settings_smarttube_redirect))
-                .description(getString(smartTubeEnabled
-                        ? R.string.settings_smarttube_status_enabled
-                        : R.string.settings_smarttube_status_disabled))
-                .checkSetId(GuidedAction.CHECKBOX_CHECK_SET_ID)
-                .checked(smartTubeEnabled)
-                .build());
-
-        actions.add(new GuidedAction.Builder(context)
-                .id(ACTION_SEARCH_MANUALLY)
-                .title(getString(R.string.settings_search_manually))
-                .build());
-
-        MetadataProvider provider = Preferences.getMetadataProvider(context);
-        actions.add(new GuidedAction.Builder(context)
-                .id(ACTION_METADATA_PROVIDER)
-                .title(getString(R.string.settings_metadata_provider))
-                .description(provider == MetadataProvider.TMDB ? "TMDB" : "TheTVDB")
-                .build());
-
-        actions.add(new GuidedAction.Builder(context)
-                .id(ACTION_ABOUT)
-                .title(getString(R.string.settings_about))
-                .build());
-
-        return actions;
+    /** The YouTube-redirect-target row: a dropdown between the two supported clients - see class doc. */
+    private GuidedAction buildYouTubeTargetAction(Context context) {
+        YouTubeRedirectTarget selected = Preferences.getYouTubeRedirectTarget(context);
+        List<GuidedAction> subActions = new ArrayList<>();
+        YouTubeRedirectTarget[] targets = YouTubeRedirectTarget.values();
+        for (int i = 0; i < targets.length; i++) {
+            YouTubeRedirectTarget target = targets[i];
+            subActions.add(new GuidedAction.Builder(context)
+                    .id(ACTION_YOUTUBE_TARGET_BASE + i)
+                    .title(target.getLabel())
+                    .checkSetId(GuidedAction.DEFAULT_CHECK_SET_ID)
+                    .checked(target == selected)
+                    .build());
+        }
+        return new GuidedAction.Builder(context)
+                .id(ACTION_YOUTUBE_TARGET)
+                .title(getString(R.string.settings_youtube_target))
+                .description(selected.getLabel())
+                .subActions(subActions)
+                .build();
     }
 
     @Override
     public void onGuidedActionClicked(GuidedAction action) {
         Context context = requireContext();
         long id = action.getId();
-
-        if (id >= ACTION_PLAYER_BASE) {
-            int index = (int) (id - ACTION_PLAYER_BASE);
-            PlayerApp[] apps = PlayerApp.values();
-            if (index >= 0 && index < apps.length && apps[index].isEnabled()) {
-                Preferences.setSelectedApp(context, apps[index]);
-            }
-            RadioActionHelper.enforceExclusivity(getActions(), id,
-                    candidateId -> candidateId >= ACTION_PLAYER_BASE, this::notifyActionChanged);
-            return;
-        }
 
         if (id == ACTION_SHOW_CHOOSER) {
             boolean enabled = !Preferences.isChooserEnabled(context);
@@ -167,16 +267,57 @@ public class SettingsStepFragment extends GuidedStepSupportFragment {
         if (id == ACTION_SMARTTUBE_REDIRECT) {
             boolean enabled = !Preferences.isSmartTubeEnabled(context);
             Preferences.setSmartTubeEnabled(context, enabled);
+            // Full rebuild, not a single notifyActionChanged: the YouTube
+            // target dropdown row itself needs to appear/disappear
+            // immediately along with this toggle - see buildActions().
+            setActions(buildActions(context));
+            return;
+        }
+
+        if (id == ACTION_OVERLAY_REAPPEAR) {
+            boolean enabled = !Preferences.isOverlayReappearEnabled(context);
+            Preferences.setOverlayReappearEnabled(context, enabled);
             action.setChecked(enabled);
             action.setDescription(getString(enabled
-                    ? R.string.settings_smarttube_status_enabled
-                    : R.string.settings_smarttube_status_disabled));
+                    ? R.string.settings_overlay_reappear_status_enabled
+                    : R.string.settings_overlay_reappear_status_disabled));
+            notifyActionChanged(getActions().indexOf(action));
+            return;
+        }
+
+        if (id == ACTION_OCR_FALLBACK) {
+            if (!Preferences.isOcrDisclosureAccepted(context)) {
+                // First time this row is turned on: route through its own
+                // explicit consent screen (a materially bigger grant than
+                // the base accessibility disclosure - see
+                // OcrDisclosureStepFragment's class doc) instead of
+                // toggling directly. It writes the pref itself and pops
+                // back here, where onResume()'s existing rebuild-from-
+                // Preferences picks up the new enabled state - same
+                // mechanism PhonePairingStepFragment/
+                // MetadataProviderStepFragment already rely on for their
+                // own "write elsewhere, pop back" flows.
+                GuidedStepSupportFragment.add(getFragmentManager(), new OcrDisclosureStepFragment());
+                return;
+            }
+            boolean enabled = !Preferences.isOcrFallbackEnabled(context);
+            Preferences.setOcrFallbackEnabled(context, enabled);
+            if (!enabled) {
+                context.stopService(new Intent(context, OcrCaptureForegroundService.class));
+            }
+            action.setChecked(enabled);
+            action.setDescription(getString(enabled
+                    ? R.string.settings_ocr_status_enabled
+                    : R.string.settings_ocr_status_disabled));
             notifyActionChanged(getActions().indexOf(action));
             return;
         }
 
         if (id == ACTION_ENABLE_ACCESSIBILITY) {
+            Preferences.setAccessibilityEnableClickedAt(context, System.currentTimeMillis());
             startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS));
+        } else if (id == ACTION_RESTRICTED_SETTINGS_HELP) {
+            GuidedStepSupportFragment.add(getFragmentManager(), new RestrictedSettingsStepFragment());
         } else if (id == ACTION_ENABLE_OVERLAY) {
             startActivity(new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
                     Uri.parse("package:" + context.getPackageName())));
@@ -187,6 +328,107 @@ public class SettingsStepFragment extends GuidedStepSupportFragment {
         } else if (id == ACTION_ABOUT) {
             GuidedStepSupportFragment.add(getFragmentManager(), new AboutStepFragment());
         }
+    }
+
+    /**
+     * Handles a choice made inside either dropdown's inline popup (player
+     * app, YouTube redirect target) - separate from onGuidedActionClicked()
+     * above because sub-actions live in their own per-row list
+     * (GuidedAction.getSubActions()), not the fragment's main action list,
+     * so getActions().indexOf(action)/notifyActionChanged(int) don't apply
+     * to them directly. Returning true closes the popup back to the normal
+     * action list, per GuidedStepSupportFragment's contract.
+     */
+    @Override
+    public boolean onSubGuidedActionClicked(GuidedAction action) {
+        Context context = requireContext();
+        long id = action.getId();
+
+        if (id >= ACTION_PLAYER_BASE && id < ACTION_PLAYER_BASE + 100) {
+            int index = (int) (id - ACTION_PLAYER_BASE);
+            PlayerApp[] apps = PlayerApp.values();
+            if (index >= 0 && index < apps.length && apps[index].isEnabled()) {
+                PlayerApp chosen = apps[index];
+                Preferences.setSelectedApp(context, chosen);
+                GuidedAction parent = findActionById(ACTION_PLAYER_APP);
+                if (parent != null) {
+                    parent.setDescription(chosen.getLabel());
+                    syncCheckedInList(parent.getSubActions(), id);
+                    notifyActionChanged(getActions().indexOf(parent));
+                }
+            }
+            return true;
+        }
+
+        if (id >= ACTION_YOUTUBE_TARGET_BASE && id < ACTION_YOUTUBE_TARGET_BASE + 100) {
+            int index = (int) (id - ACTION_YOUTUBE_TARGET_BASE);
+            YouTubeRedirectTarget[] targets = YouTubeRedirectTarget.values();
+            if (index >= 0 && index < targets.length) {
+                YouTubeRedirectTarget chosen = targets[index];
+                Preferences.setYouTubeRedirectTarget(context, chosen);
+                GuidedAction parent = findActionById(ACTION_YOUTUBE_TARGET);
+                if (parent != null) {
+                    parent.setDescription(chosen.getLabel());
+                    syncCheckedInList(parent.getSubActions(), id);
+                    notifyActionChanged(getActions().indexOf(parent));
+                }
+            }
+            return true;
+        }
+
+        return true;
+    }
+
+    /**
+     * Manually re-checks exactly the selected id within a dropdown's own
+     * subActions list. Leanback's checkSetId auto-exclusivity is unreliable
+     * on real hardware for the top-level action list (see
+     * RadioActionHelper's class doc, a confirmed on-device bug) - this is
+     * the same manual-exclusivity fix applied to a subActions list instead,
+     * since there's no reason to expect the popup variant is any more
+     * trustworthy and no on-device evidence either way yet.
+     */
+    private static void syncCheckedInList(List<GuidedAction> list, long selectedId) {
+        if (list == null) {
+            return;
+        }
+        for (GuidedAction candidate : list) {
+            candidate.setChecked(candidate.getId() == selectedId);
+        }
+    }
+
+    /**
+     * Whether to offer the Restricted Settings walkthrough as an extra
+     * Settings row. There's no direct API to ask "is this app
+     * restricted-settings-blocked" (see CLAUDE.md's "capabilities wall" for
+     * why this project generally has to infer OS-level restrictions rather
+     * than query them directly) - so this combines the only three signals
+     * actually available:
+     *  - the service isn't currently enabled (nothing to help with otherwise)
+     *  - it has never once actually connected (Preferences.
+     *    hasAccessibilityServiceEverConnected()) - avoids a false positive
+     *    for a service that worked before and was later turned off/crashed,
+     *    which Restricted Settings (a first-enable-only block) can't explain
+     *  - the user has actually clicked "Enable in Accessibility settings"
+     *    before (Preferences.getAccessibilityEnableClickedAt() > 0) - avoids
+     *    offering help before the user has even tried
+     * ...and gates all of it behind InstallSource.isPlayStoreInstall(),
+     * since Play is a trusted installer and is never subject to this
+     * restriction in the first place - see CLAUDE.md's "Distribution &
+     * monetization decisions" (a real Play Internal Testing release already
+     * exists for this app).
+     */
+    private static boolean shouldOfferRestrictedSettingsHelp(Context context, boolean serviceEnabled) {
+        if (serviceEnabled) {
+            return false;
+        }
+        if (Preferences.hasAccessibilityServiceEverConnected(context)) {
+            return false;
+        }
+        if (Preferences.getAccessibilityEnableClickedAt(context) <= 0) {
+            return false;
+        }
+        return !InstallSource.isPlayStoreInstall(context);
     }
 
     private static boolean isAccessibilityServiceEnabled(Context context) {

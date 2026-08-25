@@ -4,6 +4,17 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- OCR capture fallback (OcrCaptureManager/OcrCaptureForegroundService)
+         - a MediaProjection-based screenshot+OCR path for cards that carry
+         no accessible text at all (see "The capabilities wall" in
+         CLAUDE.md). MediaProjection is a wholly separate, non-gated
+         permission path from the AccessibilityService capabilities that
+         wall describes - the user grants it via the system's own one-time
+         screen-capture consent dialog, not an accessibility capability. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
     <!-- Optional: powers the "Watch now in {App}" confirmation overlay
          (see WatchNowOverlay) that appears before a recognized click
          actually opens another app - accidental-click protection. Granted
@@ -33,6 +44,7 @@
         <package android:name="org.jellyfin.androidtv" />
         <package android:name="org.smarttube.stable" />
         <package android:name="org.smarttube.beta" />
+        <package android:name="io.gh.reisxd.tizentube.cobalt" />
     </queries>
 
     <application
@@ -60,6 +72,24 @@
             android:name=".SearchActivity"
             android:exported="false"
             android:screenOrientation="landscape" />
+
+        <!-- Transparent, single-purpose host for the one-time MediaProjection
+             screen-capture consent dialog (see OcrCaptureManager). Since
+             Android 10, createScreenCaptureIntent()'s system dialog can only
+             be launched from an Activity, not directly from the background
+             AccessibilityService/foreground Service that actually wants the
+             capture - this activity exists purely to bridge that gap and
+             finishes immediately once the user responds. -->
+        <activity
+            android:name=".OcrConsentActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+
+        <service
+            android:name=".OcrCaptureForegroundService"
+            android:exported="false"
+            android:foregroundServiceType="mediaProjection" />
 
         <service
             android:name=".TvRelayAccessibilityService"

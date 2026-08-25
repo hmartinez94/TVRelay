@@ -43,12 +43,33 @@ final class MatchTrayOverlay {
 
     private final AccessibilityService service;
     private final WindowManager windowManager;
+    private final Runnable onDismissed;
     private View content;
     private BroadcastReceiver homeReceiver;
 
     MatchTrayOverlay(AccessibilityService service) {
+        this(service, null);
+    }
+
+    /**
+     * @param onDismissed Notified (if non-null) every time hide() actually
+     *                     removes a currently-shown tray - i.e. real
+     *                     dismissals only (Back/cancel, Home, picking a
+     *                     candidate), not a no-op call. TvRelayAccessibilityService
+     *                     uses this to start a short cooldown before treating
+     *                     a subsequent window-state event as a fresh
+     *                     voice-search landing - see its
+     *                     OVERLAY_TRANSITION_COOLDOWN_MS. Confirmed real bug
+     *                     this fixes (2026-08-25): dismissing the tray
+     *                     (Back) hands focus back to the launcher's
+     *                     EntityActivity, which fires a lookalike
+     *                     window-state event with nothing to distinguish it
+     *                     from a genuine voice-search landing.
+     */
+    MatchTrayOverlay(AccessibilityService service, Runnable onDismissed) {
         this.service = service;
         this.windowManager = (WindowManager) service.getSystemService(Context.WINDOW_SERVICE);
+        this.onDismissed = onDismissed;
     }
 
     void show(String queryTitle, List<TitleCandidate> candidates) {
@@ -111,6 +132,14 @@ final class MatchTrayOverlay {
             Log.w(TAG, "Could not remove match tray overlay", e);
         }
         content = null;
+        if (onDismissed != null) {
+            onDismissed.run();
+        }
+    }
+
+    /** Whether a tray is currently on screen - see onDismissed's javadoc for why a caller needs this. */
+    boolean isShowing() {
+        return content != null;
     }
 
     private void onPicked(TitleCandidate candidate) {

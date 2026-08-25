@@ -7,24 +7,55 @@
     <string name="disclosure_description">TVRelay uses an Accessibility Service to detect when you click a movie or show recommendation on your TV\'s home screen. When it does, it sends only that title\'s text to a metadata service (TMDB by default, or TheTVDB - see Settings) to identify it, then shows a \"Watch now\" button for the app you\'ve chosen in Settings - tapping it (and only tapping it) opens that title there, so an accidental click never jumps you into another app on its own.\n\nNothing else is read, collected, or sent anywhere. Every other click (apps, menus, anything that isn\'t a content recommendation) is left completely alone.\n\nYou can turn the service off at any time from this app\'s Settings.</string>
     <string name="disclosure_accept">I understand, continue</string>
 
+    <string name="ocr_disclosure_title">About the screen-reading fallback</string>
+    <string name="ocr_disclosure_description">Some recommendation cards - especially the \"Top picks for you\" row - don\'t include any readable title in the click TVRelay receives, and voice search bypasses title detection entirely. When this fallback is on, TVRelay uses Android\'s screen-recording permission to capture what\'s on screen in those cases and read the title from it using on-device text recognition - nothing is ever uploaded anywhere.\n\nWhile this fallback is turned on, Android will show a persistent \"recording/casting\" indicator the whole time, not just while a capture is actually happening - that\'s a system-level notice you can\'t hide, and it\'s there so you always know the permission is active.\n\nYou can turn this off at any time from Settings.</string>
+
     <string name="settings_description">Pick which app opens when you select a recommendation on your TV\'s home screen.</string>
-    <string name="settings_enable_accessibility">Enable in Accessibility settings</string>
-    <string name="settings_accessibility_status_enabled">Status: enabled</string>
-    <string name="settings_accessibility_status_disabled">Status: not enabled - select to open system settings</string>
-    <string name="settings_enable_overlay">Enable \"Watch now\" confirmation</string>
-    <string name="settings_overlay_status_enabled">Status: enabled - a confirm button appears before opening another app</string>
-    <string name="settings_overlay_status_disabled">Status: not enabled - recognized clicks open the app directly with no confirmation. Select to grant \"display over other apps\"</string>
+
+    <string name="settings_section_player">Player</string>
+    <string name="settings_player_app">Player app</string>
+
+    <string name="settings_section_detection">Detection &amp; Matching</string>
     <string name="settings_show_chooser">Ask when a match is ambiguous</string>
     <string name="settings_chooser_status_enabled">Status: enabled - shows a chooser when a title matches more than one thing exactly, instead of guessing</string>
     <string name="settings_chooser_status_disabled">Status: disabled - always opens the newest exact match automatically</string>
     <string name="settings_player_plex_description">Opens Plex\'s search screen - you\'ll need to type the title yourself, and it only finds titles already in your library</string>
     <string name="settings_player_jellyfin_description">Opens a search in Jellyfin - only finds titles on your own server, doesn\'t open the title directly</string>
-    <string name="settings_smarttube_redirect">Redirect YouTube recommendations to SmartTube</string>
-    <string name="settings_smarttube_status_enabled">Status: enabled - a YouTube video recommendation opens a search in SmartTube instead, independent of your movie/show player above</string>
+    <string name="settings_ocr_fallback">Screen-reading fallback for undetectable cards</string>
+    <string name="settings_ocr_status_enabled">Status: enabled - a persistent recording indicator stays visible while this is on. Captures the screen on-device (nothing uploaded) when a card or voice-search result has no readable title</string>
+    <string name="settings_ocr_status_disabled">Status: disabled - cards and voice-search results with no readable title are left alone</string>
+
+    <string name="settings_section_youtube">YouTube Redirect</string>
+    <string name="settings_smarttube_redirect">Redirect YouTube recommendations</string>
+    <string name="settings_smarttube_status_enabled">Status: enabled - a YouTube video recommendation opens a search in the app chosen below, independent of your movie/show player above</string>
     <string name="settings_smarttube_status_disabled">Status: disabled - YouTube video recommendations are left alone</string>
+    <string name="settings_youtube_target">Target app</string>
+
+    <string name="settings_section_overlay">Confirmation Overlay</string>
+    <string name="settings_enable_overlay">Enable \"Watch now\" confirmation</string>
+    <string name="settings_overlay_status_enabled">Status: enabled - a confirm button appears before opening another app</string>
+    <string name="settings_overlay_status_disabled">Status: not enabled - recognized clicks open the app directly with no confirmation. Select to grant \"display over other apps\"</string>
+    <string name="settings_overlay_reappear">Reappear after dismissing</string>
+    <string name="settings_overlay_reappear_status_enabled">Status: enabled - dismissing the confirm button with Back or a D-pad press only hides it; it reappears a few seconds later until you return to the launcher\'s home screen</string>
+    <string name="settings_overlay_reappear_status_disabled">Status: disabled - dismissing the confirm button discards it for good, like the original behavior</string>
+
+    <string name="settings_section_accessibility">Accessibility &amp; Permissions</string>
+    <string name="settings_enable_accessibility">Enable in Accessibility settings</string>
+    <string name="settings_accessibility_status_enabled">Status: enabled</string>
+    <string name="settings_accessibility_status_disabled">Status: not enabled - select to open system settings</string>
+    <string name="settings_restricted_settings_help">Accessibility not turning on? Get help</string>
+    <string name="settings_restricted_settings_help_description">It looks like the toggle isn\'t sticking - see how to fix it</string>
+
+    <string name="settings_section_more">More</string>
     <string name="settings_search_manually">Search for a title manually</string>
     <string name="settings_metadata_provider">Metadata provider</string>
     <string name="settings_about">About &amp; help</string>
+
+    <string name="restricted_settings_help_title">Accessibility isn\'t turning on</string>
+    <string name="restricted_settings_help_intro">TVRelay noticed you tried enabling Accessibility, but it still isn\'t listed as enabled. This usually means Android blocked it - here\'s how to fix it.</string>
+    <string name="restricted_settings_open_app_info">Open TVRelay\'s app info</string>
+    <string name="restricted_settings_open_app_info_description">Look for \"Allow restricted setting\" in the overflow/three-dot menu there, then come back and try Accessibility again</string>
+    <string name="restricted_settings_retry_accessibility">Try Accessibility settings again</string>
 
     <string name="about_title">About &amp; help</string>
     <string name="about_legal">TVRelay is an independent automation and redirection tool. It does not host, store, distribute, or provide movies, series, streams, torrents, or any other audiovisual content. It has no relationship with Nuvio, Stremio, WuPlay, Plex, or Jellyfin, or the origin or legality of any content you access through those apps - that depends entirely on which apps and add-ons you have installed and configured, under your own responsibility. TVRelay is not affiliated with, sponsored by, authorized by, or endorsed by Google, Nuvio, Stremio, WuPlay, Plex, or Jellyfin.</string>
