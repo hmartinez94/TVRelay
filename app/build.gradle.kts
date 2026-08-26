@@ -96,4 +96,7 @@ dependencies {
     // - see the version catalog comment for why this can't be assumed
     // already resolvable via leanback's transitive fragment dependency.
     implementation(libs.androidx.activity)
+    // FileProvider, for the update-download install flow (ApkInstaller) -
+    // see the version catalog comment.
+    implementation(libs.androidx.core)
 }

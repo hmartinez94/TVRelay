@@ -48,6 +48,8 @@
     <string name="settings_restricted_settings_help_description">It looks like the toggle isn\'t sticking - see how to fix it</string>
 
     <string name="settings_section_more">More</string>
+    <string name="settings_update_available">Update available</string>
+    <string name="settings_update_available_description">Version %1$s is ready to download and install</string>
     <string name="settings_search_manually">Search for a title manually</string>
     <string name="settings_metadata_provider">Metadata provider</string>
     <string name="settings_about">About &amp; help</string>
@@ -106,4 +108,12 @@
     <string name="chooser_type_movie">Movie</string>
     <string name="chooser_type_series">Series</string>
     <string name="chooser_aka">aka %1$s</string>
+
+    <string name="update_title">Update available</string>
+    <string name="update_description">TVRelay %1$s is available - you have %2$s. Downloading and installing happens entirely on this device, no phone needed.</string>
+    <string name="update_download">Download and install</string>
+    <string name="update_downloading">Downloading… %1$d%%</string>
+    <string name="update_permission_needed">Selecting this first asks Android for permission to install apps from TVRelay - a one-time system screen</string>
+    <string name="update_download_failed">Download failed - check your connection and try again</string>
+    <string name="update_cancel">Cancel</string>
 </resources>

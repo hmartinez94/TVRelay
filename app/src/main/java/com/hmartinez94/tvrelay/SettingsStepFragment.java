@@ -45,6 +45,10 @@ public class SettingsStepFragment extends GuidedStepSupportFragment {
     private static final long ACTION_SEARCH_MANUALLY = 10;
     private static final long ACTION_METADATA_PROVIDER = 11;
     private static final long ACTION_ABOUT = 12;
+    private static final long ACTION_UPDATE_AVAILABLE = 13;
+
+    /** Throttle for the GitHub release check kicked off from onResume() - see maybeCheckForUpdate(). */
+    private static final long UPDATE_CHECK_INTERVAL_MS = 24L * 60 * 60 * 1000;
 
     // Section headers - infoOnly, so leanback skips them in D-pad focus
     // navigation and never routes a click to them. Distinct ids only matter
@@ -77,6 +81,50 @@ public class SettingsStepFragment extends GuidedStepSupportFragment {
         // Reflect the current accessibility toggle state - the user may
         // have just come back from the system Settings screen.
         setActions(buildActions(requireContext()));
+        maybeCheckForUpdate();
+    }
+
+    /**
+     * Throttled GitHub release check - see UPDATE_CHECK_INTERVAL_MS and
+     * Preferences.getUpdateCheckedAt(). Only meaningful for a sideloaded
+     * install (InstallSource.isPlayStoreInstall() - a Play install updates
+     * through Play instead, same gate shouldOfferRestrictedSettingsHelp()
+     * uses for a similar sideload-only concern). Silent no-op on failure -
+     * this is a background convenience check, not a user-initiated action
+     * that needs its own error feedback (unlike UpdateStepFragment's actual
+     * download, which does).
+     */
+    private void maybeCheckForUpdate() {
+        Context context = requireContext();
+        if (InstallSource.isPlayStoreInstall(context)) {
+            return;
+        }
+        long now = System.currentTimeMillis();
+        if (now - Preferences.getUpdateCheckedAt(context) < UPDATE_CHECK_INTERVAL_MS) {
+            return;
+        }
+        Preferences.setUpdateCheckedAt(context, now);
+        Context appContext = context.getApplicationContext();
+        new Thread(() -> {
+            GithubReleaseClient.ReleaseInfo release = GithubReleaseClient.fetchLatest();
+            if (release == null || !GithubReleaseClient.isNewer(release.version, BuildConfig.VERSION_NAME)) {
+                return;
+            }
+            Preferences.setUpdateAvailable(appContext, release.version, release.apkUrl);
+            if (!isAdded()) {
+                return;
+            }
+            requireActivity().runOnUiThread(() -> setActions(buildActions(requireContext())));
+        }).start();
+    }
+
+    /** Whether a cached, still-newer-than-installed release is on hand - see maybeCheckForUpdate(). */
+    private static boolean isUpdateAvailable(Context context) {
+        if (InstallSource.isPlayStoreInstall(context)) {
+            return false;
+        }
+        String latest = Preferences.getUpdateLatestVersion(context);
+        return !latest.isEmpty() && GithubReleaseClient.isNewer(latest, BuildConfig.VERSION_NAME);
     }
 
     private List<GuidedAction> buildActions(Context context) {
@@ -164,6 +212,14 @@ public class SettingsStepFragment extends GuidedStepSupportFragment {
         }
 
         addHeader(actions, context, ACTION_HEADER_MORE, R.string.settings_section_more);
+        if (isUpdateAvailable(context)) {
+            actions.add(new GuidedAction.Builder(context)
+                    .id(ACTION_UPDATE_AVAILABLE)
+                    .title(getString(R.string.settings_update_available))
+                    .description(getString(R.string.settings_update_available_description,
+                            Preferences.getUpdateLatestVersion(context)))
+                    .build());
+        }
         actions.add(new GuidedAction.Builder(context)
                 .id(ACTION_SEARCH_MANUALLY)
                 .title(getString(R.string.settings_search_manually))
@@ -330,6 +386,8 @@ public class SettingsStepFragment extends GuidedStepSupportFragment {
             GuidedStepSupportFragment.add(getFragmentManager(), new MetadataProviderStepFragment());
         } else if (id == ACTION_ABOUT) {
             GuidedStepSupportFragment.add(getFragmentManager(), new AboutStepFragment());
+        } else if (id == ACTION_UPDATE_AVAILABLE) {
+            GuidedStepSupportFragment.add(getFragmentManager(), new UpdateStepFragment());
         }
     }
 

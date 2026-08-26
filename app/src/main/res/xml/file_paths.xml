@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Exposes context.getExternalFilesDir(null), where ApkInstaller.download()
+     saves the update APK, to the system installer via the FileProvider
+     declared in AndroidManifest.xml. -->
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <external-files-path name="updates" path="." />
+</paths>

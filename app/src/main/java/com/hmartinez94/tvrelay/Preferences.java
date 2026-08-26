@@ -23,6 +23,9 @@ public final class Preferences {
     private static final String KEY_ACCESSIBILITY_SERVICE_EVER_CONNECTED = "accessibility_service_ever_connected";
     private static final String KEY_YOUTUBE_REDIRECT_TARGET = "youtube_redirect_target";
     private static final String KEY_OVERLAY_REAPPEAR_ENABLED = "overlay_reappear_enabled";
+    private static final String KEY_UPDATE_CHECKED_AT = "update_checked_at";
+    private static final String KEY_UPDATE_LATEST_VERSION = "update_latest_version";
+    private static final String KEY_UPDATE_APK_URL = "update_apk_url";
 
     private Preferences() {
     }
@@ -246,5 +249,43 @@ public final class Preferences {
 
     public static void setOverlayReappearEnabled(Context context, boolean enabled) {
         prefs(context).edit().putBoolean(KEY_OVERLAY_REAPPEAR_ENABLED, enabled).apply();
+    }
+
+    /**
+     * Timestamp (millis) of the last time GithubReleaseClient was actually
+     * queried for a newer release - 0 if never. Throttles that network call
+     * (see SettingsStepFragment) so opening Settings repeatedly doesn't hit
+     * the GitHub API every time; same timestamp-throttle shape as
+     * getAccessibilityEnableClickedAt() above.
+     */
+    public static long getUpdateCheckedAt(Context context) {
+        return prefs(context).getLong(KEY_UPDATE_CHECKED_AT, 0L);
+    }
+
+    public static void setUpdateCheckedAt(Context context, long timestampMillis) {
+        prefs(context).edit().putLong(KEY_UPDATE_CHECKED_AT, timestampMillis).apply();
+    }
+
+    /**
+     * The newest version GithubReleaseClient has seen on GitHub so far -
+     * empty if no check has ever found one newer than what's installed.
+     * Cached (rather than re-derived from a fresh network call every time)
+     * so the "Update available" Settings row can render immediately from the
+     * last known result while the next throttled check runs in the
+     * background - see UpdateStepFragment/getUpdateApkUrl().
+     */
+    public static String getUpdateLatestVersion(Context context) {
+        return prefs(context).getString(KEY_UPDATE_LATEST_VERSION, "");
+    }
+
+    public static String getUpdateApkUrl(Context context) {
+        return prefs(context).getString(KEY_UPDATE_APK_URL, "");
+    }
+
+    public static void setUpdateAvailable(Context context, String version, String apkUrl) {
+        prefs(context).edit()
+                .putString(KEY_UPDATE_LATEST_VERSION, version)
+                .putString(KEY_UPDATE_APK_URL, apkUrl)
+                .apply();
     }
 }

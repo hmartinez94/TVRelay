@@ -22,6 +22,15 @@
          click launches the app directly instead, no confirmation step. -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 
+    <!-- In-app update flow (UpdateStepFragment/ApkInstaller): lets this app
+         launch an install Intent for the APK it downloaded from GitHub
+         Releases. The user still separately grants "Install unknown apps"
+         for this app specifically (a one-time system screen, see
+         ApkInstaller.requestInstallPermissionIntent()) and confirms the
+         actual install itself every time - this permission alone does not
+         skip either of those. -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+
     <!-- Neither a touchscreen nor a "real" Leanback launcher is required to
          run this app; declaring both as not-required keeps it installable
          when sideloaded on non-TV Android and on TV boxes that don't fully
@@ -90,6 +99,19 @@
             android:name=".OcrCaptureForegroundService"
             android:exported="false"
             android:foregroundServiceType="mediaProjection" />
+
+        <!-- Serves the downloaded update APK (ApkInstaller.download(), under
+             getExternalFilesDir(null)) to the system installer as a
+             content:// Uri - see file_paths.xml and ApkInstaller.installApk(). -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
 
         <service
             android:name=".TvRelayAccessibilityService"

@@ -12,6 +12,11 @@ mlkitTextRecognition = "16.0.1"
 # reaching this project's compile classpath, so it's declared explicitly
 # rather than assumed to already be resolvable.
 androidxActivity = "1.9.3"
+# FileProvider, for handing the downloaded update APK to the system
+# installer as a content:// Uri (see ApkInstaller/AndroidManifest.xml's
+# <provider>) - declared explicitly for the same reason as androidx-activity
+# above rather than assumed transitively resolvable.
+androidxCore = "1.13.1"
 
 [libraries]
 androidx-leanback = { group = "androidx.leanback", name = "leanback", version.ref = "leanback" }
@@ -19,6 +24,7 @@ okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhtt
 zxing-core = { group = "com.google.zxing", name = "core", version.ref = "zxingCore" }
 mlkit-text-recognition = { group = "com.google.mlkit", name = "text-recognition", version.ref = "mlkitTextRecognition" }
 androidx-activity = { group = "androidx.activity", name = "activity", version.ref = "androidxActivity" }
+androidx-core = { group = "androidx.core", name = "core", version.ref = "androidxCore" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
