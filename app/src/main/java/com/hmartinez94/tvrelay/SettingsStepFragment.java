@@ -63,6 +63,7 @@ public class SettingsStepFragment extends GuidedStepSupportFragment {
     private static final long ACTION_HEADER_OVERLAY = 903;
     private static final long ACTION_HEADER_ACCESSIBILITY = 904;
     private static final long ACTION_HEADER_MORE = 905;
+    private static final long ACTION_HEADER_UPDATE = 906;
 
     @Override
     public GuidanceStylist.Guidance onCreateGuidance(Bundle savedInstanceState) {
@@ -95,11 +96,14 @@ public class SettingsStepFragment extends GuidedStepSupportFragment {
      * uses for a similar sideload-only concern). Silent no-op on failure -
      * this is a background convenience check, not a user-initiated action
      * that needs its own error feedback (unlike UpdateStepFragment's actual
-     * download, which does). A check that succeeds and confirms we're
-     * already current DOES say so, though - a toast ("TVRelay is up to date
-     * (version X)"), deliberately just a passive display that steals no
-     * focus and interferes with nothing, per explicit user request
-     * (2026-08-26): without it, "no update row appeared" was
+     * download, which does). A check that succeeds DOES say so either way,
+     * though - a toast for "already current" and a separate one for "a
+     * newer version is now available" (the settings row already reflects
+     * this too, via isUpdateAvailable()/buildActions() - the toast is just
+     * an immediate heads-up in case the user isn't looking at the row right
+     * then). Both toasts are deliberately just passive displays that steal
+     * no focus and interfere with nothing, per explicit user request
+     * (2026-08-26): without them, "no update row appeared" was
      * indistinguishable from "the check never ran or failed".
      */
     private void maybeCheckForUpdate() {
@@ -130,6 +134,9 @@ public class SettingsStepFragment extends GuidedStepSupportFragment {
                 return;
             }
             Preferences.setUpdateAvailable(appContext, release.version, release.apkUrl);
+            new Handler(Looper.getMainLooper()).post(() -> Toast.makeText(appContext,
+                    appContext.getString(R.string.update_available_toast, release.version),
+                    Toast.LENGTH_LONG).show());
             if (!isAdded()) {
                 return;
             }
@@ -148,6 +155,21 @@ public class SettingsStepFragment extends GuidedStepSupportFragment {
 
     private List<GuidedAction> buildActions(Context context) {
         List<GuidedAction> actions = new ArrayList<>();
+
+        // Surfaced at the very top, above every other section, so it's the
+        // first thing seen - a user who doesn't know to scroll down to
+        // "More" would otherwise never notice it. See maybeCheckForUpdate()
+        // for how this gets populated; the toast it also shows is only a
+        // one-time heads-up, this row is what actually persists.
+        if (isUpdateAvailable(context)) {
+            addHeader(actions, context, ACTION_HEADER_UPDATE, R.string.settings_section_update);
+            actions.add(new GuidedAction.Builder(context)
+                    .id(ACTION_UPDATE_AVAILABLE)
+                    .title(getString(R.string.settings_update_available))
+                    .description(getString(R.string.settings_update_available_description,
+                            Preferences.getUpdateLatestVersion(context)))
+                    .build());
+        }
 
         addHeader(actions, context, ACTION_HEADER_PLAYER, R.string.settings_section_player);
         actions.add(buildPlayerAppAction(context));
@@ -231,14 +253,6 @@ public class SettingsStepFragment extends GuidedStepSupportFragment {
         }
 
         addHeader(actions, context, ACTION_HEADER_MORE, R.string.settings_section_more);
-        if (isUpdateAvailable(context)) {
-            actions.add(new GuidedAction.Builder(context)
-                    .id(ACTION_UPDATE_AVAILABLE)
-                    .title(getString(R.string.settings_update_available))
-                    .description(getString(R.string.settings_update_available_description,
-                            Preferences.getUpdateLatestVersion(context)))
-                    .build());
-        }
         actions.add(new GuidedAction.Builder(context)
                 .id(ACTION_SEARCH_MANUALLY)
                 .title(getString(R.string.settings_search_manually))

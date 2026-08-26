@@ -46,6 +46,7 @@
     <string name="settings_restricted_settings_help_description">Parece que el interruptor no se queda activado - mira cómo solucionarlo</string>
 
     <string name="settings_section_more">Más</string>
+    <string name="settings_section_update">Actualización</string>
     <string name="settings_search_manually">Buscar un título manualmente</string>
     <string name="settings_metadata_provider">Proveedor de metadatos</string>
     <string name="settings_about">Acerca de y ayuda</string>
@@ -54,6 +55,7 @@
          localized and fall back to English; this one is here because the
          toast it feeds appears on its own, not inside the updater UI. -->
     <string name="update_up_to_date">TVRelay está actualizado - tienes la última versión (%1$s)</string>
+    <string name="update_available_toast">Actualización disponible para TVRelay - la versión %1$s está lista para instalar</string>
 
     <string name="restricted_settings_help_title">La Accesibilidad no se activa</string>
     <string name="restricted_settings_help_intro">TVRelay notó que intentaste activar la Accesibilidad, pero todavía no aparece como activada. Normalmente esto significa que Android la bloqueó - así es como solucionarlo.</string>

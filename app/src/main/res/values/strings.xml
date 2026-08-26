@@ -48,6 +48,7 @@
     <string name="settings_restricted_settings_help_description">It looks like the toggle isn\'t sticking - see how to fix it</string>
 
     <string name="settings_section_more">More</string>
+    <string name="settings_section_update">Update</string>
     <string name="settings_update_available">Update available</string>
     <string name="settings_update_available_description">Version %1$s is ready to download and install</string>
     <string name="settings_search_manually">Search for a title manually</string>
@@ -117,4 +118,5 @@
     <string name="update_download_failed">Download failed - check your connection and try again</string>
     <string name="update_cancel">Cancel</string>
     <string name="update_up_to_date">TVRelay is up to date - you have the latest version (%1$s)</string>
+    <string name="update_available_toast">TVRelay update available - version %1$s is ready to install</string>
 </resources>
