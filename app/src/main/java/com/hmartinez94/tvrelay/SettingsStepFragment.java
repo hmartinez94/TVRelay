@@ -5,8 +5,11 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.provider.Settings;
 import android.text.TextUtils;
+import android.widget.Toast;
 
 import androidx.leanback.app.GuidedStepSupportFragment;
 import androidx.leanback.widget.GuidanceStylist;
@@ -92,7 +95,12 @@ public class SettingsStepFragment extends GuidedStepSupportFragment {
      * uses for a similar sideload-only concern). Silent no-op on failure -
      * this is a background convenience check, not a user-initiated action
      * that needs its own error feedback (unlike UpdateStepFragment's actual
-     * download, which does).
+     * download, which does). A check that succeeds and confirms we're
+     * already current DOES say so, though - a toast ("TVRelay is up to date
+     * (version X)"), deliberately just a passive display that steals no
+     * focus and interferes with nothing, per explicit user request
+     * (2026-08-26): without it, "no update row appeared" was
+     * indistinguishable from "the check never ran or failed".
      */
     private void maybeCheckForUpdate() {
         Context context = requireContext();
@@ -107,7 +115,18 @@ public class SettingsStepFragment extends GuidedStepSupportFragment {
         Context appContext = context.getApplicationContext();
         new Thread(() -> {
             GithubReleaseClient.ReleaseInfo release = GithubReleaseClient.fetchLatest();
-            if (release == null || !GithubReleaseClient.isNewer(release.version, BuildConfig.VERSION_NAME)) {
+            if (release == null) {
+                return;
+            }
+            if (!GithubReleaseClient.isNewer(release.version, BuildConfig.VERSION_NAME)) {
+                // Already on the latest release - see the javadoc above.
+                // Posted via the main Looper with the application context
+                // (not runOnUiThread/requireContext()) so it still shows if
+                // the user has already left this Settings screen by the
+                // time the network call finishes.
+                new Handler(Looper.getMainLooper()).post(() -> Toast.makeText(appContext,
+                        appContext.getString(R.string.update_up_to_date, BuildConfig.VERSION_NAME),
+                        Toast.LENGTH_LONG).show());
                 return;
             }
             Preferences.setUpdateAvailable(appContext, release.version, release.apkUrl);

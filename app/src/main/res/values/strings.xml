@@ -116,4 +116,5 @@
     <string name="update_permission_needed">Selecting this first asks Android for permission to install apps from TVRelay - a one-time system screen</string>
     <string name="update_download_failed">Download failed - check your connection and try again</string>
     <string name="update_cancel">Cancel</string>
+    <string name="update_up_to_date">TVRelay is up to date - you have the latest version (%1$s)</string>
 </resources>
