@@ -139,9 +139,16 @@ public final class Preferences {
      * minimal churn (this predates TizenTube Cobalt support and nothing
      * depends on renaming it) - only the user-facing strings and this
      * comment describe the broadened, multi-target behavior.
+     *
+     * Default OFF (changed from on, 2026-08-26, by explicit user request):
+     * the redirect targets sideloaded apps most users won't have installed,
+     * so it's opt-in now. Note the default only governs installs where the
+     * user never touched the toggle - the key is only ever written by
+     * setSmartTubeEnabled(), so a device where it was explicitly turned on
+     * keeps it on.
      */
     public static boolean isSmartTubeEnabled(Context context) {
-        return prefs(context).getBoolean(KEY_SMARTTUBE_ENABLED, true);
+        return prefs(context).getBoolean(KEY_SMARTTUBE_ENABLED, false);
     }
 
     public static void setSmartTubeEnabled(Context context, boolean enabled) {
