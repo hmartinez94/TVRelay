@@ -48,7 +48,12 @@ import android.widget.Button;
  *      unverified it currently is;
  *  (b) Home is pressed - reliably means "at the lobby" without needing the
  *      heuristic above;
- *  (c) the user taps confirm; or
+ *  (c) the user taps confirm - directly for a normal/search confirm, or,
+ *      for an ambiguous-match confirm, only once a candidate is actually
+ *      picked in the chooser tray: tapping the ambiguous confirm itself
+ *      merely conceals the button while MatchTrayOverlay takes over, so
+ *      backing out of the tray can resume the reappear cycle - see
+ *      concealForHandoff()/resumeAfterHandoff(); or
  *  (d) the defensive MAX_LIFETIME_MS cap is hit, in case (a) never fires.
  *
  * Requires the "Display over other apps" permission (SYSTEM_ALERT_WINDOW).
@@ -118,7 +123,7 @@ final class WatchNowOverlay {
     /** Swaps to the real confirm state once resolution completes (or, for the Nuvio+TMDB fast path, needed no resolution at all - see PlayerLauncher.prepare). */
     void showConfirm(PlayerApp app, Runnable onConfirm) {
         Log.d(TAG, "Showing confirm via " + app.getLabel());
-        showConfirmWithText(appContext.getString(R.string.watch_now_confirm, app.getLabel()), onConfirm);
+        showConfirmWithText(appContext.getString(R.string.watch_now_confirm, app.getLabel()), false, onConfirm);
     }
 
     /**
@@ -126,10 +131,13 @@ final class WatchNowOverlay {
      * one exact match (see MetadataResolver.isAmbiguous) - there's no
      * single resolved match yet to name in the button, so "onConfirm" is
      * expected to show the chooser rather than launch anything directly.
+     * Because of that, tapping this confirm is a HANDOFF, not a settlement:
+     * the pending match is concealed rather than abandoned - see
+     * concealForHandoff().
      */
     void showConfirmAmbiguous(PlayerApp app, Runnable onConfirm) {
         Log.d(TAG, "Showing ambiguous-match confirm via " + app.getLabel());
-        showConfirmWithText(appContext.getString(R.string.watch_now_choose, app.getLabel()), onConfirm);
+        showConfirmWithText(appContext.getString(R.string.watch_now_choose, app.getLabel()), true, onConfirm);
     }
 
     /**
@@ -150,13 +158,30 @@ final class WatchNowOverlay {
      */
     void showConfirmSearch(String appLabel, Runnable onConfirm) {
         Log.d(TAG, "Showing search confirm via " + appLabel);
-        showConfirmWithText(appContext.getString(R.string.watch_now_search, appLabel), onConfirm);
+        showConfirmWithText(appContext.getString(R.string.watch_now_search, appLabel), false, onConfirm);
     }
 
-    private void showConfirmWithText(String text, Runnable onConfirm) {
+    private void showConfirmWithText(String text, boolean handoffToChooser, Runnable onConfirm) {
         if (button == null) {
             state = State.IDLE;
         }
+        // Tapping a normal/search confirm settles the match for good:
+        // abandon, then launch. Tapping the ambiguous confirm instead only
+        // hands off to the chooser tray - the match stays pending, concealed,
+        // so backing out of the tray can bring the button back (see
+        // concealForHandoff()). It used to abandon() unconditionally here,
+        // which left NOTHING pending once the chooser was up - so BACK on
+        // the chooser stranded the user with no button and no reappear,
+        // ever (confirmed real bug, 2026-08-26, for both click- and
+        // OCR-detected titles - both funnel through the same path).
+        View.OnClickListener onClick = v -> {
+            if (handoffToChooser) {
+                concealForHandoff();
+            } else {
+                abandon();
+            }
+            onConfirm.run();
+        };
         switch (state) {
             case IDLE:
                 // The match may have already been abandoned (Home pressed,
@@ -176,18 +201,12 @@ final class WatchNowOverlay {
                 // the user's decision to dismiss; the new text/listener
                 // simply surfaces naturally at the next scheduled reappear.
                 button.setText(text);
-                button.setOnClickListener(v -> {
-                    abandon();
-                    onConfirm.run();
-                });
+                button.setOnClickListener(onClick);
                 return;
             case SHOWING:
             default:
                 button.setText(text);
-                button.setOnClickListener(v -> {
-                    abandon();
-                    onConfirm.run();
-                });
+                button.setOnClickListener(onClick);
                 button.requestFocus();
         }
     }
@@ -214,6 +233,49 @@ final class WatchNowOverlay {
             return;
         }
         conceal();
+        scheduleReappear();
+    }
+
+    /**
+     * Conceals the button while the ambiguous-match chooser
+     * (MatchTrayOverlay) takes over, WITHOUT abandoning the pending match
+     * and WITHOUT scheduling a reappear - the tray is about to hold the
+     * screen, and the button popping back up over it would fight it for
+     * focus. The Home receiver and lifetime cap stay armed, so Home /
+     * lobby detection / the cap can still permanently abandon as usual
+     * while the tray is up. The reappear cycle restarts only if the tray
+     * is dismissed without a pick - see resumeAfterHandoff(); a real pick
+     * abandons instead (TvRelayAccessibilityService's tray listener).
+     *
+     * With the reappear setting off (Preferences.isOverlayReappearEnabled),
+     * this still abandons outright - that setting's contract is
+     * "dismissals are permanent, like the original behavior," and a
+     * handoff tap counts.
+     */
+    private void concealForHandoff() {
+        if (!Preferences.isOverlayReappearEnabled(appContext)) {
+            abandon();
+            return;
+        }
+        cancelCycleTimer();
+        conceal();
+    }
+
+    /**
+     * Called (via TvRelayAccessibilityService's tray listener) when the
+     * chooser tray is dismissed WITHOUT picking a candidate (BACK/cancel) -
+     * resumes the normal concealed-then-reappear cycle for the still-pending
+     * match, so the "Choose in {App}" button comes back after the usual
+     * delay instead of vanishing forever. No-op unless a handoff-concealed
+     * match is actually pending (it isn't when the chooser was shown
+     * without the overlay permission, when the reappear setting is off -
+     * concealForHandoff() abandoned instead - or when the lifetime cap
+     * expired while the tray was up).
+     */
+    void resumeAfterHandoff() {
+        if (state != State.HIDDEN) {
+            return;
+        }
         scheduleReappear();
     }
 

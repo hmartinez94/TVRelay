@@ -132,7 +132,12 @@ public class TvRelayAccessibilityService extends AccessibilityService {
     // MatchTrayOverlay (abandoning WatchNowOverlay first), and dismissing
     // THAT tray (Back) hands focus back to the launcher's EntityActivity,
     // producing another lookalike window-state event with nothing pending
-    // on either overlay by then. Every UI transition either overlay makes
+    // on either overlay by then. (2026-08-26 update: with the reappear
+    // setting on, that handoff no longer abandons WatchNowOverlay - see
+    // its concealForHandoff() - so hasPendingMatch() now also covers that
+    // specific sequence; this cooldown still covers the reappear-off path,
+    // where the handoff does still abandon, plus every other transition.)
+    // Every UI transition either overlay makes
     // is a plausible cause of a spurious focus-change event, not just the
     // ones this project happened to catch on-device first - so this is
     // marked broadly (see markOwnOverlayActivity()'s call sites) rather
@@ -455,7 +460,14 @@ public class TvRelayAccessibilityService extends AccessibilityService {
      * WatchNowOverlay first, so hasPendingMatch() goes back to false), and
      * dismissing THAT tray (Back) hands focus back to the launcher's
      * EntityActivity, producing yet another lookalike window-state event
-     * with nothing pending on either overlay by then. There is no finite
+     * with nothing pending on either overlay by then. (2026-08-26: the
+     * handoff described in that parenthetical has since changed - with the
+     * reappear setting on it now CONCEALS WatchNowOverlay instead of
+     * abandoning it, see concealForHandoff(), so hasPendingMatch() stays
+     * true through that exact sequence - but the correction's conclusion
+     * stands unchanged, because the reappear-off path still abandons and
+     * the general point below was never specific to that one sequence.)
+     * There is no finite
      * enumeration of "which overlay transition might cause this" that's
      * likely to be complete - every show/hide/abandon on either overlay is
      * a plausible cause, since all of them change what currently holds
@@ -856,7 +868,42 @@ public class TvRelayAccessibilityService extends AccessibilityService {
     /** Runs on the main thread - see the mainHandler.post() call sites above. */
     private void showChooser(String title, List<TitleCandidate> candidates) {
         if (trayOverlay == null) {
-            trayOverlay = new MatchTrayOverlay(this, this::markOwnOverlayActivity);
+            trayOverlay = new MatchTrayOverlay(this, new MatchTrayOverlay.Listener() {
+                @Override
+                public void onDismissed() {
+                    markOwnOverlayActivity();
+                }
+
+                @Override
+                public void onCancelled() {
+                    // Backing out of the chooser is a temporary dismissal,
+                    // same as BACK on the confirm button itself: the match is
+                    // still pending on the (handoff-concealed) WatchNowOverlay,
+                    // so resume its normal reappear cycle - the
+                    // "Choose in {App}" button comes back after the usual
+                    // delay. Before this existed, tapping the ambiguous
+                    // confirm abandoned the overlay outright, so BACK here
+                    // stranded the user with no button, forever - confirmed
+                    // real bug (2026-08-26), for both click- and OCR-detected
+                    // titles. No-op when nothing is concealed (chooser shown
+                    // without the overlay permission, or reappear setting
+                    // off) - see WatchNowOverlay.resumeAfterHandoff().
+                    if (overlay != null) {
+                        overlay.resumeAfterHandoff();
+                    }
+                }
+
+                @Override
+                public void onPicked(TitleCandidate candidate) {
+                    // A real pick settles the pending match for good - the
+                    // concealed confirm button must not reappear over the
+                    // player that's about to launch.
+                    if (overlay != null) {
+                        overlay.abandon();
+                        refreshEventTypes();
+                    }
+                }
+            });
         }
         trayOverlay.show(title, candidates);
         markOwnOverlayActivity();

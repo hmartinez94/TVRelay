@@ -41,41 +41,57 @@ final class MatchTrayOverlay {
 
     private static final String TAG = "MatchTrayOverlay";
 
+    /**
+     * How a shown tray ended, split three ways because the host needs to
+     * react differently to each - see TvRelayAccessibilityService's
+     * showChooser() for the one implementation.
+     */
+    interface Listener {
+        /**
+         * Every real dismissal of a currently-shown tray (cancel, Home,
+         * picking a candidate) - never a no-op hide() call.
+         * TvRelayAccessibilityService uses this to start a short cooldown
+         * before trusting a subsequent window-state event as a fresh
+         * voice-search landing - see its OVERLAY_TRANSITION_COOLDOWN_MS.
+         * Confirmed real bug this fixes (2026-08-25): dismissing the tray
+         * (Back) hands focus back to the launcher's EntityActivity, which
+         * fires a lookalike window-state event with nothing to distinguish
+         * it from a genuine voice-search landing.
+         */
+        void onDismissed();
+
+        /**
+         * The user backed out (BACK, or the Cancel button) without picking
+         * anything - fired after onDismissed(), with the tray already gone.
+         * NOT fired for a Home press (the user left the detail page - a
+         * permanent-abandon signal that WatchNowOverlay's own Home receiver
+         * already handles independently) or for a pick.
+         */
+        void onCancelled();
+
+        /**
+         * The user picked a candidate - fired after onDismissed(), with the
+         * tray already gone and the launch about to start.
+         */
+        void onPicked(TitleCandidate candidate);
+    }
+
     private final AccessibilityService service;
     private final WindowManager windowManager;
-    private final Runnable onDismissed;
+    private final Listener listener;
     private View content;
     private BroadcastReceiver homeReceiver;
 
-    MatchTrayOverlay(AccessibilityService service) {
-        this(service, null);
-    }
-
-    /**
-     * @param onDismissed Notified (if non-null) every time hide() actually
-     *                     removes a currently-shown tray - i.e. real
-     *                     dismissals only (Back/cancel, Home, picking a
-     *                     candidate), not a no-op call. TvRelayAccessibilityService
-     *                     uses this to start a short cooldown before treating
-     *                     a subsequent window-state event as a fresh
-     *                     voice-search landing - see its
-     *                     OVERLAY_TRANSITION_COOLDOWN_MS. Confirmed real bug
-     *                     this fixes (2026-08-25): dismissing the tray
-     *                     (Back) hands focus back to the launcher's
-     *                     EntityActivity, which fires a lookalike
-     *                     window-state event with nothing to distinguish it
-     *                     from a genuine voice-search landing.
-     */
-    MatchTrayOverlay(AccessibilityService service, Runnable onDismissed) {
+    MatchTrayOverlay(AccessibilityService service, Listener listener) {
         this.service = service;
         this.windowManager = (WindowManager) service.getSystemService(Context.WINDOW_SERVICE);
-        this.onDismissed = onDismissed;
+        this.listener = listener;
     }
 
     void show(String queryTitle, List<TitleCandidate> candidates) {
         hide();
 
-        View tray = MatchTrayView.build(service, queryTitle, candidates, this::onPicked, this::hide);
+        View tray = MatchTrayView.build(service, queryTitle, candidates, this::handlePick, this::handleCancel);
 
         WindowManager.LayoutParams params = new WindowManager.LayoutParams(
                 WindowManager.LayoutParams.WRAP_CONTENT,
@@ -111,7 +127,7 @@ final class MatchTrayOverlay {
             }
         }
 
-        onPicked(candidates.get(0));
+        handlePick(candidates.get(0));
     }
 
     void hide() {
@@ -132,18 +148,25 @@ final class MatchTrayOverlay {
             Log.w(TAG, "Could not remove match tray overlay", e);
         }
         content = null;
-        if (onDismissed != null) {
-            onDismissed.run();
-        }
+        listener.onDismissed();
     }
 
-    /** Whether a tray is currently on screen - see onDismissed's javadoc for why a caller needs this. */
+    /** Whether a tray is currently on screen - see Listener.onDismissed's javadoc for why a caller needs this. */
     boolean isShowing() {
         return content != null;
     }
 
-    private void onPicked(TitleCandidate candidate) {
+    private void handleCancel() {
+        boolean wasShowing = content != null;
         hide();
+        if (wasShowing) {
+            listener.onCancelled();
+        }
+    }
+
+    private void handlePick(TitleCandidate candidate) {
+        hide();
+        listener.onPicked(candidate);
         new Thread(() -> PlayerLauncher.openCandidate(service, candidate)).start();
     }
 
