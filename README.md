@@ -39,7 +39,14 @@ Not every recommendation card exposes a title this way; see [Limitations](#limit
 
 TVRelay isn't on Google Play yet - install the APK from this repository's [Releases](../../releases) page.
 
-### Option A: from your phone, using Send Files to TV
+### Option A: via Downloader
+
+1. On the TV, install the **Downloader** app (by AFTVnews) from Google Play.
+2. Open it and enter the code **9525208** in the URL field - or open [aftv.news/9525208](http://aftv.news/9525208) directly in any browser.
+3. Downloader fetches the APK and offers to install it right away.
+4. If Android TV shows a warning about installing from an unknown source, temporarily allow installation from that source.
+
+### Option B: from your phone, using Send Files to TV
 
 1. On the TV, install **[Send Files to TV](https://play.google.com/store/apps/details?id=com.jstenpal.sendfilestotv)** from Google Play.
 2. Open the app on the TV. It will show an address or a QR code to connect from your phone.
@@ -47,7 +54,7 @@ TVRelay isn't on Google Play yet - install the APK from this repository's [Relea
 4. Once the file has transferred, the TV will let you start the installation.
 5. If Android TV shows a warning about installing from an unknown source, temporarily allow installation from that source.
 
-### Option B: via ADB
+### Option C: via ADB
 
 1. Download the APK from [Releases](../../releases).
 2. Enable developer options on the TV: **Settings → Device Preferences → About → tap "Build" 7 times**.
@@ -72,7 +79,7 @@ Open **TVRelay** from the TV's launcher, accept the first-run disclosure, and pi
 
 ### Enable in Accessibility settings
 
-If you installed via ADB (Option B above) and ran the extra commands there, this is already done. Otherwise, select **"Enable in Accessibility settings"** and turn the service on there - without it, nothing else in this app does anything.
+If you installed via ADB (Option C above) and ran the extra commands there, this is already done. Otherwise, select **"Enable in Accessibility settings"** and turn the service on there - without it, nothing else in this app does anything.
 
 #### The toggle turns itself off immediately
 
