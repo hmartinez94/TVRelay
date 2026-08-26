@@ -1,6 +1,8 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+<title>TVRelay</title>
+<meta name="description" content="TVRelay intercepts Google TV recommendation clicks and opens the title in the player you picked — Nuvio, Stremio, WuPlay, or Jellyfin.">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <script src="./support.js"></script>
@@ -12,37 +14,68 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&amp;family=Instrument+Sans:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
 <style>
-  html { scroll-behavior: smooth; }
+  :root { --gutter: 32px; --sec-y: 88px; }
+  @media (max-width: 900px) { :root { --gutter: 24px; --sec-y: 64px; } }
+  @media (max-width: 600px) { :root { --gutter: 18px; --sec-y: 48px; } }
+
+  html { scroll-behavior: smooth; scroll-padding-top: 76px; }
+  @media (max-width: 600px) { html { scroll-padding-top: 60px; } }
   body { margin: 0; background: #0b0c0f; color: #e8e6e3; font-family: "Instrument Sans", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
   a { color: #f2b13c; text-decoration: none; }
   a:hover { color: #ffc85f; text-decoration: underline; }
   ::selection { background: #f2b13c; color: #0b0c0f; }
+  img, video { max-width: 100%; }
+  .faq-btn { box-sizing: border-box; }
+
+  @media (max-width: 900px) {
+    .stack-900 { grid-template-columns: 1fr !important; gap: 32px !important; }
+    .stack-900.gap-tight { gap: 26px !important; }
+    .cols-3 { grid-template-columns: repeat(2, minmax(0,1fr)) !important; }
+    .nav-link { display: none !important; }
+  }
+  @media (max-width: 760px) {
+    .cols-2 { grid-template-columns: 1fr !important; gap: 16px !important; }
+    .tabs { display: flex !important; flex-wrap: wrap !important; }
+    .tab-btn { font-size: 13.5px !important; padding: 9px 12px !important; }
+    .code-wrap { white-space: pre-wrap !important; overflow-wrap: anywhere !important; }
+  }
+  @media (max-width: 600px) {
+    .cols-3 { grid-template-columns: 1fr !important; gap: 16px !important; }
+    .tabs { flex-direction: column !important; align-items: stretch !important; width: 100% !important; }
+    .tab-btn { width: 100% !important; text-align: left !important; padding: 12px 14px !important; font-size: 14px !important; }
+    .btn-cta { width: 100% !important; justify-content: center !important; padding: 14px 18px !important; font-size: 15px !important; }
+    .card-pad { padding: 20px 18px !important; }
+    .faq-btn  { padding: 18px 16px !important; font-size: 15.5px !important; gap: 10px !important; }
+    .faq-body { padding: 0 16px 20px !important; }
+    .code-box { padding: 40px 14px 16px !important; }
+    .code-box code { font-size: 12px !important; }
+  }
 </style>
 </helmet>
 <div style="background: #0b0c0f; color: #e8e6e3; min-height: 100vh;">
 
-  <header style="position: sticky; top: 0; z-index: 50; display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 14px 32px; background: rgba(11,12,15,0.82); backdrop-filter: blur(14px); border-bottom: 1px solid #1c1f26;">
+  <header style="position: sticky; top: 0; z-index: 50; display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 14px var(--gutter); background: rgba(11,12,15,0.82); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); border-bottom: 1px solid #1c1f26;">
     <a href="#top" style="display: flex; align-items: center; gap: 10px; color: #e8e6e3; text-decoration: none;">
       <span style="display: block; width: 22px; height: 16px; border: 2px solid #f2b13c; border-radius: 3px;"></span>
       <span style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 17px; letter-spacing: -0.01em;">TVRelay</span>
     </a>
     <nav style="display: flex; align-items: center; gap: 26px; font-size: 14px; color: #9a9ba1;">
-      <a href="#how" style="color: #9a9ba1; text-decoration: none;" style-hover="color: #e8e6e3;">How it works</a>
-      <a href="#install" style="color: #9a9ba1; text-decoration: none;" style-hover="color: #e8e6e3;">Install</a>
-      <a href="#setup" style="color: #9a9ba1; text-decoration: none;" style-hover="color: #e8e6e3;">Setup</a>
-      <a href="#limits" style="color: #9a9ba1; text-decoration: none;" style-hover="color: #e8e6e3;">Limitations</a>
-      <a href="#help" style="color: #9a9ba1; text-decoration: none;" style-hover="color: #e8e6e3;">Troubleshooting</a>
+      <a href="#how" class="nav-link" style="color: #9a9ba1; text-decoration: none;" style-hover="color: #e8e6e3;">How it works</a>
+      <a href="#install" class="nav-link" style="color: #9a9ba1; text-decoration: none;" style-hover="color: #e8e6e3;">Install</a>
+      <a href="#setup" class="nav-link" style="color: #9a9ba1; text-decoration: none;" style-hover="color: #e8e6e3;">Setup</a>
+      <a href="#limits" class="nav-link" style="color: #9a9ba1; text-decoration: none;" style-hover="color: #e8e6e3;">Limitations</a>
+      <a href="#help" class="nav-link" style="color: #9a9ba1; text-decoration: none;" style-hover="color: #e8e6e3;">Troubleshooting</a>
       <a href="https://github.com/hmartinez94/TVRelay/releases/latest" style="padding: 8px 16px; border-radius: 6px; background: #f2b13c; color: #0b0c0f; font-weight: 600; text-decoration: none;" style-hover="background: #ffc85f; text-decoration: none;">Download APK</a>
     </nav>
   </header>
 
-  <section id="top" style="padding: 96px 32px 72px; max-width: 1180px; margin: 0 auto;">
-    <div style="display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr); gap: 64px; align-items: center;">
+  <section id="top" style="padding: var(--sec-y) var(--gutter) calc(var(--sec-y) * .8); max-width: 1180px; margin: 0 auto;">
+    <div class="stack-900" style="display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr); gap: 64px; align-items: center;">
       <div>
         <div style="display: inline-flex; align-items: center; gap: 10px; padding: 6px 12px; border: 1px solid #2a2e37; border-radius: 999px; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; letter-spacing: 0.06em; text-transform: uppercase; color: #9a9ba1; margin-bottom: 26px;">
-          <span style="width: 6px; height: 6px; border-radius: 50%; background: rgb(79, 196, 214);"></span>Google TV · free<br><br></div>
-        
-        <h1 style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 50px; line-height: 1.02; letter-spacing: -0.03em; margin: 0 0 22px">Your TV recommends.<br><span style="color: #E8E6E3">You choose</span> where it opens.</h1><p style="font-size: 18.5px; line-height: 1.55; color: #b9b8b4; max-width: 30em; margin: 0 0 28px; text-wrap: pretty;">Google TV's home screen suggests a movie, you click it. TVRelay intercepts that click and opens the title in the player you picked.</p>
+          <span style="width: 6px; height: 6px; border-radius: 50%; background: rgb(79, 196, 214);"></span>Google TV · free</div>
+
+        <h1 style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: clamp(32px, 8.4vw, 50px); line-height: 1.02; letter-spacing: -0.03em; margin: 0 0 22px">Your TV recommends.<br><span style="color: #E8E6E3">You choose</span> where it opens.</h1><p style="font-size: clamp(16px, 4.4vw, 18.5px); line-height: 1.55; color: #b9b8b4; max-width: 30em; margin: 0 0 28px; text-wrap: pretty;">Google TV's home screen suggests a movie, you click it. TVRelay intercepts that click and opens the title in the player you picked.</p>
         <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 32px;">
           <span style="padding: 7px 14px; border: 1px solid #2a2e37; border-radius: 999px; background: #14161b; font-size: 14px; font-weight: 500;">Nuvio</span>
           <span style="padding: 7px 14px; border: 1px solid #2a2e37; border-radius: 999px; background: #14161b; font-size: 14px; font-weight: 500;">Stremio</span>
@@ -50,8 +83,8 @@
           <span style="padding: 7px 14px; border: 1px solid #2a2e37; border-radius: 999px; background: #14161b; font-size: 14px; font-weight: 500;">Jellyfin</span>
         </div>
         <div style="display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 28px;">
-          <a href="https://github.com/hmartinez94/TVRelay/releases/latest" style="display: inline-flex; align-items: center; gap: 10px; padding: 14px 24px; border-radius: 8px; background: #f2b13c; color: #0b0c0f; font-weight: 600; font-size: 15.5px; text-decoration: none;" style-hover="background: #ffc85f; text-decoration: none;">Get the latest release ↓</a>
-          <a href="https://github.com/hmartinez94/TVRelay" style="display: inline-flex; align-items: center; gap: 10px; padding: 14px 24px; border-radius: 8px; border: 1px solid #2a2e37; background: #14161b; color: #e8e6e3; font-weight: 600; font-size: 15.5px; text-decoration: none;" style-hover="border-color: #3a3f4a; text-decoration: none;">Source on GitHub</a>
+          <a href="https://github.com/hmartinez94/TVRelay/releases/latest" class="btn-cta" style="display: inline-flex; align-items: center; gap: 10px; padding: 14px 24px; border-radius: 8px; background: #f2b13c; color: #0b0c0f; font-weight: 600; font-size: 15.5px; text-decoration: none;" style-hover="background: #ffc85f; text-decoration: none;">Get the latest release ↓</a>
+          <a href="https://github.com/hmartinez94/TVRelay" class="btn-cta" style="display: inline-flex; align-items: center; gap: 10px; padding: 14px 24px; border-radius: 8px; border: 1px solid #2a2e37; background: #14161b; color: #e8e6e3; font-weight: 600; font-size: 15.5px; text-decoration: none;" style-hover="border-color: #3a3f4a; text-decoration: none;">Source on GitHub</a>
         </div>
         <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
           <a href="https://github.com/hmartinez94/TVRelay/releases"><img src="https://img.shields.io/github/v/release/hmartinez94/TVRelay?sort=semver" alt="Latest release" style="height: 20px; display: block;"></a>
@@ -66,29 +99,29 @@
     </div>
   </section>
 
-  <section style="padding: 8px 32px 80px; max-width: 1180px; margin: 0 auto;">
+  <section style="padding: 8px var(--gutter) calc(var(--sec-y) * .9); max-width: 1180px; margin: 0 auto;">
     <div id="animation-slot" style="position: relative; border: 1px solid #23262e; border-radius: 16px; background: #101216; overflow: hidden; box-shadow: 0 30px 80px -50px rgba(0,0,0,0.9);">
-      <video src="uploads/TVRelay Flow-nuvio_super.mp4" autoPlay="{{ true }}" loop="{{ true }}" muted="{{ true }}" playsInline="{{ true }}" controls="{{ true }}" style="display: block; width: 100%; height: auto; background: #0b0c0f;"></video>
+      <video id="demo-video" src="uploads/TVRelay%20Flow-nuvio_super.mp4" loop="{{ true }}" muted="{{ true }}" playsInline="{{ true }}" controls="{{ true }}" style="display: block; width: 100%; height: auto; background: #0b0c0f;"></video>
       <p style="margin: 0; padding: 14px 18px; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: #85868c; border-top: 1px solid #23262e;">Click → lookup → hand-off.</p>
     </div>
   </section>
 
-  <section id="how" style="padding: 24px 32px 96px; max-width: 1180px; margin: 0 auto;">
+  <section id="how" style="padding: 24px var(--gutter) var(--sec-y); max-width: 1180px; margin: 0 auto;">
     <p style="font-family: 'JetBrains Mono', monospace; font-size: 11.5px; letter-spacing: 0.14em; text-transform: uppercase; color: #f2b13c; margin: 0 0 14px;">How it works</p>
-    <h2 style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 36px; letter-spacing: -0.02em; margin: 0 0 18px;">One narrow job, done carefully</h2>
-    <p style="max-width: 46em; color: #b9b8b4; font-size: 17px; line-height: 1.6; margin: 0 0 44px; text-wrap: pretty;">Android's Accessibility API lets an app observe what's on screen for assistive purposes. TVRelay uses it narrowly — watching only for clicks on the Google TV launcher. Every other click, app icons, menus, anything that isn't a recommendation, is left completely alone, and nothing is read, stored, or sent anywhere beyond that one lookup. The code is open source, you can look it up.</p>
-    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px;">
-      <div style="border: 1px solid #23262e; border-radius: 12px; background: #12141a; padding: 26px;">
+    <h2 style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: clamp(26px, 5.2vw, 36px); letter-spacing: -0.02em; margin: 0 0 18px;">One narrow job, done carefully</h2>
+    <p style="max-width: 46em; color: #b9b8b4; font-size: clamp(15.5px, 4vw, 17px); line-height: 1.6; margin: 0 0 44px; text-wrap: pretty;">Android's Accessibility API lets an app observe what's on screen for assistive purposes. TVRelay uses it narrowly — watching only for clicks on the Google TV launcher. Every other click, app icons, menus, anything that isn't a recommendation, is left completely alone, and nothing is read, stored, or sent anywhere beyond that one lookup. The code is open source, you can look it up.</p>
+    <div class="cols-3" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px;">
+      <div class="card-pad" style="border: 1px solid #23262e; border-radius: 12px; background: #12141a; padding: 26px;">
         <p style="margin: 0 0 16px; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #4fc4d6;">01</p>
         <h3 style="font-family: 'Space Grotesk', sans-serif; font-size: 19px; margin: 0 0 10px; font-weight: 500;">Catch the click</h3>
         <p style="margin: 0; color: #9a9ba1; font-size: 15px; line-height: 1.55;">You select a recommendation on the Google TV home screen. TVRelay sees the click's payload — nothing else on screen.</p>
       </div>
-      <div style="border: 1px solid #23262e; border-radius: 12px; background: #12141a; padding: 26px;">
+      <div class="card-pad" style="border: 1px solid #23262e; border-radius: 12px; background: #12141a; padding: 26px;">
         <p style="margin: 0 0 16px; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #4fc4d6;">02</p>
         <h3 style="font-family: 'Space Grotesk', sans-serif; font-size: 19px; margin: 0 0 10px; font-weight: 500;">Identify the title</h3>
         <p style="margin: 0; color: #9a9ba1; font-size: 15px; line-height: 1.55;">If the payload contains a movie or show title, it's looked up via <a href="https://www.themoviedb.org/">TMDB</a> by default — or TheTVDB, if you switch.</p>
       </div>
-      <div style="border: 1px solid #23262e; border-radius: 12px; background: #12141a; padding: 26px;">
+      <div class="card-pad" style="border: 1px solid #23262e; border-radius: 12px; background: #12141a; padding: 26px;">
         <p style="margin: 0 0 16px; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #4fc4d6;">03</p>
         <h3 style="font-family: 'Space Grotesk', sans-serif; font-size: 19px; margin: 0 0 10px; font-weight: 500;">Hand it off</h3>
         <p style="margin: 0; color: #9a9ba1; font-size: 15px; line-height: 1.55;">A <strong style="color: #e8e6e3; font-weight: 600;">"Watch now in {App}"</strong> button appears over the launcher. Tap it and the title opens in your player.</p>
@@ -106,20 +139,20 @@
     </div>
   </section>
 
-  <section id="install" style="border-top: 1px solid #1c1f26; background: #0e1014; padding: 88px 32px;">
+  <section id="install" style="border-top: 1px solid #1c1f26; background: #0e1014; padding: var(--sec-y) var(--gutter);">
     <div style="max-width: 1180px; margin: 0 auto;">
       <p style="font-family: 'JetBrains Mono', monospace; font-size: 11.5px; letter-spacing: 0.14em; text-transform: uppercase; color: #f2b13c; margin: 0 0 14px;">Installation</p>
-      <h2 style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 36px; letter-spacing: -0.02em; margin: 0 0 14px;">Sideload the APK</h2>
-      <p style="max-width: 46em; color: #b9b8b4; font-size: 17px; line-height: 1.6; margin: 0 0 34px;">TVRelay isn't on Google Play yet. Grab the APK from the <a href="https://github.com/hmartinez94/TVRelay/releases/latest">latest release</a>, then use whichever route suits you.</p>
+      <h2 style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: clamp(26px, 5.2vw, 36px); letter-spacing: -0.02em; margin: 0 0 14px;">Sideload the APK</h2>
+      <p style="max-width: 46em; color: #b9b8b4; font-size: clamp(15.5px, 4vw, 17px); line-height: 1.6; margin: 0 0 34px;">TVRelay isn't on Google Play yet. Grab the APK from the <a href="https://github.com/hmartinez94/TVRelay/releases/latest">latest release</a>, then use whichever route suits you.</p>
 
-      <div style="display: inline-flex; padding: 4px; gap: 4px; border: 1px solid #23262e; border-radius: 10px; background: #12141a; margin-bottom: 24px;">
-        <button onClick="{{ pickDl }}" style="{{ tabDlStyle }}">Option A — Downloader code</button>
-        <button onClick="{{ pickAdb }}" style="{{ tabAdbStyle }}">Option B — via ADB</button>
-        <button onClick="{{ pickPhone }}" style="{{ tabPhoneStyle }}">Option C — from your phone</button>
+      <div class="tabs" style="display: inline-flex; padding: 4px; gap: 4px; border: 1px solid #23262e; border-radius: 10px; background: #12141a; margin-bottom: 24px;">
+        <button class="tab-btn" onClick="{{ pickDl }}" style="{{ tabDlStyle }}">Option A — Downloader code</button>
+        <button class="tab-btn" onClick="{{ pickAdb }}" style="{{ tabAdbStyle }}">Option B — via ADB</button>
+        <button class="tab-btn" onClick="{{ pickPhone }}" style="{{ tabPhoneStyle }}">Option C — from your phone</button>
       </div>
 
       <sc-if value="{{ isPhone }}" hint-placeholder-val="{{ false }}">
-        <div style="border: 1px solid #23262e; border-radius: 14px; background: #12141a; padding: 34px 36px; display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 44px; align-items: start;">
+        <div class="stack-900 gap-tight" style="border: 1px solid #23262e; border-radius: 14px; background: #12141a; padding: 34px 36px; display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 44px; align-items: start;">
           <ol style="margin: 0; padding-left: 22px; color: #b9b8b4; font-size: 15.5px; line-height: 1.7; display: flex; flex-direction: column; gap: 12px;">
             <li>On the TV, install <a href="https://play.google.com/store/apps/details?id=com.jstenpal.sendfilestotv">Send Files to TV</a> from Google Play.</li>
             <li>Open it on the TV — it shows an address or QR code to connect from your phone.</li>
@@ -131,8 +164,8 @@
         </div>
       </sc-if>
       <sc-if value="{{ isAdb }}" hint-placeholder-val="{{ true }}">
-        <div style="border: 1px solid #23262e; border-radius: 14px; background: #12141a; padding: 34px 36px;">
-          <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 28px; margin-bottom: 30px;">
+        <div class="card-pad" style="border: 1px solid #23262e; border-radius: 14px; background: #12141a; padding: 34px 36px;">
+          <div class="cols-3" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 28px; margin-bottom: 30px;">
             <div style="min-width: 0;">
               <p style="margin: 0 0 8px; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #4fc4d6;">01</p>
               <p style="margin: 0; color: #b9b8b4; font-size: 15px; line-height: 1.6;">Download the APK from <a href="https://github.com/hmartinez94/TVRelay/releases/latest">Releases</a>.</p>
@@ -146,25 +179,25 @@
               <p style="margin: 0; color: #b9b8b4; font-size: 15px; line-height: 1.6;">Turn on <strong style="color: #e8e6e3; font-weight: 600;">USB debugging</strong> or <strong style="color: #e8e6e3; font-weight: 600;">Network debugging</strong>, then run these two commands from your computer.</p>
             </div>
           </div>
-          <div style="position: relative; border: 1px solid #262a33; border-radius: 10px; background: #0b0c0f; padding: 18px 20px; min-width: 0;">
+          <div class="code-box" style="position: relative; border: 1px solid #262a33; border-radius: 10px; background: #0b0c0f; padding: 18px 20px; min-width: 0;">
             <button onClick="{{ copy }}" style="position: absolute; top: 10px; right: 10px; padding: 5px 10px; border: 1px solid #2a2e37; border-radius: 6px; background: #14161b; color: #9a9ba1; font-family: 'JetBrains Mono', monospace; font-size: 11px; cursor: pointer;" style-hover="color: #e8e6e3; border-color: #3a3f4a;">copy</button>
-            <pre style="margin: 0; overflow-x: auto; min-width: 0;"><code style="font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 1.9; color: #cfd2d8;">adb connect &lt;tv-ip&gt;:5555
+            <pre class="code-wrap" style="margin: 0; overflow-x: auto; min-width: 0;"><code style="font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 1.9; color: #cfd2d8;">adb connect &lt;tv-ip&gt;:5555
 adb install TVRelay.apk</code></pre>
           </div>
           <p style="margin: 16px 0 0; color: #9a9ba1; font-size: 14.5px; line-height: 1.65;">That's the whole installation. You still enable Accessibility in the app afterwards — or, if your device won't let you, with the <a href="#adb-accessibility">optional ADB commands below</a>.</p>
         </div>
       </sc-if>
       <sc-if value="{{ isDl }}" hint-placeholder-val="{{ false }}">
-        <div style="border: 1px solid #23262e; border-radius: 14px; background: #12141a; padding: 34px 36px; display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 44px; align-items: center;">
+        <div class="stack-900 gap-tight" style="border: 1px solid #23262e; border-radius: 14px; background: #12141a; padding: 34px 36px; display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 44px; align-items: center;">
           <ol style="margin: 0; padding-left: 22px; color: #b9b8b4; font-size: 15.5px; line-height: 1.7; display: flex; flex-direction: column; gap: 12px;">
             <li>On the TV, install the <strong style="color: #e8e6e3; font-weight: 600;">Downloader</strong> app (by AFTVnews) from Google Play.</li>
             <li>Open it and enter the code <strong style="color: #e8e6e3; font-weight: 600;">9525208</strong> in the URL field.</li>
             <li>Downloader fetches the APK and offers to install it straight away.</li>
             <li>If Android TV warns about an unknown source, temporarily allow installation from that source.</li>
           </ol>
-          <div style="min-width: 0; border: 1px solid #262a33; border-radius: 12px; background: #0b0c0f; padding: 26px 28px; text-align: center;">
+          <div class="card-pad" style="min-width: 0; border: 1px solid #262a33; border-radius: 12px; background: #0b0c0f; padding: 26px 28px; text-align: center;">
             <p style="margin: 0 0 12px; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; letter-spacing: 0.12em; text-transform: uppercase; color: #6f7178;">Downloader code</p>
-            <p style="margin: 0 0 16px; font-family: 'JetBrains Mono', monospace; font-size: 40px; letter-spacing: 0.06em; color: #f2b13c;">9525208</p>
+            <p style="margin: 0 0 16px; font-family: 'JetBrains Mono', monospace; font-size: clamp(28px, 9vw, 40px); letter-spacing: 0.06em; color: #f2b13c;">9525208</p>
             <p style="margin: 0; color: #85868c; font-size: 13.5px; line-height: 1.6;">Or open <a href="http://aftv.news/9525208">aftv.news/9525208</a> in any browser.</p>
           </div>
         </div>
@@ -172,19 +205,19 @@ adb install TVRelay.apk</code></pre>
     </div>
   </section>
 
-  <section id="setup" style="padding: 88px 32px; max-width: 1180px; margin: 0 auto;">
+  <section id="setup" style="padding: var(--sec-y) var(--gutter); max-width: 1180px; margin: 0 auto;">
     <p style="font-family: 'JetBrains Mono', monospace; font-size: 11.5px; letter-spacing: 0.14em; text-transform: uppercase; color: #f2b13c; margin: 0 0 14px;">Setup</p>
-    <h2 style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 36px; letter-spacing: -0.02em; margin: 0 0 14px;">Pick a player, then two toggles</h2>
-    <p style="max-width: 46em; color: #b9b8b4; font-size: 17px; line-height: 1.6; margin: 0 0 40px;">Open TVRelay from the TV's launcher, accept the first-run disclosure, and pick your player. Then work through the two permissions below.</p>
+    <h2 style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: clamp(26px, 5.2vw, 36px); letter-spacing: -0.02em; margin: 0 0 14px;">Pick a player, then two toggles</h2>
+    <p style="max-width: 46em; color: #b9b8b4; font-size: clamp(15.5px, 4vw, 17px); line-height: 1.6; margin: 0 0 40px;">Open TVRelay from the TV's launcher, accept the first-run disclosure, and pick your player. Then work through the two permissions below.</p>
 
-    <div style="display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: 48px; align-items: start;">
+    <div class="stack-900" style="display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: 48px; align-items: start;">
       <div style="border: 1px solid #23262e; border-radius: 14px; overflow: hidden; background: #12141a; min-width: 0;">
         <img src="https://raw.githubusercontent.com/hmartinez94/TVRelay/main/.github/screenshots/settings.png" alt="TVRelay's Settings screen on Google TV, showing the player choice and accessibility/overlay toggles" style="display: block; width: 100%; height: auto;">
         <p style="margin: 0; padding: 14px 18px; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: #85868c; border-top: 1px solid #23262e;">TVRelay's Settings screen on Google TV.</p>
       </div>
       <div style="display: flex; flex-direction: column; gap: 30px; min-width: 0;">
         <div>
-          <h3 style="font-family: 'Space Grotesk', sans-serif; font-size: 21px; margin: 0 0 10px; font-weight: 500;">1 · Enable in Accessibility settings</h3>
+          <h3 style="font-family: 'Space Grotesk', sans-serif; font-size: clamp(18px, 4.6vw, 21px); margin: 0 0 10px; font-weight: 500;">1 · Enable in Accessibility settings</h3>
           <p style="margin: 0 0 16px; color: #9a9ba1; font-size: 15.5px; line-height: 1.6;">Select <strong style="color: #e8e6e3; font-weight: 600;">"Enable in Accessibility settings"</strong> and turn the service on there. This is the permission that lets TVRelay see launcher clicks at all — without it, nothing else in the app does anything.</p>
           <div style="border: 1px solid #3a2f1a; border-radius: 12px; background: #17140e; padding: 20px 22px;">
             <p style="margin: 0 0 10px; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; letter-spacing: 0.08em; text-transform: uppercase; color: #f2b13c;">If the toggle turns itself off</p>
@@ -194,7 +227,7 @@ adb install TVRelay.apk</code></pre>
           
         </div>
         <div>
-          <h3 style="font-family: 'Space Grotesk', sans-serif; font-size: 21px; margin: 0 0 10px; font-weight: 500;">2 · Enable the "Watch now" confirmation</h3>
+          <h3 style="font-family: 'Space Grotesk', sans-serif; font-size: clamp(18px, 4.6vw, 21px); margin: 0 0 10px; font-weight: 500;">2 · Enable the "Watch now" confirmation</h3>
           <p style="margin: 0 0 14px; color: #9a9ba1; font-size: 15.5px; line-height: 1.6;">A loading indicator appears the moment you click a recommendation, then swaps to the confirm button once the title's been identified. Dismissing it with Back or a D-pad press only hides it — it reappears a few seconds later, and keeps doing so until you return to the launcher's home screen, so a moment's distraction doesn't lose your result. (Settings → <strong style="color: #e8e6e3; font-weight: 600;">"Reappear after dismissing"</strong> if you'd rather a dismissal be final.)</p>
           <p style="margin: 0 0 14px; color: #9a9ba1; font-size: 15.5px; line-height: 1.6;">The button is a small overlay drawn on top of whatever the launcher navigates to, so it needs <strong style="color: #e8e6e3; font-weight: 600;">"Display over other apps"</strong>. Grant it from Settings → "Enable 'Watch now' confirmation", which takes you straight to the right system screen.</p>
           <p style="margin: 0; color: #85868c; font-size: 14px; line-height: 1.6;">Without that permission TVRelay still works — it just opens your player immediately, with no accidental-click protection.</p>
@@ -203,31 +236,31 @@ adb install TVRelay.apk</code></pre>
     </div>
   </section>
 
-  <section id="adb-accessibility" style="padding: 0 32px 88px; max-width: 1180px; margin: 0 auto;">
-    <div style="border: 1px solid #3a2f1a; border-radius: 14px; background: #17140e; padding: 32px 36px;">
+  <section id="adb-accessibility" style="padding: 0 var(--gutter) var(--sec-y); max-width: 1180px; margin: 0 auto;">
+    <div class="card-pad" style="border: 1px solid #3a2f1a; border-radius: 14px; background: #17140e; padding: 32px 36px;">
       <div style="display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 10px;">
-        <h3 style="font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 700; letter-spacing: -0.015em; margin: 0;">Optional: enable Accessibility over ADB</h3>
+        <h3 style="font-family: 'Space Grotesk', sans-serif; font-size: clamp(20px, 5vw, 24px); font-weight: 700; letter-spacing: -0.015em; margin: 0;">Optional: enable Accessibility over ADB</h3>
         <span style="padding: 4px 10px; border: 1px solid #4a3c1f; border-radius: 999px; font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: #f2b13c;">only if the toggle won't stay on</span>
       </div>
       <p style="margin: 0 0 22px; max-width: 62em; color: #b9b8b4; font-size: 15.5px; line-height: 1.65;">Most people never need these. They're for devices where Android blocks the Accessibility toggle for sideloaded apps, or where there's no "Allow restricted setting" option to find. Safe to run either way — the first line lifts the restriction, the last two switch the service on at system level.</p>
-      <div style="position: relative; border: 1px solid #2b2519; border-radius: 10px; background: #0b0c0f; padding: 18px 20px; min-width: 0;">
+      <div class="code-box" style="position: relative; border: 1px solid #2b2519; border-radius: 10px; background: #0b0c0f; padding: 18px 20px; min-width: 0;">
         <button onClick="{{ copy }}" style="position: absolute; top: 10px; right: 10px; padding: 5px 10px; border: 1px solid #2a2e37; border-radius: 6px; background: #14161b; color: #9a9ba1; font-family: 'JetBrains Mono', monospace; font-size: 11px; cursor: pointer;" style-hover="color: #e8e6e3; border-color: #3a3f4a;">copy</button>
-        <pre style="margin: 0; overflow-x: auto; min-width: 0;"><code style="font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 2; color: #cfd2d8;">adb shell appops set com.hmartinez94.tvrelay ACCESS_RESTRICTED_SETTINGS allow
+        <pre class="code-wrap" style="margin: 0; overflow-x: auto; min-width: 0;"><code style="font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 2; color: #cfd2d8;">adb shell appops set com.hmartinez94.tvrelay ACCESS_RESTRICTED_SETTINGS allow
 adb shell settings put secure enabled_accessibility_services com.hmartinez94.tvrelay/com.hmartinez94.tvrelay.TvRelayAccessibilityService
 adb shell settings put secure accessibility_enabled 1</code></pre>
       </div>
-      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px; margin-top: 20px;">
+      <div class="cols-2" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px; margin-top: 20px;">
         <p style="margin: 0; color: #85868c; font-size: 13.5px; line-height: 1.7;">The <code style="font-family: 'JetBrains Mono', monospace; font-size: 12.5px; color: #9a9ba1;">enabled_accessibility_services</code> line <strong style="color: #b9b8b4; font-weight: 600;">replaces</strong> the whole list of enabled accessibility services — if you already use another one (like TalkBack), separate them with a colon rather than overwriting it.</p>
         <p style="margin: 0; color: #85868c; font-size: 13.5px; line-height: 1.7;">No computer handy? <a href="https://play.google.com/store/apps/details?id=dev.vodik7.atvtools">atvTools</a> (free, on Google Play) runs the same commands from your phone. Afterwards, the Accessibility toggle already shows as enabled when you open TVRelay.</p>
       </div>
     </div>
   </section>
 
-  <section id="metadata" style="border-top: 1px solid #1c1f26; background: #0e1014; padding: 88px 32px;">
-    <div style="max-width: 1180px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr); gap: 56px; align-items: center;">
+  <section id="metadata" style="border-top: 1px solid #1c1f26; background: #0e1014; padding: var(--sec-y) var(--gutter);">
+    <div class="stack-900" style="max-width: 1180px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr); gap: 56px; align-items: center;">
       <div>
         <p style="font-family: 'JetBrains Mono', monospace; font-size: 11.5px; letter-spacing: 0.14em; text-transform: uppercase; color: #f2b13c; margin: 0 0 14px;">Metadata provider</p>
-        <h2 style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 36px; letter-spacing: -0.02em; margin: 0 0 18px;">TMDB by default. TheTVDB if you need it.</h2>
+        <h2 style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: clamp(26px, 5.2vw, 36px); letter-spacing: -0.02em; margin: 0 0 18px;">TMDB by default. TheTVDB if you need it.</h2>
         <p style="margin: 0 0 16px; color: #b9b8b4; font-size: 16.5px; line-height: 1.6; text-wrap: pretty;">TVRelay identifies clicked titles through <a href="https://www.themoviedb.org/">TMDB</a>, using a key bundled with the app — no setup needed at all.</p>
         <p style="margin: 0 0 16px; color: #9a9ba1; font-size: 15px; line-height: 1.6;">Prefer your own personal TMDB key — say the shared default ever gets rate-limited? Enter one from Settings → <strong style="color: #e8e6e3; font-weight: 600;">Metadata provider</strong> (free at themoviedb.org, under Settings → API) and it takes priority automatically. <a href="https://www.thetvdb.com/">TheTVDB</a> is available as an alternative provider if TMDB ever returns a wrong match.</p>
         <p style="margin: 0; color: #b9b8b4; font-size: 16.5px; line-height: 1.6;">Typing 32 characters with a TV remote is miserable, so that screen offers <strong style="color: #e8e6e3; font-weight: 600;">"Send key from phone…"</strong> — scan the QR, paste the key on your phone, and it lands on the TV within seconds.</p>
@@ -239,39 +272,39 @@ adb shell settings put secure accessibility_enabled 1</code></pre>
     </div>
   </section>
 
-  <section id="extras" style="padding: 88px 32px; max-width: 1180px; margin: 0 auto;">
+  <section id="extras" style="padding: var(--sec-y) var(--gutter); max-width: 1180px; margin: 0 auto;">
     <p style="font-family: 'JetBrains Mono', monospace; font-size: 11.5px; letter-spacing: 0.14em; text-transform: uppercase; color: #f2b13c; margin: 0 0 14px;">Also in Settings</p>
-    <h2 style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 36px; letter-spacing: -0.02em; margin: 0 0 40px;">Three switches worth knowing about</h2>
-    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px;">
-      <div style="border: 1px solid #23262e; border-radius: 12px; background: #12141a; padding: 28px;">
+    <h2 style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: clamp(26px, 5.2vw, 36px); letter-spacing: -0.02em; margin: 0 0 40px;">Three switches worth knowing about</h2>
+    <div class="cols-3" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px;">
+      <div class="card-pad" style="border: 1px solid #23262e; border-radius: 12px; background: #12141a; padding: 28px;">
         <h3 style="font-family: 'Space Grotesk', sans-serif; font-size: 18px; margin: 0 0 12px; font-weight: 500;">Redirect YouTube recommendations</h3>
         <p style="margin: 0; color: #9a9ba1; font-size: 15px; line-height: 1.6;">Sends YouTube video recommendations to <strong style="color: rgb(232, 230, 227); font-weight: 600;">SmartTube</strong> or <strong style="color: rgb(232, 230, 227); font-weight: 600;">TizenTube Cobalt</strong> — independent of your movie/show player. See <a href="#limits">Limitations</a> for why SmartTube is the safer pick.</p>
       </div>
-      <div style="border: 1px solid #23262e; border-radius: 12px; background: #12141a; padding: 28px;">
+      <div class="card-pad" style="border: 1px solid #23262e; border-radius: 12px; background: #12141a; padding: 28px;">
         <h3 style="font-family: 'Space Grotesk', sans-serif; font-size: 18px; margin: 0 0 12px; font-weight: 500;">Screen-reading fallback</h3>
         <p style="margin: 0; color: #9a9ba1; font-size: 15px; line-height: 1.6;">Off by default. Reads the title off the screen with on-device text recognition when a card exposes none. Nothing captured leaves the device — but Android shows its screen-recording indicator while it's active.</p>
       </div>
-      <div style="border: 1px solid #23262e; border-radius: 12px; background: #12141a; padding: 28px;">
+      <div class="card-pad" style="border: 1px solid #23262e; border-radius: 12px; background: #12141a; padding: 28px;">
         <h3 style="font-family: 'Space Grotesk', sans-serif; font-size: 18px; margin: 0 0 12px; font-weight: 500;">Ask when a match is ambiguous</h3>
         <p style="margin: 0; color: #9a9ba1; font-size: 15px; line-height: 1.6;">When a search returns two or more <em>exact</em> title matches, TVRelay asks which you meant instead of guessing. Turn it off to always pick automatically.</p>
       </div>
     </div>
   </section>
 
-  <section id="limits" style="border-top: 1px solid #1c1f26; background: #0e1014; padding: 88px 32px;">
+  <section id="limits" style="border-top: 1px solid #1c1f26; background: #0e1014; padding: var(--sec-y) var(--gutter);">
     <div style="max-width: 1180px; margin: 0 auto;">
       <p style="font-family: 'JetBrains Mono', monospace; font-size: 11.5px; letter-spacing: 0.14em; text-transform: uppercase; color: #f2b13c; margin: 0 0 14px;">Limitations</p>
-      <h2 style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 36px; letter-spacing: -0.02em; margin: 0 0 40px;">What it can't do, plainly</h2>
-      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px;">
-        <div style="border: 1px solid #23262e; border-radius: 12px; background: #12141a; padding: 28px 30px;">
+      <h2 style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: clamp(26px, 5.2vw, 36px); letter-spacing: -0.02em; margin: 0 0 40px;">What it can't do, plainly</h2>
+      <div class="cols-2" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px;">
+        <div class="card-pad" style="border: 1px solid #23262e; border-radius: 12px; background: #12141a; padding: 28px 30px;">
           <h3 style="font-family: 'Space Grotesk', sans-serif; font-size: 18px; margin: 0 0 12px; font-weight: 500;">Jellyfin opens a search, not the title</h3>
           <p style="margin: 0; color: #9a9ba1; font-size: 15px; line-height: 1.6;">Jellyfin has no way for another app to open a specific title, so picking it opens Jellyfin's search screen pre-filled with the title — it'll only find something already on your server. Nuvio, Stremio, and WuPlay resolve against their own online catalogs, so they can open a title you don't already have.</p>
         </div>
-        <div style="border: 1px solid #23262e; border-radius: 12px; background: #12141a; padding: 28px 30px;">
+        <div class="card-pad" style="border: 1px solid #23262e; border-radius: 12px; background: #12141a; padding: 28px 30px;">
           <h3 style="font-family: 'Space Grotesk', sans-serif; font-size: 18px; margin: 0 0 12px; font-weight: 500;">TizenTube Cobalt is unreliable as a YouTube target</h3>
           <p style="margin: 0; color: #9a9ba1; font-size: 15px; line-height: 1.6;">It only accepts a search from TVRelay the first time it opens after being fully closed; once running in the background, the same search silently lands on its home feed, and no app can force another to restart. Officially supported only alongside <a href="https://github.com/TobiPeterG/tizentube-bridge">TizenTube Bridge</a> — which needs the official YouTube app uninstalled (often impossible on certified Google TV devices) and isn't confirmed to fix this either. <strong style="color: #e8e6e3; font-weight: 600;">SmartTube doesn't have this limitation.</strong></p>
         </div>
-        <div style="border: 1px solid #23262e; border-radius: 12px; background: #12141a; padding: 28px 30px;">
+        <div class="card-pad" style="border: 1px solid #23262e; border-radius: 12px; background: #12141a; padding: 28px 30px;">
           <h3 style="font-family: 'Space Grotesk', sans-serif; font-size: 18px; margin: 0 0 12px; font-weight: 500;">Fire TV: work in progress</h3>
           <p style="margin: 0 0 12px; color: #9a9ba1; font-size: 15px; line-height: 1.6;">The recommended fix is to replace Fire OS's launcher with a custom launcher or the real Google TV launcher, rather than hunting for another way into Fire OS's own home screen. Once that's installed TVRelay works exactly as on a real Google TV device — it's no longer Amazon's launcher in the way.</p>
           <p style="margin: 0 0 12px; color: #85868c; font-size: 14px; line-height: 1.6;">This needs temporary root on the Fire TV Stick, which isn't something TVRelay does or is involved in — a device-level change you make yourself, at your own risk:</p>
@@ -280,7 +313,7 @@ adb shell settings put secure accessibility_enabled 1</code></pre>
             <a href="https://xdaforums.com/t/guide-how-to-install-android-tv-google-play-store-on-fire-os-8-karat-2nd-gen-4k.4798990/#post-90707579">Install the Google TV launcher on Fire OS 8</a>
           </div>
         </div>
-        <div style="border: 1px solid #23262e; border-radius: 12px; background: #12141a; padding: 28px 30px;">
+        <div class="card-pad" style="border: 1px solid #23262e; border-radius: 12px; background: #12141a; padding: 28px 30px;">
           <h3 style="font-family: 'Space Grotesk', sans-serif; font-size: 18px; margin: 0 0 12px; font-weight: 500;">Some cards expose no title at all</h3>
           <p style="margin: 0 0 12px; color: #9a9ba1; font-size: 15px; line-height: 1.6;">Certain recommendation cards and voice-search results hand third-party apps no title — a real limit of the launcher, not a bug — and clicking one does nothing by default. One way through: the <a href="#extras">screen-reading fallback</a>.</p>
           <p style="margin: 0; color: #9a9ba1; font-size: 15px; line-height: 1.6;">And the provider can still occasionally match a same-named but different title — a genuine catalog-coverage gap. Try the other provider, or a manual search with the year added.</p>
@@ -289,16 +322,16 @@ adb shell settings put secure accessibility_enabled 1</code></pre>
     </div>
   </section>
 
-  <section id="help" style="padding: 88px 32px; max-width: 940px; margin: 0 auto;">
+  <section id="help" style="padding: var(--sec-y) var(--gutter); max-width: 940px; margin: 0 auto;">
     <p style="font-family: 'JetBrains Mono', monospace; font-size: 11.5px; letter-spacing: 0.14em; text-transform: uppercase; color: #f2b13c; margin: 0 0 14px;">Troubleshooting</p>
-    <h2 style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 36px; letter-spacing: -0.02em; margin: 0 0 36px;">When it doesn't fire</h2>
+    <h2 style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: clamp(26px, 5.2vw, 36px); letter-spacing: -0.02em; margin: 0 0 36px;">When it doesn't fire</h2>
 
     <div style="border: 1px solid #23262e; border-radius: 12px; background: #12141a; overflow: hidden; margin-bottom: 14px;">
-      <button onClick="{{ toggleA }}" style="width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 22px 26px; background: transparent; border: none; color: #e8e6e3; font-family: 'Space Grotesk', sans-serif; font-size: 17px; font-weight: 500; text-align: left; cursor: pointer;" style-hover="background: #171a20;">Service is enabled, but selecting a recommendation opens nothing<span style="color: #f2b13c; font-size: 20px;">{{ signA }}</span></button>
+      <button class="faq-btn" onClick="{{ toggleA }}" style="width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 22px 26px; background: transparent; border: none; color: #e8e6e3; font-family: 'Space Grotesk', sans-serif; font-size: 17px; font-weight: 500; text-align: left; cursor: pointer;" style-hover="background: #171a20;">Service is enabled, but selecting a recommendation opens nothing<span style="color: #f2b13c; font-size: 20px;">{{ signA }}</span></button>
       <sc-if value="{{ openA }}" hint-placeholder-val="{{ true }}">
-        <div style="padding: 0 26px 26px; display: flex; flex-direction: column; gap: 16px; min-width: 0;">
+        <div class="faq-body" style="padding: 0 26px 26px; display: flex; flex-direction: column; gap: 16px; min-width: 0;">
           <p style="margin: 0; color: #9a9ba1; font-size: 15.5px; line-height: 1.6;">Check that your chosen player is up to date — outdated or unofficial builds (common, since none of these are on Google Play) sometimes don't register their deep link scheme correctly. Test the deep link directly, bypassing TVRelay entirely:</p>
-          <div style="position: relative; border: 1px solid #262a33; border-radius: 10px; background: #0b0c0f; padding: 18px 20px; min-width: 0;">
+          <div class="code-box" style="position: relative; border: 1px solid #262a33; border-radius: 10px; background: #0b0c0f; padding: 18px 20px; min-width: 0;">
             <button onClick="{{ copy }}" style="position: absolute; top: 10px; right: 10px; padding: 5px 10px; border: 1px solid #2a2e37; border-radius: 6px; background: #14161b; color: #9a9ba1; font-family: 'JetBrains Mono', monospace; font-size: 11px; cursor: pointer;" style-hover="color: #e8e6e3; border-color: #3a3f4a;">copy</button>
             <pre style="margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; min-width: 0;"><code style="font-family: 'JetBrains Mono', monospace; font-size: 12.5px; line-height: 1.9; color: #cfd2d8;"># Nuvio, by IMDb id
 adb shell am start -a android.intent.action.VIEW -d "nuvio://movie/tt0371746"
@@ -314,7 +347,7 @@ adb shell am start -a android.intent.action.VIEW -d "https://www.youtube.com/res
 adb shell am start -a android.intent.action.VIEW -d "https://www.youtube.com/results?search_query=iron+man" -p io.gh.reisxd.tizentube.cobalt</code></pre>
           </div>
           <p style="margin: 0; color: #9a9ba1; font-size: 15.5px; line-height: 1.6;">Each should land on Iron Man's page, or a search for "iron man". If none do, the issue is the target app's own build, not TVRelay. If they work, the click probably isn't being detected — check with:</p>
-          <div style="position: relative; border: 1px solid #262a33; border-radius: 10px; background: #0b0c0f; padding: 18px 20px; min-width: 0;">
+          <div class="code-box" style="position: relative; border: 1px solid #262a33; border-radius: 10px; background: #0b0c0f; padding: 18px 20px; min-width: 0;">
             <button onClick="{{ copy }}" style="position: absolute; top: 10px; right: 10px; padding: 5px 10px; border: 1px solid #2a2e37; border-radius: 6px; background: #14161b; color: #9a9ba1; font-family: 'JetBrains Mono', monospace; font-size: 11px; cursor: pointer;" style-hover="color: #e8e6e3; border-color: #3a3f4a;">copy</button>
             <pre style="margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; min-width: 0;"><code style="font-family: 'JetBrains Mono', monospace; font-size: 12.5px; line-height: 1.8; color: #cfd2d8;">adb logcat -s TvRelayService:D WatchNowOverlay:D</code></pre>
           </div>
@@ -323,11 +356,11 @@ adb shell am start -a android.intent.action.VIEW -d "https://www.youtube.com/res
     </div>
 
     <div style="border: 1px solid #23262e; border-radius: 12px; background: #12141a; overflow: hidden;">
-      <button onClick="{{ toggleC }}" style="width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 22px 26px; background: transparent; border: none; color: #e8e6e3; font-family: 'Space Grotesk', sans-serif; font-size: 17px; font-weight: 500; text-align: left; cursor: pointer;" style-hover="background: #171a20;">Building from source<span style="color: #f2b13c; font-size: 20px;">{{ signC }}</span></button>
+      <button class="faq-btn" onClick="{{ toggleC }}" style="width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 22px 26px; background: transparent; border: none; color: #e8e6e3; font-family: 'Space Grotesk', sans-serif; font-size: 17px; font-weight: 500; text-align: left; cursor: pointer;" style-hover="background: #171a20;">Building from source<span style="color: #f2b13c; font-size: 20px;">{{ signC }}</span></button>
       <sc-if value="{{ openC }}" hint-placeholder-val="{{ false }}">
-        <div style="padding: 0 26px 26px; display: flex; flex-direction: column; gap: 16px; min-width: 0;">
+        <div class="faq-body" style="padding: 0 26px 26px; display: flex; flex-direction: column; gap: 16px; min-width: 0;">
           <p style="margin: 0; color: #9a9ba1; font-size: 15.5px; line-height: 1.6;">Requires Android Studio / JDK 17+ and the Android SDK. Add a free <a href="https://www.themoviedb.org/settings/api">TMDB</a> key (the default provider) and a free <a href="https://www.thetvdb.com/dashboard/account/apikeys">TheTVDB</a> key to <code style="font-family: 'JetBrains Mono', monospace; font-size: 13.5px; color: #4fc4d6;">local.properties</code> (not committed):</p>
-          <div style="position: relative; border: 1px solid #262a33; border-radius: 10px; background: #0b0c0f; padding: 18px 20px; min-width: 0;">
+          <div class="code-box" style="position: relative; border: 1px solid #262a33; border-radius: 10px; background: #0b0c0f; padding: 18px 20px; min-width: 0;">
             <button onClick="{{ copy }}" style="position: absolute; top: 10px; right: 10px; padding: 5px 10px; border: 1px solid #2a2e37; border-radius: 6px; background: #14161b; color: #9a9ba1; font-family: 'JetBrains Mono', monospace; font-size: 11px; cursor: pointer;" style-hover="color: #e8e6e3; border-color: #3a3f4a;">copy</button>
             <pre style="margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; min-width: 0;"><code style="font-family: 'JetBrains Mono', monospace; font-size: 12.5px; line-height: 1.85; color: #cfd2d8;">TMDB_API_KEY=your_key_here
 TVDB_API_KEY=your_key_here
@@ -340,17 +373,17 @@ TVDB_API_KEY=your_key_here
     </div>
   </section>
 
-  <section style="padding: 40px 32px 96px; max-width: 1180px; margin: 0 auto; text-align: center;">
-    <h2 style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 42px; letter-spacing: -0.025em; margin: 0 0 18px;">Stop landing in the wrong app.</h2>
-    <p style="margin: 0 auto 32px; max-width: 34em; color: #b9b8b4; font-size: 17.5px; line-height: 1.6;">Free, no account, no subscription, no license check.</p>
+  <section style="padding: 40px var(--gutter) var(--sec-y); max-width: 1180px; margin: 0 auto; text-align: center;">
+    <h2 style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: clamp(28px, 6.4vw, 42px); letter-spacing: -0.025em; margin: 0 0 18px;">Stop landing in the wrong app.</h2>
+    <p style="margin: 0 auto 32px; max-width: 34em; color: #b9b8b4; font-size: clamp(16px, 4.2vw, 17.5px); line-height: 1.6;">Free, no account, no subscription, no license check.</p>
     <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
-      <a href="https://github.com/hmartinez94/TVRelay/releases/latest" style="display: inline-flex; align-items: center; gap: 10px; padding: 15px 28px; border-radius: 8px; background: #f2b13c; color: #0b0c0f; font-weight: 600; font-size: 16px; text-decoration: none;" style-hover="background: #ffc85f; text-decoration: none;">Download the latest release</a>
-      <a href="https://github.com/hmartinez94/TVRelay" style="display: inline-flex; align-items: center; gap: 10px; padding: 15px 28px; border-radius: 8px; border: 1px solid #2a2e37; background: #14161b; color: #e8e6e3; font-weight: 600; font-size: 16px; text-decoration: none;" style-hover="border-color: #3a3f4a; text-decoration: none;">Read the source</a>
+      <a href="https://github.com/hmartinez94/TVRelay/releases/latest" class="btn-cta" style="display: inline-flex; align-items: center; gap: 10px; padding: 15px 28px; border-radius: 8px; background: #f2b13c; color: #0b0c0f; font-weight: 600; font-size: 16px; text-decoration: none;" style-hover="background: #ffc85f; text-decoration: none;">Download the latest release</a>
+      <a href="https://github.com/hmartinez94/TVRelay" class="btn-cta" style="display: inline-flex; align-items: center; gap: 10px; padding: 15px 28px; border-radius: 8px; border: 1px solid #2a2e37; background: #14161b; color: #e8e6e3; font-weight: 600; font-size: 16px; text-decoration: none;" style-hover="border-color: #3a3f4a; text-decoration: none;">Read the source</a>
     </div>
   </section>
 
-  <footer style="border-top: 1px solid #1c1f26; background: #0e1014; padding: 56px 32px 72px;">
-    <div style="max-width: 1180px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 56px;">
+  <footer style="border-top: 1px solid #1c1f26; background: #0e1014; padding: 56px var(--gutter) calc(var(--sec-y) * .8);">
+    <div class="stack-900" style="max-width: 1180px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 56px;">
       <div>
         <p style="margin: 0 0 12px; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; letter-spacing: 0.12em; text-transform: uppercase; color: #6f7178;">Legal notice</p>
         <p style="margin: 0 0 14px; color: #85868c; font-size: 13.5px; line-height: 1.7;">TVRelay's function is limited to detecting certain recommendations shown by the device's launcher, identifying the selected content, and opening its page in a third-party app you've already installed and configured yourself. It does not host, store, distribute, or provide any movies, series, streams, torrents, or other audiovisual content, and has no visibility into or control over what those third-party apps and their add-ons serve. You're responsible for your own use of them, including compliance with applicable law and their terms of service.</p>
@@ -384,6 +417,18 @@ class Component extends DCLogic {
       background: active ? "#f2b13c" : "transparent",
       color: active ? "#0b0c0f" : "#9a9ba1"
     };
+  }
+
+  componentDidMount() {
+    const video = document.getElementById("demo-video");
+    if (!video || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.isIntersecting) video.play().catch(() => {});
+        else video.pause();
+      }
+    }, { threshold: 0.4 });
+    io.observe(video);
   }
 
   copy = (e) => {
