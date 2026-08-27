@@ -23,9 +23,12 @@ import java.util.regex.Pattern;
  * in Settings instead of whatever the launcher would normally do. For
  * Nuvio/Stremio that means resolving the title via TMDB or TheTVDB first
  * (see Preferences.getMetadataProvider) to get an IMDb/TMDB id for a
- * direct content deep link; Plex/Jellyfin skip resolution entirely and
- * just hand the title to the player's own search screen (see PlayerApp's
- * class doc, PlayerLauncher.prepareTitleSearch()).
+ * direct content deep link; Plex/Jellyfin skip that resolution entirely and
+ * hand the title to the player's own search screen instead (see PlayerApp's
+ * class doc, PlayerLauncher.prepareTitleSearch()) - except Jellyfin, which
+ * may open the title directly when it's an exact match in the user's own
+ * library (an opt-in - see PlayerLauncher.planTitleSearch(),
+ * Preferences.isJellyfinLibraryLookupReady()).
  *
  * Every other click is left alone - normal launcher behavior (app icons,
  * the "Your apps" row, etc.) is untouched.
@@ -743,17 +746,47 @@ public class TvRelayAccessibilityService extends AccessibilityService {
 
         PlayerApp app = Preferences.getSelectedApp(this);
         if (app.usesTitleSearch()) {
-            // Plex/Jellyfin have no content deep link (see PlayerApp's
-            // class doc) - just hand the clicked title straight to their
-            // own search screen. No MetadataResolver call at all: no
-            // network, and nothing that can fail to "resolve" - see
-            // PlayerLauncher.prepareTitleSearch().
-            BooleanSupplier launch = PlayerLauncher.prepareTitleSearch(this, title);
-            if (confirmFirst) {
-                mainHandler.post(() -> overlay.showConfirmSearch(app, launch::getAsBoolean));
-            } else {
-                launch.getAsBoolean();
-            }
+            // Plex/Jellyfin never have a *universal-catalog* content deep
+            // link (see PlayerApp's class doc), so this always at least
+            // falls back to a plain search hand-off with no
+            // MetadataResolver call - see PlayerLauncher.prepareTitleSearch().
+            // Jellyfin specifically may also open the title directly - see
+            // PlayerLauncher.planTitleSearch(), which now makes one Jellyfin
+            // request when Preferences.isJellyfinLibraryLookupReady() - so
+            // this whole branch moved onto backgroundExecutor (it used to
+            // run inline on the caller thread when it was guaranteed
+            // network-free).
+            backgroundExecutor.execute(() -> {
+                PlayerLauncher.TitleSearchPlan plan = PlayerLauncher.planTitleSearch(this, title);
+
+                if (plan.foundInLibrary && Preferences.isChooserEnabled(this)
+                        && MetadataResolver.isAmbiguous(plan.candidates)) {
+                    Log.d(TAG, "Ambiguous Jellyfin library match for " + title
+                            + " (" + plan.candidates.size() + " candidates)");
+                    if (confirmFirst) {
+                        mainHandler.post(() -> overlay.showConfirmAmbiguous(app,
+                                () -> showChooser(title, plan.candidates)));
+                    } else {
+                        mainHandler.post(() -> showChooser(title, plan.candidates));
+                    }
+                    return;
+                }
+
+                if (confirmFirst) {
+                    // showConfirm() ("Watch now in Jellyfin") when the title
+                    // was actually found in the library, showConfirmSearch()
+                    // ("Search in Jellyfin") otherwise - same wording
+                    // distinction the deep-link vs. search-hand-off players
+                    // already use elsewhere in this method.
+                    if (plan.foundInLibrary) {
+                        mainHandler.post(() -> overlay.showConfirm(app, plan.launch::getAsBoolean));
+                    } else {
+                        mainHandler.post(() -> overlay.showConfirmSearch(app, plan.launch::getAsBoolean));
+                    }
+                } else {
+                    plan.launch.getAsBoolean();
+                }
+            });
             return;
         }
 

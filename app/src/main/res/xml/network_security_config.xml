@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Relaxes the default HTTPS-only network policy so a user-entered Jellyfin
+  server URL (JellyfinClient/JellyfinSettingsStepFragment) can be reached -
+  see Preferences.isJellyfinLibraryLookupReady(). A home Jellyfin server is
+  almost always a bare LAN address like http://192.168.1.50:8096 with no
+  certificate at all; Android's network security config has no CIDR/wildcard
+  support, so a user-entered host can't be allowlisted narrowly - the only
+  workable form is a blanket base-config relaxation.
+
+  This deliberately reverses the 2026-08-21 Kodi-removal cleanup, which
+  deleted this exact file on the grounds that every remaining call was HTTPS
+  (see CLAUDE.md's "What this is" section). That reasoning no longer holds
+  now that a user can point TVRelay at their own LAN server. Every
+  first-party endpoint (TMDB, TheTVDB, ntfy.sh, GitHub) is still a
+  hardcoded https:// URL, completely unaffected by this - the relaxation
+  exists solely so cleartext works for a self-hosted server the user typed
+  in themselves.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>

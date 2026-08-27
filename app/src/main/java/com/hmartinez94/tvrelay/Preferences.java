@@ -26,6 +26,9 @@ public final class Preferences {
     private static final String KEY_UPDATE_CHECKED_AT = "update_checked_at";
     private static final String KEY_UPDATE_LATEST_VERSION = "update_latest_version";
     private static final String KEY_UPDATE_APK_URL = "update_apk_url";
+    private static final String KEY_JELLYFIN_LIBRARY_LOOKUP = "jellyfin_library_lookup";
+    private static final String KEY_JELLYFIN_URL = "jellyfin_url";
+    private static final String KEY_JELLYFIN_API_KEY = "jellyfin_api_key";
 
     private Preferences() {
     }
@@ -294,5 +297,58 @@ public final class Preferences {
                 .putString(KEY_UPDATE_LATEST_VERSION, version)
                 .putString(KEY_UPDATE_APK_URL, apkUrl)
                 .apply();
+    }
+
+    /**
+     * Opt-in: whether PlayerLauncher.planTitleSearch() should try Jellyfin's
+     * own library search before falling back to the plain search hand-off -
+     * see JellyfinClient and JellyfinSettingsStepFragment. Default OFF, same
+     * reasoning as isSmartTubeEnabled() - a feature that needs external
+     * setup (a server URL + API key) shouldn't turn itself on. Only
+     * meaningful together with getJellyfinUrl()/getJellyfinApiKey() below -
+     * see isJellyfinLibraryLookupReady(), the one gate every caller actually
+     * checks.
+     */
+    public static boolean isJellyfinLibraryLookupEnabled(Context context) {
+        return prefs(context).getBoolean(KEY_JELLYFIN_LIBRARY_LOOKUP, false);
+    }
+
+    public static void setJellyfinLibraryLookupEnabled(Context context, boolean enabled) {
+        prefs(context).edit().putBoolean(KEY_JELLYFIN_LIBRARY_LOOKUP, enabled).apply();
+    }
+
+    /** The user's Jellyfin server URL exactly as typed/pasted into Settings - empty if unset. */
+    public static String getJellyfinUrl(Context context) {
+        return prefs(context).getString(KEY_JELLYFIN_URL, "");
+    }
+
+    public static void setJellyfinUrl(Context context, String url) {
+        prefs(context).edit().putString(KEY_JELLYFIN_URL, url).apply();
+    }
+
+    /**
+     * The user's Jellyfin API key (Dashboard -> API Keys) - empty if unset.
+     * Plain SharedPreferences, same as getTmdbApiKey() - not encrypted at
+     * rest.
+     */
+    public static String getJellyfinApiKey(Context context) {
+        return prefs(context).getString(KEY_JELLYFIN_API_KEY, "");
+    }
+
+    public static void setJellyfinApiKey(Context context, String apiKey) {
+        prefs(context).edit().putString(KEY_JELLYFIN_API_KEY, apiKey).apply();
+    }
+
+    /**
+     * The single gate JellyfinClient.findLibraryCandidates() and
+     * PlayerLauncher.planTitleSearch() both check before ever attempting a
+     * library lookup - true only when the feature is turned on AND both
+     * fields are actually filled in. Anything less falls back to the plain
+     * search hand-off, exactly like before this feature existed.
+     */
+    public static boolean isJellyfinLibraryLookupReady(Context context) {
+        return isJellyfinLibraryLookupEnabled(context)
+                && !getJellyfinUrl(context).trim().isEmpty()
+                && !getJellyfinApiKey(context).trim().isEmpty();
     }
 }

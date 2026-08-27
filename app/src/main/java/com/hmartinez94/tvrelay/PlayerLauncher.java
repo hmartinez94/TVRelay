@@ -6,6 +6,8 @@ import android.content.Intent;
 import android.net.Uri;
 import android.util.Log;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.function.BooleanSupplier;
 
 /**
@@ -24,17 +26,34 @@ import java.util.function.BooleanSupplier;
  * v0.8.3-beta release the same day - CLAUDE.md's "WuPlay wall" originally
  * (2026-08-23) found no content deep link existed at all, only a
  * profile-switcher; that finding is now reversed, not still true.
- * Plex / Jellyfin: neither has a usable content deep link (see PlayerApp's
- * class doc and CLAUDE.md) - both get a plain title search hand-off
- * instead, via prepareTitleSearch(). Jellyfin pre-fills the query;
- * Plex's ACTION_SEARCH route (the only working one - see CLAUDE.md for a
- * decompiled trace) opens Plex's real search screen but does NOT pre-fill
- * it, a confirmed gap in Plex's own app, not something fixable here. (Plex
- * is currently disabled - not removed - see PlayerApp.isEnabled().) Unlike
- * the deep-link players above, title search never touches MetadataResolver
- * at all - see TvRelayAccessibilityService and SearchStepFragment, which
- * branch on PlayerApp.usesTitleSearch() before ever calling
- * resolveCandidates().
+ * Plex / Jellyfin: neither has a *universal-catalog* content deep link (see
+ * PlayerApp's class doc and CLAUDE.md), so both still default to a plain
+ * title search hand-off via prepareTitleSearch(). Jellyfin pre-fills the
+ * query; Plex's ACTION_SEARCH route (the only working one - see CLAUDE.md
+ * for a decompiled trace) opens Plex's real search screen but does NOT
+ * pre-fill it, a confirmed gap in Plex's own app, not something fixable
+ * here. (Plex is currently disabled - not removed - see
+ * PlayerApp.isEnabled().) Title search never touches MetadataResolver at
+ * all - see TvRelayAccessibilityService and SearchStepFragment, which route
+ * through planTitleSearch() before ever calling resolveCandidates().
+ *
+ * Jellyfin and Wholphin specifically also support a *direct* open - see
+ * planTitleSearch()/openServerItem() - gated behind Preferences.
+ * isJellyfinLibraryLookupReady(), an opt-in that needs a server URL + API
+ * key (JellyfinSettingsStepFragment). When on and the clicked title is an
+ * exact match in the user's own library, TVRelay opens that title's detail
+ * page directly, the same way Nuvio/Stremio/WuPlay do; otherwise (feature
+ * off, not configured, or no library hit) it falls through to the plain
+ * search hand-off above, unchanged. Jellyfin's /Items endpoint has no
+ * provider-id filter exposed (see JellyfinClient's class doc), so this
+ * match is title-based, same exact-match handling TMDB/TheTVDB already use.
+ * Wholphin (com.github.damontecres.wholphin) is a separate, from-scratch
+ * open-source Jellyfin client, not an official Jellyfin build - it shares
+ * this same opt-in config because it connects to the same kind of server
+ * and uses the same server-local item id, not because it's built from
+ * Jellyfin's code (see PlayerApp's class doc and CLAUDE.md's "Wholphin
+ * support"). openServerItem() picks which of the two players' own Intent
+ * contract to use for a given item id.
  *
  * Takes a plain Context (not specifically AccessibilityService) so it can be
  * called both from the accessibility service and from a regular Activity
@@ -82,6 +101,32 @@ final class PlayerLauncher {
     private static final String TIZENTUBE_COBALT_LABEL = "TizenTube Cobalt";
     private static final String TIZENTUBE_COBALT_PACKAGE = "io.gh.reisxd.tizentube.cobalt";
 
+    // Confirmed via Jellyfin's own StartupActivity.kt source (WebFetch,
+    // 2026-08-26): it declares ACTION_VIEW/ACTION_SEARCH with no <data>
+    // element at all, so an implicit Intent can't resolve to it - every
+    // Jellyfin launch here targets this exact component explicitly. Shared
+    // by openJellyfinItem() and prepareTitleSearch()'s JELLYFIN case so the
+    // two can't drift to different class names.
+    private static final String JELLYFIN_STARTUP_ACTIVITY = "org.jellyfin.androidtv.ui.startup.StartupActivity";
+
+    // Wholphin (com.github.damontecres.wholphin): a separate, from-scratch
+    // open-source Jellyfin client - see PlayerApp's class doc and CLAUDE.md's
+    // "Wholphin support" section. Its own Intents.md (fetched from
+    // damontecres/Wholphin on GitHub, 2026-08-26) documents both routes used
+    // below: ACTION_SEARCH with a "query" extra (the same extra key
+    // SearchManager.QUERY already resolves to), and ACTION_VIEW with an
+    // "itemId" extra - the server-local Jellyfin item UUID, identical to
+    // what JellyfinClient's /Items search already returns and what
+    // openJellyfinItem() already opens for the official Jellyfin app.
+    // MainActivity is exported and declared explicitly (".MainActivity" in
+    // the manifest, i.e. this fully-qualified name) - targeted the same
+    // explicit-component way as Jellyfin's StartupActivity, both because
+    // it's the more defensive choice with no local server to test against,
+    // and because Wholphin's own manifest intent-filter requires a
+    // "wholphin:" data URI to match implicitly, which these plain-extra
+    // Intents don't carry.
+    private static final String WHOLPHIN_MAIN_ACTIVITY = "com.github.damontecres.wholphin.MainActivity";
+
     private PlayerLauncher() {
     }
 
@@ -102,15 +147,6 @@ final class PlayerLauncher {
     static boolean openCandidate(Context context, TitleCandidate candidate) {
         BooleanSupplier launch = prepare(context, candidate);
         return launch != null && launch.getAsBoolean();
-    }
-
-    /**
-     * Opens a plain title search directly - the manual-search entry point
-     * for title-search players (Plex, Jellyfin), which skip
-     * MetadataResolver entirely. See prepareTitleSearch().
-     */
-    static boolean openTitleSearch(Context context, String rawTitle) {
-        return prepareTitleSearch(context, rawTitle).getAsBoolean();
     }
 
     /**
@@ -135,6 +171,18 @@ final class PlayerLauncher {
      * that case.
      */
     static BooleanSupplier prepare(Context context, TitleCandidate candidate) {
+        if (candidate.jellyfinItemId != null) {
+            // A hit from the user's own Jellyfin library (see
+            // JellyfinClient/planTitleSearch()) - already directly
+            // launchable by item id. Checked before app.usesTitleSearch()
+            // below: Jellyfin/Wholphin's LaunchStyle stays TITLE_SEARCH even
+            // with library lookup on (see PlayerApp), so without this check
+            // an already-resolved candidate from the chooser/manual-search
+            // path would fall into prepareTitleSearch() and re-search by
+            // title instead of opening what the user actually picked.
+            PlayerApp libraryApp = Preferences.getSelectedApp(context);
+            return () -> openServerItem(context, libraryApp, candidate.jellyfinItemId);
+        }
         PlayerApp app = Preferences.getSelectedApp(context);
         if (app.usesTitleSearch()) {
             return prepareTitleSearch(context, candidate.displayTitle);
@@ -200,7 +248,21 @@ final class PlayerLauncher {
                 // a Jellyfin server, so this is the more defensive choice.
                 intent = new Intent(Intent.ACTION_SEARCH);
                 intent.putExtra(SearchManager.QUERY, title);
-                intent.setClassName(app.getPackageName(), "org.jellyfin.androidtv.ui.startup.StartupActivity");
+                intent.setClassName(app.getPackageName(), JELLYFIN_STARTUP_ACTIVITY);
+                break;
+            case WHOLPHIN:
+                // Wholphin's own Intents.md documents ACTION_SEARCH with a
+                // "query" extra (SearchManager.QUERY's value is literally
+                // "query", so this is the same extra Jellyfin's case above
+                // already sends). Explicit component for the same reason as
+                // Jellyfin: no local server to test the implicit-intent path
+                // against, and Wholphin's manifest intent-filter for this
+                // action also requires a "wholphin:" data URI to match
+                // implicitly anyway, which this plain-extra Intent has no
+                // need to carry.
+                intent = new Intent(Intent.ACTION_SEARCH);
+                intent.putExtra(SearchManager.QUERY, title);
+                intent.setClassName(app.getPackageName(), WHOLPHIN_MAIN_ACTIVITY);
                 break;
             default:
                 // NUVIO/STREMIO never reach here - prepare() only calls
@@ -216,6 +278,102 @@ final class PlayerLauncher {
         // no generic fallback for search-style players - see
         // openWithFallback()'s allowGenericFallback param.
         return () -> openWithFallback(context, intent, app.getLabel(), false);
+    }
+
+    /**
+     * Direct-open for a Jellyfin library hit (see planTitleSearch()) -
+     * StartupActivity.openNextActivity() (Jellyfin's own Kotlin source,
+     * confirmed via WebFetch 2026-08-26) accepts ACTION_VIEW with
+     * intent.data.toString() fed straight into the SDK's toUUIDOrNull(),
+     * documented to "accept simple and hyphenated notations" - so the bare
+     * hex Id JellyfinClient's /Items search returned works verbatim as the
+     * Intent data, no reformatting needed. Uri.parse() of a bare id with no
+     * scheme yields exactly that string back from toString(). Same
+     * explicit-component requirement as the search hand-off above (see
+     * JELLYFIN_STARTUP_ACTIVITY's comment) and the same reasoning against a
+     * packageless retry as prepareTitleSearch() - a malformed/stale id
+     * should report failure, not silently land somewhere unhelpful.
+     */
+    private static boolean openJellyfinItem(Context context, String itemId) {
+        Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(itemId));
+        intent.setClassName(PlayerApp.JELLYFIN.getPackageName(), JELLYFIN_STARTUP_ACTIVITY);
+        return openWithFallback(context, intent, PlayerApp.JELLYFIN.getLabel(), false);
+    }
+
+    /**
+     * Direct-open for a Jellyfin library hit, when Wholphin is the selected
+     * player instead of the official Jellyfin app - see openJellyfinItem()
+     * above for the (identical, server-local) item id contract. Per
+     * Wholphin's own Intents.md, this is ACTION_VIEW with an "itemId" extra
+     * (not intent.data like Jellyfin's own StartupActivity) - opens the
+     * item's detail page, same semantics as openJellyfinItem(), not
+     * Wholphin's separate immediate-playback PLAYBACK action (deliberately
+     * not used here, to keep behavior consistent between the two players
+     * rather than making Wholphin auto-play while Jellyfin only opens a
+     * detail page).
+     */
+    private static boolean openWholphinItem(Context context, String itemId) {
+        Intent intent = new Intent(Intent.ACTION_VIEW);
+        intent.putExtra("itemId", itemId);
+        intent.setClassName(PlayerApp.WHOLPHIN.getPackageName(), WHOLPHIN_MAIN_ACTIVITY);
+        return openWithFallback(context, intent, PlayerApp.WHOLPHIN.getLabel(), false);
+    }
+
+    /** Picks openJellyfinItem() or openWholphinItem() by which of the two Jellyfin-server players (see PlayerApp.usesJellyfinServer()) is actually selected. */
+    private static boolean openServerItem(Context context, PlayerApp app, String itemId) {
+        return app == PlayerApp.WHOLPHIN
+                ? openWholphinItem(context, itemId)
+                : openJellyfinItem(context, itemId);
+    }
+
+    /**
+     * Bundles planTitleSearch()'s decision together with the already-built
+     * launch it settled on - see YouTubeRedirect above for the same
+     * "decision + launch, computed together" shape. candidates is only ever
+     * non-empty when foundInLibrary is true, and is exactly what
+     * MetadataResolver.isAmbiguous()/the match chooser already expect, so a
+     * caller can reuse both unchanged for the ambiguous-match case.
+     */
+    static final class TitleSearchPlan {
+        final boolean foundInLibrary;
+        final List<TitleCandidate> candidates;
+        final BooleanSupplier launch;
+
+        private TitleSearchPlan(boolean foundInLibrary, List<TitleCandidate> candidates, BooleanSupplier launch) {
+            this.foundInLibrary = foundInLibrary;
+            this.candidates = candidates;
+            this.launch = launch;
+        }
+    }
+
+    /**
+     * The entry point TvRelayAccessibilityService and SearchStepFragment use
+     * instead of calling prepareTitleSearch() directly - decides whether the
+     * clicked/typed title is an exact match in the user's own Jellyfin
+     * library (only attempted when Preferences.isJellyfinLibraryLookupReady()
+     * AND the selected player is one of the two that can use it - see
+     * PlayerApp.usesJellyfinServer()) before falling back to exactly the
+     * plain search hand-off prepareTitleSearch() alone used to produce.
+     * Blocking (one Jellyfin request when the feature is on and set up) -
+     * call only from a background thread, same as
+     * MetadataResolver.resolveCandidates().
+     *
+     * For every player other than Jellyfin/Wholphin, or either of those with
+     * the feature off/not fully configured, or a library search that finds
+     * nothing exactly: foundInLibrary=false, candidates empty, launch=the
+     * plain search hand-off - i.e. today's behavior, byte-identical, unless
+     * the feature is deliberately turned on and set up.
+     */
+    static TitleSearchPlan planTitleSearch(Context context, String rawTitle) {
+        PlayerApp app = Preferences.getSelectedApp(context);
+        if (app.usesJellyfinServer() && Preferences.isJellyfinLibraryLookupReady(context)) {
+            List<TitleCandidate> candidates = JellyfinClient.findLibraryCandidates(context, rawTitle);
+            if (!candidates.isEmpty()) {
+                TitleCandidate best = candidates.get(0);
+                return new TitleSearchPlan(true, candidates, () -> openServerItem(context, app, best.jellyfinItemId));
+            }
+        }
+        return new TitleSearchPlan(false, Collections.emptyList(), prepareTitleSearch(context, rawTitle));
     }
 
     /**

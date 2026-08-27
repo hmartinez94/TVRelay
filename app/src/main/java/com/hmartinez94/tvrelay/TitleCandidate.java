@@ -27,9 +27,10 @@ final class TitleCandidate implements Serializable {
     final String imdbId; // null until resolved, for TMDB candidates
     final int tmdbId; // 0 for TheTVDB candidates
     final String tmdbMediaPath; // "movie" or "tv" - TMDB only, null otherwise
+    final String jellyfinItemId; // non-null only for a hit from the user's own Jellyfin library - see JellyfinClient
 
     private TitleCandidate(String displayTitle, String akaTitle, int year, MediaType type, boolean isExactMatch,
-                            String imdbId, int tmdbId, String tmdbMediaPath) {
+                            String imdbId, int tmdbId, String tmdbMediaPath, String jellyfinItemId) {
         this.displayTitle = displayTitle;
         this.akaTitle = akaTitle;
         this.year = year;
@@ -38,16 +39,30 @@ final class TitleCandidate implements Serializable {
         this.imdbId = imdbId;
         this.tmdbId = tmdbId;
         this.tmdbMediaPath = tmdbMediaPath;
+        this.jellyfinItemId = jellyfinItemId;
     }
 
     static TitleCandidate fromTvdb(String displayTitle, int year, MediaType type,
                                     boolean isExactMatch, String imdbId) {
-        return new TitleCandidate(displayTitle, null, year, type, isExactMatch, imdbId, 0, null);
+        return new TitleCandidate(displayTitle, null, year, type, isExactMatch, imdbId, 0, null, null);
     }
 
     static TitleCandidate fromTmdb(String displayTitle, String akaTitle, int year, MediaType type,
                                     boolean isExactMatch, int tmdbId, String tmdbMediaPath) {
-        return new TitleCandidate(displayTitle, akaTitle, year, type, isExactMatch, null, tmdbId, tmdbMediaPath);
+        return new TitleCandidate(displayTitle, akaTitle, year, type, isExactMatch, null, tmdbId, tmdbMediaPath, null);
+    }
+
+    /**
+     * A hit from the user's own Jellyfin library (JellyfinClient) - already
+     * directly launchable via its item id (see PlayerLauncher.prepare()),
+     * unlike a TMDB candidate, which still needs an IMDb id resolved. Not
+     * "resolved" in isResolved()'s sense (that's specifically about
+     * imdbId) - jellyfinItemId is a parallel, separate way a candidate can
+     * already be launchable.
+     */
+    static TitleCandidate fromJellyfin(String displayTitle, int year, MediaType type,
+                                        boolean isExactMatch, String itemId) {
+        return new TitleCandidate(displayTitle, null, year, type, isExactMatch, null, 0, null, itemId);
     }
 
     boolean isResolved() {

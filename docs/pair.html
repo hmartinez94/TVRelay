@@ -42,7 +42,7 @@
 </head>
 <body>
   <h1>Send to your TV</h1>
-  <p class="hint">Type or paste the value below, then tap Send. It'll appear on your TV automatically - no need to type it there.</p>
+  <p class="hint" id="hint">Type or paste the value below, then tap Send. It'll appear on your TV automatically - no need to type it there.</p>
   <input type="text" id="value" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Paste value here">
   <button id="send">Send to TV</button>
   <p id="status"></p>
@@ -51,9 +51,22 @@
 (function () {
   var params = new URLSearchParams(window.location.search);
   var topic = params.get("topic");
+  var label = params.get("label");
   var statusEl = document.getElementById("status");
   var input = document.getElementById("value");
   var button = document.getElementById("send");
+
+  // label identifies which field this is (e.g. "Jellyfin API key") so the
+  // same generic page can serve more than one field without the user
+  // guessing which one they're about to overwrite - see PhonePairing.
+  // pairingUrl(). Falls back to the original generic wording when absent
+  // (an older/bookmarked link, or a caller that didn't pass one).
+  if (label) {
+    document.title = "TVRelay - Send " + label;
+    document.getElementById("hint").textContent =
+        "Type or paste your " + label + " below, then tap Send. It'll appear on your TV automatically - no need to type it there.";
+    input.placeholder = label;
+  }
 
   if (!topic) {
     statusEl.textContent = "Missing pairing code - go back to your TV and scan the QR code again.";

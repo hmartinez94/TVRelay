@@ -18,7 +18,8 @@
     <string name="settings_chooser_status_enabled">Estado: activado - muestra un selector cuando un título coincide exactamente con más de un resultado, en lugar de adivinar</string>
     <string name="settings_chooser_status_disabled">Estado: desactivado - abre siempre automáticamente la coincidencia exacta más reciente</string>
     <string name="settings_player_plex_description">Abre la pantalla de búsqueda de Plex - tendrás que escribir el título tú mismo, y solo encuentra títulos que ya están en tu biblioteca</string>
-    <string name="settings_player_jellyfin_description">Abre una búsqueda en Jellyfin - solo encuentra títulos en tu propio servidor, no abre el título directamente</string>
+    <string name="settings_player_jellyfin_description">Abre una búsqueda en Jellyfin por defecto - configura \"Buscar primero en la biblioteca\" abajo para abrir títulos de tu propio servidor directamente</string>
+    <string name="settings_player_wholphin_description">Abre una búsqueda en Wholphin por defecto - un cliente de Jellyfin independiente y de código abierto. Configura \"Buscar primero en la biblioteca\" abajo para abrir títulos de tu propio servidor directamente</string>
     <string name="settings_ocr_fallback">Método alternativo de lectura de pantalla para tarjetas no detectables</string>
     <string name="settings_ocr_status_enabled">Estado: activado - se muestra un indicador de grabación persistente mientras esté activo. Captura la pantalla en el propio dispositivo (no se sube nada) cuando una tarjeta o un resultado de búsqueda por voz no tiene título legible</string>
     <string name="settings_ocr_status_disabled">Estado: desactivado - las tarjetas y resultados de búsqueda por voz sin título legible se dejan intactos</string>
@@ -51,6 +52,28 @@
     <string name="settings_metadata_provider">Proveedor de metadatos</string>
     <string name="settings_about">Acerca de y ayuda</string>
 
+    <string name="settings_jellyfin_configure">Configurar servidor Jellyfin</string>
+    <string name="settings_jellyfin_configured_description">Servidor: %1$s</string>
+    <string name="settings_jellyfin_not_configured">No configurado - %1$s solo abrirá una búsqueda</string>
+
+    <string name="jellyfin_settings_title">Configurar servidor Jellyfin</string>
+    <string name="jellyfin_settings_description">Opcional. Cuando \"Buscar primero en la biblioteca\" está activado y configurado abajo, un título pulsado o escrito que ya esté en tu servidor Jellyfin se abre directamente - igual que hace Nuvio - en lugar de solo abrir una búsqueda. Se aplica tanto si Jellyfin como si Wholphin (un cliente de Jellyfin independiente y de código abierto) es tu app seleccionada, ya que ambos se conectan al mismo tipo de servidor. Obtén una clave de API desde el Panel de tu servidor → Claves de API.</string>
+    <string name="jellyfin_lookup_enabled">Buscar primero en la biblioteca</string>
+    <string name="jellyfin_lookup_status_enabled">Estado: activado - un título que coincide exactamente en tu servidor se abre directamente; el resto sigue recurriendo a una búsqueda</string>
+    <string name="jellyfin_lookup_status_disabled">Estado: desactivado - siempre abre una búsqueda, como antes</string>
+    <string name="jellyfin_field_url">URL del servidor Jellyfin</string>
+    <string name="jellyfin_field_api_key">Clave de API de Jellyfin</string>
+    <string name="jellyfin_pair_url">Enviar URL del servidor desde el móvil…</string>
+    <string name="jellyfin_pair_key">Enviar clave de API desde el móvil…</string>
+    <string name="jellyfin_test_connection">Probar conexión</string>
+    <string name="jellyfin_test_success">Conectado a %1$s</string>
+    <!-- errorDetail from JellyfinClient.ConnectionResult is English-only
+         (technical/diagnostic text - URLs, HTTP codes - same precedent as
+         this codebase's Log.w/Log.e messages, which are English-only too),
+         so only this prefix is localized. -->
+    <string name="jellyfin_test_failure">No se pudo conectar: %1$s</string>
+    <string name="jellyfin_save_incomplete">Introduce tanto la URL del servidor como la clave de API, o desactiva \"Buscar primero en la biblioteca\"</string>
+
     <!-- The rest of the updater's strings (update_title etc.) are not yet
          localized and fall back to English; this one is here because the
          toast it feeds appears on its own, not inside the updater UI. -->
@@ -64,7 +87,7 @@
     <string name="restricted_settings_retry_accessibility">Intentar Ajustes de Accesibilidad de nuevo</string>
 
     <string name="about_title">Acerca de y ayuda</string>
-    <string name="about_legal">TVRelay es una herramienta independiente de automatización y redirección. No aloja, almacena, distribuye ni proporciona películas, series, streams, torrents ni ningún otro contenido audiovisual. No tiene relación con Nuvio, Stremio, WuPlay, Plex ni Jellyfin, ni con el origen o legalidad de ningún contenido al que accedas a través de esas apps - eso depende por completo de qué apps y complementos tengas instalados y configurados, bajo tu propia responsabilidad. TVRelay no está afiliada, patrocinada, autorizada ni respaldada por Google, Nuvio, Stremio, WuPlay, Plex ni Jellyfin.</string>
+    <string name="about_legal">TVRelay es una herramienta independiente de automatización y redirección. No aloja, almacena, distribuye ni proporciona películas, series, streams, torrents ni ningún otro contenido audiovisual. No tiene relación con Nuvio, Stremio, WuPlay, Plex, Jellyfin ni Wholphin, ni con el origen o legalidad de ningún contenido al que accedas a través de esas apps - eso depende por completo de qué apps y complementos tengas instalados y configurados, bajo tu propia responsabilidad. TVRelay no está afiliada, patrocinada, autorizada ni respaldada por Google, Nuvio, Stremio, WuPlay, Plex, Jellyfin ni Wholphin.</string>
     <string name="about_tmdb_attribution">Este producto usa la API de TMDB pero no está avalado ni certificado por TMDB. themoviedb.org</string>
     <string name="about_tvdb_attribution">Si cambias a TheTVDB como proveedor de metadatos: este producto usa la API de TheTVDB pero no está avalado ni certificado por TheTVDB. thetvdb.com</string>
     <string name="about_restricted_settings">Si instalaste esta app manualmente y el interruptor de Accesibilidad se apaga solo justo después de activarlo: es la protección \"Ajustes restringidos\" de Android para apps no instaladas desde una tienda de aplicaciones, no un fallo. Busca \"Permitir ajuste restringido\" en la pantalla de información de esta app en Ajustes del sistema. Si no la encuentras, conéctate por ADB y ejecuta:\n\nadb shell settings put secure enabled_accessibility_services com.hmartinez94.tvrelay/com.hmartinez94.tvrelay.TvRelayAccessibilityService\nadb shell settings put secure accessibility_enabled 1\n\n(El primer comando reemplaza toda la lista - separa los servicios con dos puntos si ya usas otro, como TalkBack.)</string>
@@ -99,6 +122,8 @@
 
     <string name="pairing_title">Enviar desde tu móvil</string>
     <string name="pairing_description">Escanea esto con la cámara de tu móvil, luego escribe o pega el valor en la página que se abre y pulsa Enviar. Aparecerá aquí automáticamente - no hace falta escribirlo con el mando.\n\n%1$s</string>
+    <string name="pairing_auto_close_note">Se cierra automáticamente al recibir el valor.</string>
+    <string name="pairing_network_warning">¿No funcionó? Puede que tu red esté bloqueando la conexión</string>
     <string name="pairing_cancel">Cancelar</string>
     <string name="pairing_received">Recibido</string>
     <string name="pairing_timed_out">No se recibió nada - escanea el código de nuevo para reintentar</string>

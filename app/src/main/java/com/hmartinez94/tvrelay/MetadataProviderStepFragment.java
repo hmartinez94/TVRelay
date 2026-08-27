@@ -136,7 +136,7 @@ public class MetadataProviderStepFragment extends GuidedStepSupportFragment {
                     candidateId -> candidateId == ACTION_PROVIDER_TVDB || candidateId == ACTION_PROVIDER_TMDB,
                     this::notifyActionChanged);
         } else if (id == ACTION_PAIR_PHONE) {
-            GuidedStepSupportFragment.add(getFragmentManager(), new PhonePairingStepFragment());
+            GuidedStepSupportFragment.add(getFragmentManager(), PhonePairingStepFragment.forTmdbKey());
         } else if (id == ACTION_TEST_KEY) {
             testKey();
         } else if (id == ACTION_SAVE) {

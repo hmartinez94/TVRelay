@@ -9,6 +9,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.provider.Settings;
 import android.text.TextUtils;
+import android.view.View;
 import android.widget.Toast;
 
 import androidx.leanback.app.GuidedStepSupportFragment;
@@ -49,9 +50,13 @@ public class SettingsStepFragment extends GuidedStepSupportFragment {
     private static final long ACTION_METADATA_PROVIDER = 11;
     private static final long ACTION_ABOUT = 12;
     private static final long ACTION_UPDATE_AVAILABLE = 13;
+    private static final long ACTION_JELLYFIN_SERVER = 14;
 
     /** Throttle for the GitHub release check kicked off from onResume() - see maybeCheckForUpdate(). */
     private static final long UPDATE_CHECK_INTERVAL_MS = 24L * 60 * 60 * 1000;
+
+    /** See onResume() - skips its rebuild on the very first call. */
+    private boolean firstResume = true;
 
     // Section headers - infoOnly, so leanback skips them in D-pad focus
     // navigation and never routes a click to them. Distinct ids only matter
@@ -82,9 +87,22 @@ public class SettingsStepFragment extends GuidedStepSupportFragment {
     @Override
     public void onResume() {
         super.onResume();
-        // Reflect the current accessibility toggle state - the user may
-        // have just come back from the system Settings screen.
-        setActions(buildActions(requireContext()));
+        // Reflect state that might have changed while this screen wasn't
+        // visible - the accessibility toggle or overlay permission, both
+        // granted in system Settings and only ever seen again once the user
+        // returns here. Skipped on the very first onResume() (right after
+        // onCreateActions() already built the identical list moments
+        // earlier in onCreate()) - confirmed real bug (2026-08-27): on a
+        // fresh install's first-ever visit to this screen, this redundant
+        // rebuild had nothing new to reflect yet, but could still replace
+        // the action list's views out from under a fast first click - user
+        // report was the "Player app" dropdown not opening on the first tap,
+        // only after clicking something else first, consistent with that
+        // click landing mid-rebuild on a view about to be torn down.
+        if (!firstResume) {
+            setActions(buildActions(requireContext()));
+        }
+        firstResume = false;
         maybeCheckForUpdate();
     }
 
@@ -173,6 +191,15 @@ public class SettingsStepFragment extends GuidedStepSupportFragment {
 
         addHeader(actions, context, ACTION_HEADER_PLAYER, R.string.settings_section_player);
         actions.add(buildPlayerAppAction(context));
+        if (Preferences.getSelectedApp(context).usesJellyfinServer()) {
+            // Only relevant while Jellyfin or Wholphin is actually selected -
+            // both connect to the same kind of server and share this same
+            // opt-in config (see PlayerApp.usesJellyfinServer()) - see
+            // JellyfinSettingsStepFragment/onSubGuidedActionClicked() below
+            // for how this row's presence stays in sync with the player
+            // dropdown above it.
+            actions.add(buildJellyfinServerAction(context));
+        }
 
         addHeader(actions, context, ACTION_HEADER_DETECTION, R.string.settings_section_detection);
         boolean chooserEnabled = Preferences.isChooserEnabled(context);
@@ -299,9 +326,14 @@ public class SettingsStepFragment extends GuidedStepSupportFragment {
                     .title(app.getLabel())
                     .checkSetId(GuidedAction.DEFAULT_CHECK_SET_ID)
                     .checked(app == selected);
-            // Plex/Jellyfin only get a title search hand-off, not a direct
-            // open - see PlayerApp.usesTitleSearch(). Said plainly here so
-            // it's never mistaken for the same kind of open Nuvio/Stremio do.
+            // Plex/Jellyfin default to a title search hand-off, not a direct
+            // open like Nuvio/Stremio - see PlayerApp.usesTitleSearch(). Said
+            // plainly here so it's never mistaken for the same guarantee.
+            // Jellyfin's row description here doesn't mention the opt-in
+            // direct-open path (Preferences.isJellyfinLibraryLookupReady()) -
+            // that's surfaced instead via the separate "Configure Jellyfin"
+            // row this fragment adds right below the dropdown when Jellyfin
+            // is selected (see buildJellyfinServerAction()).
             if (app.getDescriptionRes() != 0) {
                 builder.description(getString(app.getDescriptionRes()));
             }
@@ -312,6 +344,18 @@ public class SettingsStepFragment extends GuidedStepSupportFragment {
                 .title(getString(R.string.settings_player_app))
                 .description(selected.getLabel())
                 .subActions(subActions)
+                .build();
+    }
+
+    /** The "Configure Jellyfin server" row - only added while Jellyfin or Wholphin is selected, see buildActions(). */
+    private GuidedAction buildJellyfinServerAction(Context context) {
+        String description = Preferences.isJellyfinLibraryLookupReady(context)
+                ? getString(R.string.settings_jellyfin_configured_description, Preferences.getJellyfinUrl(context))
+                : getString(R.string.settings_jellyfin_not_configured, Preferences.getSelectedApp(context).getLabel());
+        return new GuidedAction.Builder(context)
+                .id(ACTION_JELLYFIN_SERVER)
+                .title(getString(R.string.settings_jellyfin_configure))
+                .description(description)
                 .build();
     }
 
@@ -417,6 +461,8 @@ public class SettingsStepFragment extends GuidedStepSupportFragment {
             startActivity(new Intent(context, SearchActivity.class));
         } else if (id == ACTION_METADATA_PROVIDER) {
             GuidedStepSupportFragment.add(getFragmentManager(), new MetadataProviderStepFragment());
+        } else if (id == ACTION_JELLYFIN_SERVER) {
+            GuidedStepSupportFragment.add(getFragmentManager(), new JellyfinSettingsStepFragment());
         } else if (id == ACTION_ABOUT) {
             GuidedStepSupportFragment.add(getFragmentManager(), new AboutStepFragment());
         } else if (id == ACTION_UPDATE_AVAILABLE) {
@@ -442,6 +488,7 @@ public class SettingsStepFragment extends GuidedStepSupportFragment {
             int index = (int) (id - ACTION_PLAYER_BASE);
             PlayerApp[] apps = PlayerApp.values();
             if (index >= 0 && index < apps.length && apps[index].isEnabled()) {
+                boolean wasJellyfin = Preferences.getSelectedApp(context).usesJellyfinServer();
                 PlayerApp chosen = apps[index];
                 Preferences.setSelectedApp(context, chosen);
                 GuidedAction parent = findActionById(ACTION_PLAYER_APP);
@@ -449,6 +496,32 @@ public class SettingsStepFragment extends GuidedStepSupportFragment {
                     parent.setDescription(chosen.getLabel());
                     syncCheckedInList(parent.getSubActions(), id);
                     notifyActionChanged(getActions().indexOf(parent));
+                }
+                boolean isJellyfin = chosen.usesJellyfinServer();
+                if (wasJellyfin || isJellyfin) {
+                    // The "Configure Jellyfin server" row's very presence
+                    // depends on this selection (see buildActions()), and its
+                    // description names whichever of Jellyfin/Wholphin is
+                    // selected (see buildJellyfinServerAction()) - so this
+                    // also needs to rebuild on a straight swap between the
+                    // two (wasJellyfin == isJellyfin == true), not only on
+                    // the row appearing/disappearing. The partial patch above
+                    // only updates the dropdown's own row, so without this
+                    // the server row wouldn't appear/disappear/relabel until
+                    // Settings was left and re-entered. Posted to the next
+                    // frame, not called synchronously: this callback runs
+                    // while the dropdown's own popup is still dismissing, and
+                    // rebuilding the action list underneath it here (rather
+                    // than deferred) is what the plan flagged as liable to
+                    // misbehave.
+                    View view = getView();
+                    if (view != null) {
+                        view.post(() -> {
+                            if (isAdded()) {
+                                setActions(buildActions(requireContext()));
+                            }
+                        });
+                    }
                 }
             }
             return true;
