@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <title>TVRelay</title>
-<meta name="description" content="TVRelay intercepts Google TV recommendation clicks and opens the title in the player you picked — Nuvio, Stremio, WuPlay, or Jellyfin.">
+<meta name="description" content="TVRelay intercepts Google TV recommendation clicks and opens the title in the player you picked — Nuvio, Stremio, WuPlay, Jellyfin, or Wholphin.">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <script src="./support.js"></script>
@@ -81,6 +81,7 @@
           <span style="padding: 7px 14px; border: 1px solid #2a2e37; border-radius: 999px; background: #14161b; font-size: 14px; font-weight: 500;">Stremio</span>
           <span style="padding: 7px 14px; border: 1px solid #2a2e37; border-radius: 999px; background: #14161b; font-size: 14px; font-weight: 500;">WuPlay</span>
           <span style="padding: 7px 14px; border: 1px solid #2a2e37; border-radius: 999px; background: #14161b; font-size: 14px; font-weight: 500;">Jellyfin</span>
+          <span style="padding: 7px 14px; border: 1px solid #2a2e37; border-radius: 999px; background: #14161b; font-size: 14px; font-weight: 500;">Wholphin</span>
         </div>
         <div style="display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 28px;">
           <a href="https://github.com/hmartinez94/TVRelay/releases/latest" class="btn-cta" style="display: inline-flex; align-items: center; gap: 10px; padding: 14px 24px; border-radius: 8px; background: #f2b13c; color: #0b0c0f; font-weight: 600; font-size: 15.5px; text-decoration: none;" style-hover="background: #ffc85f; text-decoration: none;">Get the latest release ↓</a>
@@ -130,7 +131,7 @@
     <div style="margin-top: 22px; display: flex; gap: 32px; flex-wrap: wrap; padding: 22px 26px; border: 1px solid #23262e; border-left: 2px solid #f2b13c; border-radius: 12px; background: #12141a;">
       <div style="flex: 1 1 260px; min-width: 0;">
         <h3 style="font-family: 'Space Grotesk', sans-serif; font-size: 16px; margin: 0 0 8px; font-weight: 500;">Requirements</h3>
-        <p style="margin: 0; color: #9a9ba1; font-size: 14.5px; line-height: 1.55;">A device with the <strong style="color: #e8e6e3; font-weight: 600;">Google TV</strong> launcher — Chromecast with Google TV, or Google TV editions from Sony, TCL, Hisense. Plus whichever of Nuvio, Stremio, WuPlay, or Jellyfin you plan to pick in Settings.</p>
+        <p style="margin: 0; color: #9a9ba1; font-size: 14.5px; line-height: 1.55;">A device with the <strong style="color: #e8e6e3; font-weight: 600;">Google TV</strong> launcher — Chromecast with Google TV, or Google TV editions from Sony, TCL, Hisense. Plus whichever of Nuvio, Stremio, WuPlay, Jellyfin, or Wholphin you plan to pick in Settings.</p>
       </div>
       <div style="flex: 1 1 260px; min-width: 0;">
         <h3 style="font-family: 'Space Grotesk', sans-serif; font-size: 16px; margin: 0 0 8px; font-weight: 500;">No strings</h3>
@@ -297,8 +298,8 @@ adb shell settings put secure accessibility_enabled 1</code></pre>
       <h2 style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: clamp(26px, 5.2vw, 36px); letter-spacing: -0.02em; margin: 0 0 40px;">What it can't do, plainly</h2>
       <div class="cols-2" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px;">
         <div class="card-pad" style="border: 1px solid #23262e; border-radius: 12px; background: #12141a; padding: 28px 30px;">
-          <h3 style="font-family: 'Space Grotesk', sans-serif; font-size: 18px; margin: 0 0 12px; font-weight: 500;">Jellyfin opens a search, not the title</h3>
-          <p style="margin: 0; color: #9a9ba1; font-size: 15px; line-height: 1.6;">Jellyfin has no way for another app to open a specific title, so picking it opens Jellyfin's search screen pre-filled with the title — it'll only find something already on your server. Nuvio, Stremio, and WuPlay resolve against their own online catalogs, so they can open a title you don't already have.</p>
+          <h3 style="font-family: 'Space Grotesk', sans-serif; font-size: 18px; margin: 0 0 12px; font-weight: 500;">Jellyfin and Wholphin open a search, not the title</h3>
+          <p style="margin: 0; color: #9a9ba1; font-size: 15px; line-height: 1.6;">Neither has a universal-catalog way for another app to open a specific title, so picking either opens its search screen pre-filled with the title — it'll only find something already on your server. <strong style="color: #e8e6e3; font-weight: 600;">Wholphin</strong> is a separate, open-source client for a Jellyfin server, not the official app — turn on "Find in library first" (Settings) for either one, and a title already on your server opens directly instead. Nuvio, Stremio, and WuPlay resolve against their own online catalogs, so they can open a title you don't already have.</p>
         </div>
         <div class="card-pad" style="border: 1px solid #23262e; border-radius: 12px; background: #12141a; padding: 28px 30px;">
           <h3 style="font-family: 'Space Grotesk', sans-serif; font-size: 18px; margin: 0 0 12px; font-weight: 500;">TizenTube Cobalt is unreliable as a YouTube target</h3>
@@ -341,6 +342,8 @@ adb shell am start -a android.intent.action.VIEW -d "nuvio://tmdb/movie/1726"
 adb shell am start -a android.intent.action.VIEW -d "wuplay://movie/tt0371746"
 # Jellyfin (search hand-off)
 adb shell am start -a android.intent.action.SEARCH -e query "iron man" -p org.jellyfin.androidtv
+# Wholphin (search hand-off)
+adb shell am start -a android.intent.action.SEARCH -e query "iron man" -n com.github.damontecres.wholphin/.MainActivity
 # SmartTube
 adb shell am start -a android.intent.action.VIEW -d "https://www.youtube.com/results?search_query=iron+man" -p org.smarttube.stable
 # TizenTube Cobalt
@@ -387,7 +390,7 @@ TVDB_API_KEY=your_key_here
       <div>
         <p style="margin: 0 0 12px; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; letter-spacing: 0.12em; text-transform: uppercase; color: #6f7178;">Legal notice</p>
         <p style="margin: 0 0 14px; color: #85868c; font-size: 13.5px; line-height: 1.7;">TVRelay's function is limited to detecting certain recommendations shown by the device's launcher, identifying the selected content, and opening its page in a third-party app you've already installed and configured yourself. It does not host, store, distribute, or provide any movies, series, streams, torrents, or other audiovisual content, and has no visibility into or control over what those third-party apps and their add-ons serve. You're responsible for your own use of them, including compliance with applicable law and their terms of service.</p>
-        <p style="margin: 0; color: #85868c; font-size: 13.5px; line-height: 1.7;">TVRelay is not affiliated with, sponsored by, authorized by, or endorsed by Google, Google TV, Amazon, Fire TV, Nuvio, Stremio, WuPlay, Plex, or Jellyfin — those names are trademarks or products of their respective owners. TVRelay uses the TMDB API by default but is not endorsed or certified by TMDB; if you switch to TheTVDB, it uses the TheTVDB API but is not endorsed or certified by TheTVDB.</p>
+        <p style="margin: 0; color: #85868c; font-size: 13.5px; line-height: 1.7;">TVRelay is not affiliated with, sponsored by, authorized by, or endorsed by Google, Google TV, Amazon, Fire TV, Nuvio, Stremio, WuPlay, Plex, Jellyfin, or Wholphin — those names are trademarks or products of their respective owners. TVRelay uses the TMDB API by default but is not endorsed or certified by TMDB; if you switch to TheTVDB, it uses the TheTVDB API but is not endorsed or certified by TheTVDB.</p>
       </div>
       <div style="display: flex; flex-direction: column; gap: 10px;">
         <p style="margin: 0 0 4px; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; letter-spacing: 0.12em; text-transform: uppercase; color: #6f7178;">Links</p>
