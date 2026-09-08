@@ -441,14 +441,22 @@ public final class OcrCaptureForegroundService extends Service {
         return trimmed;
     }
 
-    /** Crops the already-downscaled (CAPTURE_WIDTH x CAPTURE_HEIGHT) bitmap per OcrCaptureConfig's fractional band - see its class doc. */
-    private static Bitmap cropToConfig(Bitmap bitmap) {
+    /**
+     * Crops the already-downscaled (CAPTURE_WIDTH x CAPTURE_HEIGHT) bitmap
+     * per OcrCaptureConfig's fractional band - see its class doc. An
+     * instance method (not static) specifically so it can pass `this` as
+     * the Context OcrCaptureConfig.cropFor() needs to pick Google TV's vs.
+     * Fire TV's band - this Service is itself a Context, no extra plumbing
+     * needed.
+     */
+    private Bitmap cropToConfig(Bitmap bitmap) {
+        OcrCaptureConfig.Crop crop = OcrCaptureConfig.cropFor(this);
         int width = bitmap.getWidth();
         int height = bitmap.getHeight();
-        int left = clamp((int) (width * OcrCaptureConfig.CROP_LEFT), 0, width);
-        int top = clamp((int) (height * OcrCaptureConfig.CROP_TOP), 0, height);
-        int right = clamp((int) (width * OcrCaptureConfig.CROP_RIGHT), left, width);
-        int bottom = clamp((int) (height * OcrCaptureConfig.CROP_BOTTOM), top, height);
+        int left = clamp((int) (width * crop.left), 0, width);
+        int top = clamp((int) (height * crop.top), 0, height);
+        int right = clamp((int) (width * crop.right), left, width);
+        int bottom = clamp((int) (height * crop.bottom), top, height);
         int cropWidth = Math.max(1, right - left);
         int cropHeight = Math.max(1, bottom - top);
         return Bitmap.createBitmap(bitmap, left, top, cropWidth, cropHeight);
