@@ -17,7 +17,9 @@ import java.util.function.BooleanSupplier;
  * OR, when the candidate came from TMDB, nuvio://tmdb/{movie|tv}/{tmdbId}
  * directly (see prepare()/openCandidate() - confirmed working on-device
  * 2026-08-23, verified against com.nuvio.app the same way the IMDb scheme
- * already was, via `adb shell am start`).
+ * already was, via `adb shell am start`). Tried against two real packages,
+ * not just one - see openNuvio()/NUVIO_GITHUB_PACKAGE for why Nuvio ships
+ * two differently-packaged builds from the same source.
  * Stremio: stremio:///detail/movie/{imdbId}, stremio:///detail/series/{imdbId} -
  * always IMDb-based, no TMDB-native equivalent exists in Stremio's addon
  * ecosystem, which is built around IMDb ids universally.
@@ -62,6 +64,20 @@ import java.util.function.BooleanSupplier;
 final class PlayerLauncher {
 
     private static final String TAG = "PlayerLauncher";
+
+    // Nuvio ships two real, differently-packaged builds from the same source
+    // tree (NuvioMedia/NuvioTV's app/build.gradle.kts, checked 2026-09-07):
+    // PlayerApp.NUVIO's packageName ("com.nuvio.app") is only the "playstore"
+    // product flavor's applicationId override. The default/"full" flavor -
+    // what GitHub Releases sideloads actually ship - has no override and so
+    // keeps the module's base applicationId, "com.nuvio.tv". Confirmed via
+    // the flavor block itself, not a guess. The nuvio:// deep-link
+    // intent-filter (movie/detail/tmdb paths alike) lives in the shared
+    // app/src/main/AndroidManifest.xml, untouched by the playstore flavor's
+    // manifest override (app/src/playstore/AndroidManifest.xml only strips
+    // some permissions/a service) - so both builds accept the exact same
+    // URIs, only the package name differs. See openNuvio() below.
+    private static final String NUVIO_GITHUB_PACKAGE = "com.nuvio.tv";
 
     // SmartTube: a sideloaded YouTube TV client, unrelated to PlayerApp -
     // see prepareSmartTube() and Preferences.isSmartTubeEnabled(). Two
@@ -189,8 +205,8 @@ final class PlayerLauncher {
         }
         if (app == PlayerApp.NUVIO && candidate.tmdbMediaPath != null) {
             Uri uri = Uri.parse("nuvio://tmdb/" + candidate.tmdbMediaPath + "/" + candidate.tmdbId);
-            Intent intent = new Intent(Intent.ACTION_VIEW, uri).setPackage(app.getPackageName());
-            return () -> openWithFallback(context, intent, app.getLabel(), true);
+            Intent intent = new Intent(Intent.ACTION_VIEW, uri);
+            return () -> openNuvio(context, intent, app.getLabel());
         }
         TvdbMatch match = MetadataResolver.resolve(context, candidate);
         return match != null ? () -> open(context, match) : null;
@@ -524,14 +540,16 @@ final class PlayerLauncher {
     static boolean open(Context context, TvdbMatch match) {
         PlayerApp app = Preferences.getSelectedApp(context);
 
+        if (app == PlayerApp.NUVIO) {
+            Uri nuvioUri = match.getType() == MediaType.MOVIE
+                    ? Uri.parse("nuvio://movie/" + match.getImdbId())
+                    : Uri.parse("nuvio://detail/tv/" + match.getImdbId());
+            Intent intent = new Intent(Intent.ACTION_VIEW, nuvioUri);
+            return openNuvio(context, intent, app.getLabel());
+        }
+
         Intent intent;
         switch (app) {
-            case NUVIO:
-                Uri nuvioUri = match.getType() == MediaType.MOVIE
-                        ? Uri.parse("nuvio://movie/" + match.getImdbId())
-                        : Uri.parse("nuvio://detail/tv/" + match.getImdbId());
-                intent = new Intent(Intent.ACTION_VIEW, nuvioUri);
-                break;
             case STREMIO:
                 String stremioType = match.getType() == MediaType.SERIES ? "series" : "movie";
                 intent = new Intent(Intent.ACTION_VIEW, Uri.parse("stremio:///detail/" + stremioType + "/" + match.getImdbId()));
@@ -557,6 +575,27 @@ final class PlayerLauncher {
         intent.setPackage(app.getPackageName());
 
         return openWithFallback(context, intent, app.getLabel(), true);
+    }
+
+    /**
+     * Tries Nuvio's Play Store package first, then its GitHub-release
+     * package - see NUVIO_GITHUB_PACKAGE's comment for why two real
+     * packages exist and why the same intent works unmodified against
+     * either. intentTemplate carries the action/data/etc. already built by
+     * the caller (prepare()'s TMDB-native path, or open()'s IMDb-based
+     * path) - copied per attempt since Intent.setPackage() mutates in place
+     * and each attempt needs its own target. The second attempt still
+     * allows one more generic (packageless) retry, same as before this
+     * existed - harmless for a custom URI scheme only Nuvio-branded apps
+     * claim, and a safety net for a hypothetical third Nuvio distribution.
+     */
+    private static boolean openNuvio(Context context, Intent intentTemplate, String appLabel) {
+        Intent playStoreAttempt = new Intent(intentTemplate).setPackage(PlayerApp.NUVIO.getPackageName());
+        if (openWithFallback(context, playStoreAttempt, appLabel, false)) {
+            return true;
+        }
+        Intent githubAttempt = new Intent(intentTemplate).setPackage(NUVIO_GITHUB_PACKAGE);
+        return openWithFallback(context, githubAttempt, appLabel, true);
     }
 
     /**
