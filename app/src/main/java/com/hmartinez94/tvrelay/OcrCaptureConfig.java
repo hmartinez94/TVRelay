@@ -59,14 +59,23 @@ final class OcrCaptureConfig {
     // vertically, ~0.07-0.40 horizontally), with the rating/genre/year row
     // directly below (~0.41-0.44) and the "What it's about"/"What people are
     // saying" boxes starting at ~0.49. This band targets the title plus that
-    // rating row, stopping before the synopsis, with a wide horizontal
-    // margin (RIGHT=0.85) for a longer title than "Superbad" - the
-    // right-hand background is just hero art. RE-CONFIRMED as the correct
-    // Google TV band 2026-09-08: a since-reverted attempt to also fit Fire
+    // rating row, stopping before the synopsis. RE-CONFIRMED as the correct
+    // vertical band 2026-09-08: a since-reverted attempt to also fit Fire
     // TV's tighter band into a single shared crop cut this one off entirely
     // (ML Kit found zero text, live on a real ONN) - don't merge the two
     // platforms' bands again without testing both afterward.
-    private static final Crop GOOGLE_TV_CROP = new Crop(0.0f, 0.15f, 0.85f, 0.42f);
+    //
+    // RIGHT widened 0.85 -> 0.97 the same day, confirmed real bug: a long
+    // title ("The Fast and the Furious: Tokyo Drift", live voice-search
+    // capture) OCR'd as "...Tokyo Drit" - the rest of the string came
+    // through perfectly clean, only the final letter of the last word was
+    // missing, right at the crop's old right edge. That's the signature of
+    // the crop clipping the tail of a long title, not a recognition-quality
+    // issue - 0.85 wasn't generous enough once a title has two clauses and a
+    // colon. The right-hand background past the text is just hero art (no
+    // text to false-positive on), so widening this further costs nothing;
+    // 0.97 rather than 1.0 keeps a sliver of margin from the absolute edge.
+    private static final Crop GOOGLE_TV_CROP = new Crop(0.0f, 0.15f, 0.97f, 0.42f);
 
     // Fire TV (DetailsPageDeepLinkActivityDI) - calibrated 2026-09-07 against
     // a real Fire TV Stick capture ("Ruthless People"): title sits at
