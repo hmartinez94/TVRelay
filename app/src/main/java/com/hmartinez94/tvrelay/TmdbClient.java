@@ -66,7 +66,24 @@ final class TmdbClient {
     }
 
     private static List<TitleCandidate> search(String apiKey, String title) throws IOException, JSONException {
-        String language = Locale.getDefault().getLanguage();
+        // Region-qualified, not just the bare language - confirmed real bug
+        // (2026-09-08) via direct TMDB queries: Locale.getLanguage() alone
+        // drops the country (e.g. "es" from an es-MX device), and TMDB's
+        // Spanish translations are genuinely region-specific, not cosmetic
+        // variants - Inception is "Origen" in Spain but "El Origen" in
+        // Mexico. Querying just "es" returned neither as an exact match (in
+        // fact "El Origen" didn't appear in the top 20 results at all);
+        // querying "es-MX" returned "El Origen" as the #1 result, an exact
+        // match against the launcher's own Mexico-localized card text. Same
+        // confirmed live for a 2026 movie titled "Obsesión" in Spanish - the
+        // dated (2026) entry was outside the top 10 under "es" but the #1
+        // result under "es-MX". Falls back to the bare language when the
+        // locale has no country (some generic locales carry none) - don't
+        // "simplify" this back to Locale.getDefault().getLanguage() alone.
+        Locale locale = Locale.getDefault();
+        String language = locale.getCountry().isEmpty()
+                ? locale.getLanguage()
+                : locale.getLanguage() + "-" + locale.getCountry();
         String url = "https://api.themoviedb.org/3/search/multi?query=" + URLEncoder.encode(title, "UTF-8")
                 + "&api_key=" + apiKey + "&language=" + language;
         Request request = new Request.Builder().url(url).build();
