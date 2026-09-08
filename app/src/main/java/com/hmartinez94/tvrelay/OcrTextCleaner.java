@@ -15,20 +15,22 @@ import java.util.regex.Pattern;
  * Heuristic: drop text blocks that are too short to plausibly be a title,
  * or that case-insensitively match a small denylist of known TV
  * detail-page UI-chrome labels ("PLAY", "TRAILER", etc. - text that ML Kit
- * will happily also recognize as its own block), then take the largest
- * surviving block by bounding-box area, on the assumption that a rendered
- * title is usually the biggest text on the screen. Falls back to the
- * first non-empty block if nothing survives the filter, rather than
+ * will happily also recognize as its own block), then take the block with
+ * the TALLEST font (largest line bounding-box height), on the assumption
+ * that the title is rendered in the biggest type on the page. Falls back to
+ * the first non-empty block if nothing survives the filter, rather than
  * returning nothing at all.
  *
- * UNVERIFIED, same epistemic status as YOUTUBE_MARKERS in
- * TvRelayAccessibilityService (see its comment for the reasoning this
- * mirrors): this denylist and the "biggest surviving block wins"
- * heuristic are both blind guesses pending real on-device calibration
- * against an actual captured detail-page frame - nothing here has been
- * tested against real OCR output yet. If a real capture shows this
- * picking the wrong block, recalibrate against that evidence rather than
- * guessing again.
+ * CORRECTED 2026-09-07 from "largest bounding-box AREA" to "tallest font":
+ * on a real Fire TV detail page ("Ruthless People", confirmed via live
+ * logcat) the multi-line synopsis paragraph has more total area than the
+ * short two-word title, so the old area rule picked the synopsis and the
+ * title never surfaced. Font height is a far better title signal - the
+ * title is always the biggest type on these detail pages, regardless of how
+ * few words it is. Paired with the tighter title-only crop in
+ * OcrCaptureConfig (see there); either fix alone helps, both together are
+ * belt-and-suspenders. Still validate against new layouts: a wrong pick
+ * fails safe (a resolve miss / NO_TEXT_FOUND), never a wrong title opening.
  */
 final class OcrTextCleaner {
 
@@ -55,7 +57,8 @@ final class OcrTextCleaner {
 
         Text.TextBlock firstNonEmpty = null;
         Text.TextBlock best = null;
-        long bestArea = -1;
+        int bestHeight = -1;
+        long bestAreaTiebreak = -1;
 
         for (Text.TextBlock block : result.getTextBlocks()) {
             String text = collapseWhitespace(block.getText());
@@ -68,9 +71,15 @@ final class OcrTextCleaner {
             if (text.length() < MIN_TITLE_LENGTH || isChrome(text)) {
                 continue;
             }
+            // Tallest font wins - the title is the biggest type on the page.
+            // Area is only a tiebreak between two blocks of equal line
+            // height (e.g. a title that wrapped onto a second same-size line
+            // vs. a stray equal-height fragment).
+            int height = maxLineHeight(block);
             long area = boundingBoxArea(block);
-            if (area > bestArea) {
-                bestArea = area;
+            if (height > bestHeight || (height == bestHeight && area > bestAreaTiebreak)) {
+                bestHeight = height;
+                bestAreaTiebreak = area;
                 best = block;
             }
         }
@@ -86,6 +95,32 @@ final class OcrTextCleaner {
     private static long boundingBoxArea(Text.TextBlock block) {
         Rect bounds = block.getBoundingBox();
         return bounds == null ? 0 : (long) bounds.width() * (long) bounds.height();
+    }
+
+    /**
+     * Tallest line bounding-box height in the block. The title is rendered
+     * in the biggest type on these detail pages, so its line height beats
+     * the smaller synopsis/rating/cast text even when those have more total
+     * area - see the class doc's 2026-09-07 correction. Uses per-line boxes
+     * (not the whole-block box) so a multi-line paragraph isn't scored by
+     * its tall overall height; falls back to the block box if line boxes are
+     * unavailable.
+     */
+    private static int maxLineHeight(Text.TextBlock block) {
+        int max = 0;
+        for (Text.Line line : block.getLines()) {
+            Rect bounds = line.getBoundingBox();
+            if (bounds != null && bounds.height() > max) {
+                max = bounds.height();
+            }
+        }
+        if (max == 0) {
+            Rect blockBounds = block.getBoundingBox();
+            if (blockBounds != null) {
+                max = blockBounds.height();
+            }
+        }
+        return max;
     }
 
     private static boolean isChrome(String text) {

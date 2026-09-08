@@ -63,6 +63,7 @@
       <a href="#how" class="nav-link" style="color: #9a9ba1; text-decoration: none;" style-hover="color: #e8e6e3;">How it works</a>
       <a href="#install" class="nav-link" style="color: #9a9ba1; text-decoration: none;" style-hover="color: #e8e6e3;">Install</a>
       <a href="#setup" class="nav-link" style="color: #9a9ba1; text-decoration: none;" style-hover="color: #e8e6e3;">Setup</a>
+      <a href="#firetv-setup" class="nav-link" style="color: #9a9ba1; text-decoration: none;" style-hover="color: #e8e6e3;">Fire TV</a>
       <a href="#limits" class="nav-link" style="color: #9a9ba1; text-decoration: none;" style-hover="color: #e8e6e3;">Limitations</a>
       <a href="#help" class="nav-link" style="color: #9a9ba1; text-decoration: none;" style-hover="color: #e8e6e3;">Troubleshooting</a>
       <a href="https://github.com/hmartinez94/TVRelay/releases/latest" style="padding: 8px 16px; border-radius: 6px; background: #f2b13c; color: #0b0c0f; font-weight: 600; text-decoration: none;" style-hover="background: #ffc85f; text-decoration: none;">Download APK</a>
@@ -209,7 +210,12 @@ adb install TVRelay.apk</code></pre>
   <section id="setup" style="padding: var(--sec-y) var(--gutter); max-width: 1180px; margin: 0 auto;">
     <p style="font-family: 'JetBrains Mono', monospace; font-size: 11.5px; letter-spacing: 0.14em; text-transform: uppercase; color: #f2b13c; margin: 0 0 14px;">Setup</p>
     <h2 style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: clamp(26px, 5.2vw, 36px); letter-spacing: -0.02em; margin: 0 0 14px;">Pick a player, then two toggles</h2>
-    <p style="max-width: 46em; color: #b9b8b4; font-size: clamp(15.5px, 4vw, 17px); line-height: 1.6; margin: 0 0 40px;">Open TVRelay from the TV's launcher, accept the first-run disclosure, and pick your player. Then work through the two permissions below.</p>
+    <p style="max-width: 46em; color: #b9b8b4; font-size: clamp(15.5px, 4vw, 17px); line-height: 1.6; margin: 0 0 28px;">Open TVRelay from the TV's launcher, accept the first-run disclosure, and pick your player. Then work through the two permissions below.</p>
+
+    <a href="#firetv-setup" style="display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin: 0 0 40px; padding: 16px 20px; border: 1px solid #2a2e37; border-radius: 10px; background: #14161b; text-decoration: none; color: inherit;" style-hover="border-color: #f2b13c;">
+      <span style="color: #b9b8b4; font-size: 14.5px; line-height: 1.5;"><strong style="color: #e8e6e3; font-weight: 600;">Have a Fire Stick?</strong> Fire TV works differently — follow the Fire TV setup instead.</span>
+      <span style="color: #f2b13c; font-family: 'JetBrains Mono', monospace; font-size: 13px; white-space: nowrap;">Jump to Fire TV setup →</span>
+    </a>
 
     <div class="stack-900" style="display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: 48px; align-items: start;">
       <div style="border: 1px solid #23262e; border-radius: 14px; overflow: hidden; background: #12141a; min-width: 0;">
@@ -253,6 +259,43 @@ adb shell settings put secure accessibility_enabled 1</code></pre>
       <div class="cols-2" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px; margin-top: 20px;">
         <p style="margin: 0; color: #85868c; font-size: 13.5px; line-height: 1.7;">The <code style="font-family: 'JetBrains Mono', monospace; font-size: 12.5px; color: #9a9ba1;">enabled_accessibility_services</code> line <strong style="color: #b9b8b4; font-weight: 600;">replaces</strong> the whole list of enabled accessibility services — if you already use another one (like TalkBack), separate them with a colon rather than overwriting it.</p>
         <p style="margin: 0; color: #85868c; font-size: 13.5px; line-height: 1.7;">No computer handy? <a href="https://play.google.com/store/apps/details?id=dev.vodik7.atvtools">atvTools</a> (free, on Google Play) runs the same commands from your phone. Afterwards, the Accessibility toggle already shows as enabled when you open TVRelay.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="firetv-setup" style="padding: 0 var(--gutter) var(--sec-y); max-width: 1180px; margin: 0 auto;">
+    <div class="card-pad" style="border: 1px solid #23262e; border-radius: 14px; background: #12141a; padding: 32px 36px;">
+      <div style="display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 10px;">
+        <h3 style="font-family: 'Space Grotesk', sans-serif; font-size: clamp(20px, 5vw, 24px); font-weight: 700; letter-spacing: -0.015em; margin: 0;">Fire TV (Fire Stick)</h3>
+        <span style="padding: 4px 10px; border: 1px solid #2a2e37; border-radius: 999px; font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: #9a9ba1;">use this instead of Accessibility</span>
+      </div>
+      <p style="margin: 0 0 24px; max-width: 62em; color: #b9b8b4; font-size: 15.5px; line-height: 1.65;">Fire TV's home screen doesn't expose which recommendation you clicked, so on a Fire Stick TVRelay uses a separate <strong style="color: #e8e6e3; font-weight: 600;">"Fire TV mode"</strong> instead of Accessibility — it notices when you open a recommendation, reads its title off the screen with on-device text recognition, and opens it in your chosen player. Turn it on in Settings → <strong style="color: #e8e6e3; font-weight: 600;">Fire TV → "Fire TV mode"</strong>. It needs two one-time permissions:</p>
+
+      <div class="cols-2" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px;">
+        <div>
+          <p style="margin: 0 0 8px; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; letter-spacing: 0.08em; text-transform: uppercase; color: #f2b13c;">1 · Usage access</p>
+          <p style="margin: 0 0 12px; color: #9a9ba1; font-size: 14.5px; line-height: 1.65;">Lets it tell when you've opened a recommendation. Tap <strong style="color: #e8e6e3; font-weight: 600;">"Grant usage access"</strong> — on most devices this opens the right screen (Settings → Apps → Special app access → Usage access → TVRelay).</p>
+          <p style="margin: 0 0 12px; color: #85868c; font-size: 14px; line-height: 1.65;">But many current <strong style="color: #b9b8b4; font-weight: 600;">Fire TV Stick 4K / 4K Max</strong> devices on Fire OS 8 have no Usage access screen at all — Amazon removed the "Special app access" menu on that generation. On those, grant it once over ADB:</p>
+          <div class="code-box" style="position: relative; border: 1px solid #23262e; border-radius: 10px; background: #0b0c0f; padding: 16px 18px; min-width: 0;">
+            <button onClick="{{ copy }}" style="position: absolute; top: 10px; right: 10px; padding: 5px 10px; border: 1px solid #2a2e37; border-radius: 6px; background: #14161b; color: #9a9ba1; font-family: 'JetBrains Mono', monospace; font-size: 11px; cursor: pointer;" style-hover="color: #e8e6e3; border-color: #3a3f4a;">copy</button>
+            <pre class="code-wrap" style="margin: 0; overflow-x: auto; min-width: 0;"><code style="font-family: 'JetBrains Mono', monospace; font-size: 12.5px; line-height: 1.8; color: #cfd2d8;">adb shell appops set com.hmartinez94.tvrelay GET_USAGE_STATS allow</code></pre>
+          </div>
+          <p style="margin: 10px 0 0; color: #85868c; font-size: 13.5px; line-height: 1.65;">No computer? Run it from an on-device ADB-shell app like <a href="https://play.google.com/store/apps/details?id=dev.vodik7.atvtools">atvTools</a>, without the <code style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #9a9ba1;">adb shell</code> prefix. Survives app updates; cleared by a full uninstall or factory reset.</p>
+        </div>
+        <div>
+          <p style="margin: 0 0 8px; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; letter-spacing: 0.08em; text-transform: uppercase; color: #f2b13c;">2 · Screen recording</p>
+          <p style="margin: 0 0 12px; color: #9a9ba1; font-size: 14.5px; line-height: 1.65;">The standard Android dialog, shown when you tap <strong style="color: #e8e6e3; font-weight: 600;">"Activate Fire TV mode"</strong>. It's how TVRelay reads the title off the detail page — nothing ever leaves the device.</p>
+          <p style="margin: 0 0 12px; color: #85868c; font-size: 14px; line-height: 1.65;">While it's active, Android shows a persistent recording indicator; that's a system requirement, not something TVRelay adds.</p>
+          <p style="margin: 0; color: #85868c; font-size: 14px; line-height: 1.65;">This permission is cleared by a reboot, so <strong style="color: #b9b8b4; font-weight: 600;">re-activate Fire TV mode after restarting</strong> the device.</p>
+        </div>
+      </div>
+
+      <p style="margin: 24px 0 0; color: #9a9ba1; font-size: 14.5px; line-height: 1.65;">Then open a recommendation and confirm on the <strong style="color: #e8e6e3; font-weight: 600;">"Watch now"</strong> button. It covers the home screen, mainly Amazon's own recommendation rows — a card that jumps straight into another app (e.g. Netflix) isn't caught — and it's not instant: open the recommendation, then confirm.</p>
+
+      <p style="margin: 20px 0 6px; color: #85868c; font-size: 14px; line-height: 1.65;"><strong style="color: #b9b8b4; font-weight: 600;">Prefer it to behave exactly like Google TV?</strong> The advanced alternative is to replace Fire OS's launcher with the real Google TV launcher — a device-level change needing temporary root, which TVRelay isn't involved in, at your own risk:</p>
+      <div style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; line-height: 1.5;">
+        <a href="https://xdaforums.com/t/temp-root-fire-tv-stick-4k-2nd-gen-series-karat-mantra.4798627/">Temp root — Fire TV Stick 4K 2nd Gen (Karat/Mantra)</a>
+        <a href="https://xdaforums.com/t/guide-how-to-install-android-tv-google-play-store-on-fire-os-8-karat-2nd-gen-4k.4798990/#post-90707579">Install the Google TV launcher on Fire OS 8</a>
       </div>
     </div>
   </section>
@@ -304,15 +347,6 @@ adb shell settings put secure accessibility_enabled 1</code></pre>
         <div class="card-pad" style="border: 1px solid #23262e; border-radius: 12px; background: #12141a; padding: 28px 30px;">
           <h3 style="font-family: 'Space Grotesk', sans-serif; font-size: 18px; margin: 0 0 12px; font-weight: 500;">TizenTube Cobalt is unreliable as a YouTube target</h3>
           <p style="margin: 0; color: #9a9ba1; font-size: 15px; line-height: 1.6;">It only accepts a search from TVRelay the first time it opens after being fully closed; once running in the background, the same search silently lands on its home feed, and no app can force another to restart. Officially supported only alongside <a href="https://github.com/TobiPeterG/tizentube-bridge">TizenTube Bridge</a> — which needs the official YouTube app uninstalled (often impossible on certified Google TV devices) and isn't confirmed to fix this either. <strong style="color: #e8e6e3; font-weight: 600;">SmartTube doesn't have this limitation.</strong></p>
-        </div>
-        <div class="card-pad" style="border: 1px solid #23262e; border-radius: 12px; background: #12141a; padding: 28px 30px;">
-          <h3 style="font-family: 'Space Grotesk', sans-serif; font-size: 18px; margin: 0 0 12px; font-weight: 500;">Fire TV: work in progress</h3>
-          <p style="margin: 0 0 12px; color: #9a9ba1; font-size: 15px; line-height: 1.6;">The recommended fix is to replace Fire OS's launcher with a custom launcher or the real Google TV launcher, rather than hunting for another way into Fire OS's own home screen. Once that's installed TVRelay works exactly as on a real Google TV device — it's no longer Amazon's launcher in the way.</p>
-          <p style="margin: 0 0 12px; color: #85868c; font-size: 14px; line-height: 1.6;">This needs temporary root on the Fire TV Stick, which isn't something TVRelay does or is involved in — a device-level change you make yourself, at your own risk:</p>
-          <div style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; line-height: 1.5;">
-            <a href="https://xdaforums.com/t/temp-root-fire-tv-stick-4k-2nd-gen-series-karat-mantra.4798627/">Temp root — Fire TV Stick 4K 2nd Gen (Karat/Mantra)</a>
-            <a href="https://xdaforums.com/t/guide-how-to-install-android-tv-google-play-store-on-fire-os-8-karat-2nd-gen-4k.4798990/#post-90707579">Install the Google TV launcher on Fire OS 8</a>
-          </div>
         </div>
         <div class="card-pad" style="border: 1px solid #23262e; border-radius: 12px; background: #12141a; padding: 28px 30px;">
           <h3 style="font-family: 'Space Grotesk', sans-serif; font-size: 18px; margin: 0 0 12px; font-weight: 500;">Some cards expose no title at all</h3>

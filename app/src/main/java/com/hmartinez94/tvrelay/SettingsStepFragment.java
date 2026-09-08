@@ -51,6 +51,7 @@ public class SettingsStepFragment extends GuidedStepSupportFragment {
     private static final long ACTION_ABOUT = 12;
     private static final long ACTION_UPDATE_AVAILABLE = 13;
     private static final long ACTION_JELLYFIN_SERVER = 14;
+    private static final long ACTION_FIRE_TV_MODE = 15;
 
     /** Throttle for the GitHub release check kicked off from onResume() - see maybeCheckForUpdate(). */
     private static final long UPDATE_CHECK_INTERVAL_MS = 24L * 60 * 60 * 1000;
@@ -69,6 +70,7 @@ public class SettingsStepFragment extends GuidedStepSupportFragment {
     private static final long ACTION_HEADER_ACCESSIBILITY = 904;
     private static final long ACTION_HEADER_MORE = 905;
     private static final long ACTION_HEADER_UPDATE = 906;
+    private static final long ACTION_HEADER_FIRETV = 907;
 
     @Override
     public GuidanceStylist.Guidance onCreateGuidance(Bundle savedInstanceState) {
@@ -199,6 +201,23 @@ public class SettingsStepFragment extends GuidedStepSupportFragment {
             // for how this row's presence stays in sync with the player
             // dropdown above it.
             actions.add(buildJellyfinServerAction(context));
+        }
+
+        if (FireTvSupport.isFireTv(context)) {
+            // Fire TV can't use the click pipeline at all (see CLAUDE.md's
+            // "Fire TV wall") - this row opens the UsageStats + OCR activation
+            // flow instead. Only shown on a Fire TV device; on Google TV the
+            // normal click path works and this would just be a worse,
+            // permission-heavier duplicate.
+            addHeader(actions, context, ACTION_HEADER_FIRETV, R.string.settings_section_fire_tv);
+            boolean fireTvEnabled = Preferences.isFireTvModeEnabled(context);
+            actions.add(new GuidedAction.Builder(context)
+                    .id(ACTION_FIRE_TV_MODE)
+                    .title(getString(R.string.settings_fire_tv_mode))
+                    .description(getString(fireTvEnabled
+                            ? R.string.settings_fire_tv_status_enabled
+                            : R.string.settings_fire_tv_status_disabled))
+                    .build());
         }
 
         addHeader(actions, context, ACTION_HEADER_DETECTION, R.string.settings_section_detection);
@@ -463,6 +482,8 @@ public class SettingsStepFragment extends GuidedStepSupportFragment {
             GuidedStepSupportFragment.add(getFragmentManager(), new MetadataProviderStepFragment());
         } else if (id == ACTION_JELLYFIN_SERVER) {
             GuidedStepSupportFragment.add(getFragmentManager(), new JellyfinSettingsStepFragment());
+        } else if (id == ACTION_FIRE_TV_MODE) {
+            GuidedStepSupportFragment.add(getFragmentManager(), new FireTvModeStepFragment());
         } else if (id == ACTION_ABOUT) {
             GuidedStepSupportFragment.add(getFragmentManager(), new AboutStepFragment());
         } else if (id == ACTION_UPDATE_AVAILABLE) {

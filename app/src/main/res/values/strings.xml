@@ -26,6 +26,25 @@
     <string name="settings_ocr_status_enabled">Status: enabled - a persistent recording indicator stays visible while this is on. Captures the screen on-device (nothing uploaded) when a card or voice-search result has no readable title</string>
     <string name="settings_ocr_status_disabled">Status: disabled - cards and voice-search results with no readable title are left alone</string>
 
+    <!-- Fire TV mode (FireTvModeStepFragment / FireTvWatcherService) -->
+    <string name="settings_section_fire_tv">Fire TV</string>
+    <string name="settings_fire_tv_mode">Fire TV mode</string>
+    <string name="settings_fire_tv_status_enabled">Status: on - reads a recommendation\'s title off the screen when you open it. You must re-activate it after a reboot.</string>
+    <string name="settings_fire_tv_status_disabled">Status: off - Fire TV recommendations are left alone.</string>
+    <string name="fire_tv_mode_title">Fire TV mode</string>
+    <string name="fire_tv_mode_description">Fire TV\'s home screen doesn\'t let TVRelay detect a clicked recommendation the way Google TV does. Instead, Fire TV mode notices when you open a recommendation and reads its title off the screen using on-device text recognition, then opens it in your chosen app.\n\nIt needs two one-time permissions: Usage access (to notice when you open a recommendation) and Screen recording (to read the title - nothing ever leaves the device). While it\'s active, Android shows a persistent recording indicator, which it can\'t hide.\n\nBecause screen-recording permission is cleared on a reboot, you\'ll need to activate Fire TV mode again after restarting the device.</string>
+    <string name="fire_tv_mode_usage_access">Grant usage access</string>
+    <string name="fire_tv_mode_usage_access_granted">Granted</string>
+    <string name="fire_tv_mode_usage_access_not_granted">Not granted - tap to open Apps settings, then go to Special app access → Usage access → TVRelay and turn it on</string>
+    <string name="fire_tv_mode_activate">Activate Fire TV mode</string>
+    <string name="fire_tv_mode_reactivate">Re-activate Fire TV mode</string>
+    <string name="fire_tv_mode_active_description">On. If you\'ve rebooted since turning it on, re-activate to grant screen recording again.</string>
+    <string name="fire_tv_mode_inactive_description">Starts watching and asks for screen-recording permission</string>
+    <string name="fire_tv_mode_deactivate">Turn off Fire TV mode</string>
+    <string name="fire_tv_mode_usage_required_toast">Grant usage access first, then activate.</string>
+    <string name="fire_tv_mode_activated_toast">Fire TV mode activated. Allow screen recording when Android asks.</string>
+    <string name="fire_tv_mode_usage_settings_unavailable">Couldn\'t open Usage access settings on this device.</string>
+
     <string name="settings_section_youtube">YouTube Redirect</string>
     <string name="settings_smarttube_redirect">Redirect YouTube recommendations</string>
     <string name="settings_smarttube_status_enabled">Status: enabled - a YouTube video recommendation opens a search in the app chosen below, independent of your movie/show player above</string>

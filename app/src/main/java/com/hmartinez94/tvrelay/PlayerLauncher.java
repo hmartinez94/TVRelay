@@ -626,7 +626,7 @@ final class PlayerLauncher {
         try {
             context.startActivity(intent);
             Log.d(TAG, "Opening " + appLabel + ": " + intent);
-            stopOcrSessionIfRunning();
+            stopOcrSessionIfRunning(context);
             return true;
         } catch (Exception e) {
             // intent.getPackage() is null here whenever the target was set
@@ -641,7 +641,7 @@ final class PlayerLauncher {
                 Intent fallback = new Intent(intent);
                 fallback.setPackage(null);
                 context.startActivity(fallback);
-                stopOcrSessionIfRunning();
+                stopOcrSessionIfRunning(context);
                 return true;
             } catch (Exception fallbackFailure) {
                 Log.e(TAG, "Fallback failed too. Is " + appLabel + " installed?", fallbackFailure);
@@ -682,8 +682,20 @@ final class PlayerLauncher {
      * OcrCaptureManager's class doc) - accepted as the correct trade-off
      * for not leaving the system's persistent recording indicator showing
      * while the user is off watching something in a different app.
+     *
+     * Exception: in Fire TV mode (Preferences.isFireTvModeEnabled) this is a
+     * no-op. There the capture session is deliberately long-lived - it's
+     * what keeps FireTvWatcherService's process at foreground priority while
+     * it polls, and re-requesting consent on every single card selection
+     * would be far worse than leaving the recording indicator up (the
+     * reference app leaves it up the whole time Fire TV mode is active too).
+     * The session is torn down instead when the user turns Fire TV mode off
+     * (FireTvWatcherService.onDestroy -> OcrCaptureManager.shutdown()).
      */
-    private static void stopOcrSessionIfRunning() {
+    private static void stopOcrSessionIfRunning(Context context) {
+        if (Preferences.isFireTvModeEnabled(context)) {
+            return;
+        }
         OcrCaptureManager.stopActiveSessionAfterLaunch();
     }
 }

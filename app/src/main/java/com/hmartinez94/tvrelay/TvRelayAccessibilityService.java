@@ -12,7 +12,6 @@ import android.view.accessibility.AccessibilityNodeInfo;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.function.BooleanSupplier;
 import java.util.regex.Pattern;
 
 /**
@@ -155,8 +154,11 @@ public class TvRelayAccessibilityService extends AccessibilityService {
     private final ExecutorService backgroundExecutor = Executors.newSingleThreadExecutor();
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private WatchNowOverlay overlay;
-    private MatchTrayOverlay trayOverlay;
     private OcrCaptureManager ocrCaptureManager;
+    // Shared resolve -> confirm-overlay -> launch pipeline (also owns the
+    // ambiguous-match chooser tray) - see TitleHandler. Extracted so the
+    // Fire TV UsageStats+OCR path (FireTvWatcherService) runs the same logic.
+    private TitleHandler titleHandler;
     private SharedPreferences.OnSharedPreferenceChangeListener ocrPrefsListener;
 
     @Override
@@ -221,6 +223,26 @@ public class TvRelayAccessibilityService extends AccessibilityService {
         setServiceInfo(info);
 
         ocrCaptureManager = new OcrCaptureManager(this, overlay);
+
+        // The coordinator wires the shared pipeline back to this service's
+        // two accessibility-only concerns: keeping TYPE_WINDOW_STATE_CHANGED
+        // live-conditional on a pending match (refreshEventTypes()) and
+        // recording overlay transitions for the voice-search cooldown
+        // (markOwnOverlayActivity()). Passed the service (this) as the tray
+        // host so the chooser can use the permission-free
+        // TYPE_ACCESSIBILITY_OVERLAY - see MatchTrayOverlay.
+        titleHandler = new TitleHandler(this, overlay, backgroundExecutor, mainHandler,
+                new TitleHandler.Coordinator() {
+                    @Override
+                    public void onOverlayStateChanged() {
+                        refreshEventTypes();
+                    }
+
+                    @Override
+                    public void onOverlayActivity() {
+                        markOwnOverlayActivity();
+                    }
+                });
 
         // Keeps TYPE_WINDOW_STATE_CHANGED live-conditional on preference
         // changes (the OCR toggle) - see currentEventTypes()/
@@ -492,7 +514,7 @@ public class TvRelayAccessibilityService extends AccessibilityService {
         if (overlay != null && overlay.hasPendingMatch()) {
             return;
         }
-        if (trayOverlay != null && trayOverlay.isShowing()) {
+        if (titleHandler != null && titleHandler.isChooserShowing()) {
             return;
         }
         if ((System.currentTimeMillis() - lastOwnOverlayActivityAtMillis) < OVERLAY_TRANSITION_COOLDOWN_MS) {
@@ -724,128 +746,9 @@ public class TvRelayAccessibilityService extends AccessibilityService {
     }
 
     private void handleMovieClick(String title) {
-        long now = System.currentTimeMillis();
-        if (title.equals(lastHandledTitle) && (now - lastHandledAtMillis) < DEBOUNCE_MS) {
-            return;
-        }
-        lastHandledTitle = title;
-        lastHandledAtMillis = now;
-
-        // Without the overlay permission, fall back to launching directly -
-        // the user's explicit choice over doing nothing at all in that case.
-        // With it, a confirm button appears as soon as possible (a loading
-        // state now, swapped for "Watch now in {App}" once resolved) and
-        // only tapping it launches anything - accidental-click protection,
-        // which requires holding off on PlayerLauncher.open() until then.
-        boolean confirmFirst = overlay != null && overlay.isPermissionGranted();
-        if (confirmFirst) {
-            overlay.showLoading();
-            refreshEventTypes();
-            markOwnOverlayActivity();
-        }
-
-        PlayerApp app = Preferences.getSelectedApp(this);
-        if (app.usesTitleSearch()) {
-            // Plex/Jellyfin never have a *universal-catalog* content deep
-            // link (see PlayerApp's class doc), so this always at least
-            // falls back to a plain search hand-off with no
-            // MetadataResolver call - see PlayerLauncher.prepareTitleSearch().
-            // Jellyfin specifically may also open the title directly - see
-            // PlayerLauncher.planTitleSearch(), which now makes one Jellyfin
-            // request when Preferences.isJellyfinLibraryLookupReady() - so
-            // this whole branch moved onto backgroundExecutor (it used to
-            // run inline on the caller thread when it was guaranteed
-            // network-free).
-            backgroundExecutor.execute(() -> {
-                PlayerLauncher.TitleSearchPlan plan = PlayerLauncher.planTitleSearch(this, title);
-
-                if (plan.foundInLibrary && Preferences.isChooserEnabled(this)
-                        && MetadataResolver.isAmbiguous(plan.candidates)) {
-                    Log.d(TAG, "Ambiguous Jellyfin library match for " + title
-                            + " (" + plan.candidates.size() + " candidates)");
-                    if (confirmFirst) {
-                        mainHandler.post(() -> overlay.showConfirmAmbiguous(app,
-                                () -> showChooser(title, plan.candidates)));
-                    } else {
-                        mainHandler.post(() -> showChooser(title, plan.candidates));
-                    }
-                    return;
-                }
-
-                if (confirmFirst) {
-                    // showConfirm() ("Watch now in Jellyfin") when the title
-                    // was actually found in the library, showConfirmSearch()
-                    // ("Search in Jellyfin") otherwise - same wording
-                    // distinction the deep-link vs. search-hand-off players
-                    // already use elsewhere in this method.
-                    if (plan.foundInLibrary) {
-                        mainHandler.post(() -> overlay.showConfirm(app, plan.launch::getAsBoolean));
-                    } else {
-                        mainHandler.post(() -> overlay.showConfirmSearch(app, plan.launch::getAsBoolean));
-                    }
-                } else {
-                    plan.launch.getAsBoolean();
-                }
-            });
-            return;
-        }
-
-        backgroundExecutor.execute(() -> {
-            List<TitleCandidate> candidates = MetadataResolver.resolveCandidates(this, title);
-            if (candidates.isEmpty()) {
-                Log.w(TAG, "Could not resolve an IMDB id for: " + title);
-                if (confirmFirst) {
-                    // abandon(), not hide(): resolution failed outright, so
-                    // there's no pending match to ever offer back - under
-                    // WatchNowOverlay's reappear semantics, hide() here would
-                    // conceal-and-reschedule an inert "Loading..." button
-                    // (no confirm listener was ever set) to keep popping back
-                    // up for minutes until the lobby is detected or the
-                    // lifetime cap expires, instead of just going away now.
-                    mainHandler.post(() -> {
-                        overlay.abandon();
-                        refreshEventTypes();
-                        markOwnOverlayActivity();
-                    });
-                }
-                return;
-            }
-
-            if (Preferences.isChooserEnabled(this) && MetadataResolver.isAmbiguous(candidates)) {
-                Log.d(TAG, "Ambiguous match for " + title + " (" + candidates.size() + " candidates)");
-                if (confirmFirst) {
-                    // Same confirm-before-launch step as an unambiguous
-                    // match, just relabeled - the chooser only appears once
-                    // the user presses it, exactly like a normal launch.
-                    // (app already read above, outside this lambda.)
-                    mainHandler.post(() -> overlay.showConfirmAmbiguous(app, () -> showChooser(title, candidates)));
-                } else {
-                    mainHandler.post(() -> showChooser(title, candidates));
-                }
-                return;
-            }
-
-            BooleanSupplier launch = PlayerLauncher.prepare(this, candidates.get(0));
-            if (launch == null) {
-                Log.w(TAG, "Could not resolve an IMDB id for: " + title);
-                if (confirmFirst) {
-                    // abandon(), not hide() - see the identical comment above.
-                    mainHandler.post(() -> {
-                        overlay.abandon();
-                        refreshEventTypes();
-                        markOwnOverlayActivity();
-                    });
-                }
-                return;
-            }
-            Log.d(TAG, "Resolved " + title);
-
-            if (confirmFirst) {
-                mainHandler.post(() -> overlay.showConfirm(app, launch::getAsBoolean));
-            } else {
-                launch.getAsBoolean();
-            }
-        });
+        // Shared resolve -> confirm-overlay -> launch pipeline, also
+        // used by the Fire TV watcher - see TitleHandler.
+        titleHandler.handle(title);
     }
 
     /**
@@ -898,50 +801,6 @@ public class TvRelayAccessibilityService extends AccessibilityService {
         redirect.launch.getAsBoolean();
     }
 
-    /** Runs on the main thread - see the mainHandler.post() call sites above. */
-    private void showChooser(String title, List<TitleCandidate> candidates) {
-        if (trayOverlay == null) {
-            trayOverlay = new MatchTrayOverlay(this, new MatchTrayOverlay.Listener() {
-                @Override
-                public void onDismissed() {
-                    markOwnOverlayActivity();
-                }
-
-                @Override
-                public void onCancelled() {
-                    // Backing out of the chooser is a temporary dismissal,
-                    // same as BACK on the confirm button itself: the match is
-                    // still pending on the (handoff-concealed) WatchNowOverlay,
-                    // so resume its normal reappear cycle - the
-                    // "Choose in {App}" button comes back after the usual
-                    // delay. Before this existed, tapping the ambiguous
-                    // confirm abandoned the overlay outright, so BACK here
-                    // stranded the user with no button, forever - confirmed
-                    // real bug (2026-08-26), for both click- and OCR-detected
-                    // titles. No-op when nothing is concealed (chooser shown
-                    // without the overlay permission, or reappear setting
-                    // off) - see WatchNowOverlay.resumeAfterHandoff().
-                    if (overlay != null) {
-                        overlay.resumeAfterHandoff();
-                    }
-                }
-
-                @Override
-                public void onPicked(TitleCandidate candidate) {
-                    // A real pick settles the pending match for good - the
-                    // concealed confirm button must not reappear over the
-                    // player that's about to launch.
-                    if (overlay != null) {
-                        overlay.abandon();
-                        refreshEventTypes();
-                    }
-                }
-            });
-        }
-        trayOverlay.show(title, candidates);
-        markOwnOverlayActivity();
-    }
-
     @Override
     public void onInterrupt() {
         Log.d(TAG, "Service interrupted");
@@ -954,8 +813,8 @@ public class TvRelayAccessibilityService extends AccessibilityService {
         if (overlay != null) {
             overlay.abandon();
         }
-        if (trayOverlay != null) {
-            trayOverlay.hide();
+        if (titleHandler != null) {
+            titleHandler.shutdown();
         }
         if (ocrPrefsListener != null) {
             Preferences.rawPrefs(this).unregisterOnSharedPreferenceChangeListener(ocrPrefsListener);

@@ -3,6 +3,8 @@
 [![Latest release](https://img.shields.io/github/v/release/hmartinez94/TVRelay?sort=semver)](../../releases)
 [![License: PolyForm Noncommercial](https://img.shields.io/badge/license-PolyForm%20Noncommercial-blue)](LICENSE)
 
+🌐 [Official site](https://hmartinez94.github.io/TVRelay/) — a friendlier overview than this README, if that's more your speed.
+
 Google TV's home screen recommends a movie, you click it, and it opens whatever app the recommendation happened to come from - usually not the one you actually wanted to watch it in. TVRelay intercepts that click and opens the title in **Nuvio**, **Stremio**, **WuPlay**, **Jellyfin**, or **Wholphin** instead, with a one-tap confirmation so a stray click never redirects you by accident.
 
 <img src=".github/screenshots/watch-now-overlay.jpg" alt="A Google TV recommendation page for the movie Obsession, with a 'Watch now in Nuvio' button from TVRelay floating over it" width="720">
@@ -17,6 +19,7 @@ Free, no account, no subscription, no license check. It doesn't host or provide 
 - [Requirements](#requirements)
 - [Installation](#installation)
 - [Setup](#setup)
+  - [Fire TV (Fire Stick)](#fire-tv-fire-stick)
 - [Metadata provider](#metadata-provider-tmdb--thetvdb)
 - [Limitations](#limitations)
 - [Troubleshooting](#troubleshooting)
@@ -32,7 +35,7 @@ Not every recommendation card exposes a title this way; see [Limitations](#limit
 
 ## Requirements
 
-- A device with the **Google TV** launcher (Chromecast with Google TV, or Google TV editions from Sony, TCL, Hisense, etc.). Fire TV doesn't run this launcher out of the box - see [Limitations](#limitations) for a workaround.
+- A device with the **Google TV** launcher (Chromecast with Google TV, or Google TV editions from Sony, TCL, Hisense, etc.). Fire TV doesn't run this launcher out of the box - it uses a separate "Fire TV mode" instead; see [Setup → Fire TV](#fire-tv-fire-stick).
 - **Nuvio**, **Stremio**, **WuPlay**, **Jellyfin**, and/or **Wholphin** installed on the device - whichever one you plan to pick in Settings. See [Limitations](#limitations) for how Jellyfin/Wholphin differ from the other three.
 
 ## Installation
@@ -95,6 +98,32 @@ This needs the **"Display over other apps"** permission, since the button is a s
 
 **Without that permission**, TVRelay falls back to opening your chosen app immediately, with no confirmation step - it still works, just without the accidental-click protection.
 
+### Fire TV (Fire Stick)
+
+Fire TV's home screen doesn't expose which recommendation you clicked, so on a Fire Stick TVRelay uses a separate **"Fire TV mode"** instead of the accessibility detection above - it notices when you open a recommendation, reads its title off the screen with on-device text recognition, and opens it in your chosen player. (Because of this, the "Enable in Accessibility settings" step above isn't needed on Fire TV.)
+
+Turn it on in Settings → **Fire TV** → **"Fire TV mode"**. It needs two one-time permissions:
+
+1. **Usage access** - lets it tell when you've opened a recommendation. Tap **"Grant usage access"**; on most devices this opens the right screen (Settings → Apps → Special app access → Usage access → TVRelay). But **many current Fire TV Stick 4K / 4K Max devices on Fire OS 8 have no Usage access screen at all** - Amazon removed the "Special app access" menu on that generation. On those, grant it once over ADB instead:
+
+   ```
+   adb shell appops set com.hmartinez94.tvrelay GET_USAGE_STATS allow
+   ```
+
+   No computer? Use an app that opens an ADB shell to the Fire TV - **[atvTools](https://play.google.com/store/apps/details?id=dev.vodik7.atvtools)** (free, on Google Play) works - and run the same line **without** the `adb shell` prefix. The grant survives app updates but is cleared by a full uninstall or factory reset.
+2. **Screen recording** - the standard Android dialog, shown when you tap **"Activate Fire TV mode"**. While it's active Android shows a persistent recording indicator; that's a system requirement, not something TVRelay adds.
+
+Then open a recommendation and confirm on the **"Watch now"** button. Worth knowing:
+
+- Screen-recording permission is cleared by a reboot, so **re-activate Fire TV mode after restarting** the device.
+- It covers the home screen, mainly Amazon's own recommendation rows - a card that jumps straight into another app (e.g. Netflix) isn't caught.
+- It's not instant: open the recommendation, then press the confirm button.
+
+**Prefer it to behave exactly as on Google TV?** The advanced alternative is to replace Fire OS's launcher with the real Google TV launcher - a device-level change needing temporary root, which TVRelay isn't involved in, at your own risk:
+
+- [Temp root - Fire TV Stick 4K 2nd Gen (Karat/Mantra series)](https://xdaforums.com/t/temp-root-fire-tv-stick-4k-2nd-gen-series-karat-mantra.4798627/)
+- [Install the Google TV launcher on Fire OS 8 (Karat 2nd Gen 4K)](https://xdaforums.com/t/guide-how-to-install-android-tv-google-play-store-on-fire-os-8-karat-2nd-gen-4k.4798990/#post-90707579)
+
 ## Metadata provider (TMDB / TheTVDB)
 
 TVRelay uses **[TMDB](https://www.themoviedb.org/)** by default to identify a clicked title, using a key bundled with the app - no setup needed. If you'd rather use your own personal TMDB key instead (for example, if the shared default key is ever rate-limited), enter one from Settings → **Metadata provider** (get one free at [themoviedb.org](https://www.themoviedb.org/), under Settings → API) - it'll take priority over the bundled one automatically. **TheTVDB** is also available as an alternative provider if TMDB ever gives you a wrong match for a title.
@@ -107,9 +136,6 @@ Typing a 32-character key with a TV remote is painful, so that screen has a **"S
 
 - **YouTube video recommendations can optionally redirect to SmartTube or TizenTube Cobalt** (Settings → "Redirect YouTube recommendations", on by default, with a "Target app" dropdown to pick which of the two) instead of being left alone - independent of whichever movie/show player you've picked above. Confirmed working against real clicks. **TizenTube Cobalt is only officially supported if you've also installed [TizenTube Bridge](https://github.com/TobiPeterG/tizentube-bridge):** on its own, TizenTube Cobalt only accepts a search from TVRelay the first time it's opened after being fully closed - once it's already running in the background, the same search silently lands on its home feed instead, and there's no way for TVRelay to force another app to fully restart. TizenTube Bridge requires uninstalling the device's official YouTube app first (often not possible on certified Google TV devices), and isn't confirmed to fix this specific issue either - **SmartTube doesn't have this limitation** and is the safer default if you want the redirect to work reliably every time.
 - **Jellyfin and Wholphin open a search by default, not the title itself** - neither has a universal-catalog deep link the way Nuvio/Stremio/WuPlay do, so picking either just opens its own search screen, pre-filled with the title. **[Wholphin](https://github.com/damontecres/Wholphin)** is a separate, open-source, from-scratch Android TV client for a Jellyfin server (not a fork of the official app) - both connect to the same kind of server, so they share one config screen: in Settings under the "Configure Jellyfin server" row, enter your server's URL and an API key (Dashboard → API Keys) and turn on "Find in library first" - once set up, a title that's already on your server opens directly, the same way Nuvio does, regardless of which of the two you picked; anything not on your server still falls back to the search screen.
-- **Fire TV: work in progress.** **The recommended fix is to replace Fire OS's launcher with a custom launcher or the real Google TV launcher instead of looking for any other way to find movies on Fire OS's own home screen** - once that's installed, TVRelay works exactly as it does on a real Google TV device, since it's no longer Amazon's launcher TVRelay has to deal with. This needs temporary root access on the Fire TV Stick, which isn't something TVRelay does or is involved in - it's a device-level change you make yourself, at your own risk, using these guides:
-  - [Temp root - Fire TV Stick 4K 2nd Gen (Karat/Mantra series)](https://xdaforums.com/t/temp-root-fire-tv-stick-4k-2nd-gen-series-karat-mantra.4798627/) - grants temporary root access and lets you install a custom launcher.
-  - [Install the Google TV launcher on Fire OS 8 (Karat 2nd Gen 4K)](https://xdaforums.com/t/guide-how-to-install-android-tv-google-play-store-on-fire-os-8-karat-2nd-gen-4k.4798990/#post-90707579) - uses that root access to install Google's own launcher in place of Fire OS's.
 - **Some recommendation cards, and voice search results, don't expose a title directly** - a real limitation of what the launcher hands third-party apps, not a TVRelay bug, and clicking one does nothing by default. Two ways to still get there:
   - **Search for a title manually** (Settings) - type it yourself; everything after that works exactly like an automatically-detected click.
   - **Screen-reading fallback** (Settings → "Screen-reading fallback for undetectable cards", off by default): reads the title straight off the screen using on-device text recognition when a card or voice-search result has no title in its click event, then continues automatically from there. Nothing captured ever leaves the device, but turning this on means Android shows its own persistent screen-recording indicator the whole time it's active, since it uses the same system permission a screen recorder would - that's a system-level notice, not something TVRelay can hide.

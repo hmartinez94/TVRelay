@@ -201,6 +201,39 @@ final class OcrCaptureManager {
         appContext.startActivity(intent);
     }
 
+    /**
+     * Establishes a capture session (requesting the one-time screen-capture
+     * consent if needed) WITHOUT taking a capture. Used by
+     * FireTvWatcherService to prime the session the moment Fire TV mode is
+     * activated: this brings up OcrCaptureForegroundService (a foreground
+     * service), which both keeps the process alive while the watcher polls
+     * and makes the first real detail-page capture warm (no consent prompt
+     * mid-selection). A no-op if a session is already active or starting.
+     * Same threading contract as requestTitleCapture() - call on the main
+     * thread; never throws (an opt-in feature must not crash its host).
+     */
+    void ensureSession() {
+        try {
+            if (state == State.SESSION_ACTIVE || state == State.SESSION_STARTING) {
+                return;
+            }
+            Log.d(TAG, "Priming OCR session (no capture) - requesting screen-capture consent");
+            state = State.SESSION_STARTING;
+            pendingCallback = null;
+            pendingConsentInstance = this;
+            Intent intent = new Intent(appContext, OcrConsentActivity.class);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_NO_ANIMATION);
+            appContext.startActivity(intent);
+        } catch (Exception e) {
+            Log.e(TAG, "ensureSession() threw", e);
+            state = State.NO_SESSION;
+            if (pendingConsentInstance == this) {
+                pendingConsentInstance = null;
+            }
+            pendingCallback = null;
+        }
+    }
+
     /** Tears down any live session. Call from the hosting Service's onDestroy(). */
     void shutdown() {
         Log.d(TAG, "Shutting down");

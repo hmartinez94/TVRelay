@@ -15,6 +15,18 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
+    <!-- Fire TV mode (FireTvWatcherService): polls UsageStats to detect the
+         Fire TV launcher's detail page opening, since the accessibility-click
+         pipeline gets no events on the Fire TV home screen (see CLAUDE.md's
+         "Fire TV wall"). This is a special-access grant the user turns on via
+         Settings -> Apps -> Special app access -> Usage access, not an
+         install-time one - declared here so the app can request/read it.
+         tools:ignore silences the (expected) "system-granted permission"
+         lint, same class of grant as a signature permission. -->
+    <uses-permission
+        android:name="android.permission.PACKAGE_USAGE_STATS"
+        tools:ignore="ProtectedPermissions" />
+
     <!-- Optional: powers the "Watch now in {App}" confirmation overlay
          (see WatchNowOverlay) that appears before a recognized click
          actually opens another app - accidental-click protection. Granted
@@ -56,6 +68,10 @@
         <package android:name="org.smarttube.stable" />
         <package android:name="org.smarttube.beta" />
         <package android:name="io.gh.reisxd.tizentube.cobalt" />
+        <!-- Fire OS Settings, so FireTvModeStepFragment can open the real
+             Apps settings screen by explicit component (the standard
+             usage-access intent is a dead CTS stub on Fire OS - see there). -->
+        <package android:name="com.amazon.tv.settings.v2" />
     </queries>
 
     <!-- See res/xml/network_security_config.xml for why cleartext is
@@ -105,6 +121,15 @@
             android:name=".OcrCaptureForegroundService"
             android:exported="false"
             android:foregroundServiceType="mediaProjection" />
+
+        <!-- Fire TV mode watcher (see FireTvWatcherService). A plain started
+             service, not itself foreground: it relies on
+             OcrCaptureForegroundService (above) for process priority while it
+             polls UsageStats, and drives that same service for the actual
+             screen capture + OCR. Started/stopped from FireTvModeStepFragment. -->
+        <service
+            android:name=".FireTvWatcherService"
+            android:exported="false" />
 
         <!-- Serves the downloaded update APK (ApkInstaller.download(), under
              getExternalFilesDir(null)) to the system installer as a

@@ -24,6 +24,25 @@
     <string name="settings_ocr_status_enabled">Estado: activado - se muestra un indicador de grabación persistente mientras esté activo. Captura la pantalla en el propio dispositivo (no se sube nada) cuando una tarjeta o un resultado de búsqueda por voz no tiene título legible</string>
     <string name="settings_ocr_status_disabled">Estado: desactivado - las tarjetas y resultados de búsqueda por voz sin título legible se dejan intactos</string>
 
+    <!-- Modo Fire TV (FireTvModeStepFragment / FireTvWatcherService) -->
+    <string name="settings_section_fire_tv">Fire TV</string>
+    <string name="settings_fire_tv_mode">Modo Fire TV</string>
+    <string name="settings_fire_tv_status_enabled">Estado: activado - lee el título de una recomendación en la pantalla cuando la abres. Debes volver a activarlo tras reiniciar.</string>
+    <string name="settings_fire_tv_status_disabled">Estado: desactivado - las recomendaciones de Fire TV se dejan intactas. Fire TV no puede usar la detección de clic normal, así que esto usa el acceso de uso y la grabación de pantalla en su lugar.</string>
+    <string name="fire_tv_mode_title">Modo Fire TV</string>
+    <string name="fire_tv_mode_description">La pantalla de inicio de Fire TV no permite que TVRelay detecte una recomendación pulsada como en Google TV. En su lugar, el modo Fire TV detecta cuándo abres una recomendación y lee su título en la pantalla mediante reconocimiento de texto en el dispositivo, y luego la abre en la app que hayas elegido.\n\nNecesita dos permisos de una sola vez: Acceso de uso (para detectar cuándo abres una recomendación) y Grabación de pantalla (para leer el título - nada sale nunca del dispositivo). Mientras está activo, Android muestra un indicador de grabación persistente que no se puede ocultar.\n\nComo el permiso de grabación de pantalla se borra al reiniciar, tendrás que volver a activar el modo Fire TV después de reiniciar el dispositivo.</string>
+    <string name="fire_tv_mode_usage_access">Conceder acceso de uso</string>
+    <string name="fire_tv_mode_usage_access_granted">Concedido</string>
+    <string name="fire_tv_mode_usage_access_not_granted">No concedido - pulsa para abrir Ajustes de aplicaciones, luego Acceso especial de aplicaciones → Acceso de uso → TVRelay y actívalo</string>
+    <string name="fire_tv_mode_activate">Activar el modo Fire TV</string>
+    <string name="fire_tv_mode_reactivate">Reactivar el modo Fire TV</string>
+    <string name="fire_tv_mode_active_description">Activado. Si has reiniciado desde que lo activaste, reactívalo para volver a conceder la grabación de pantalla.</string>
+    <string name="fire_tv_mode_inactive_description">Empieza a vigilar y pide permiso de grabación de pantalla</string>
+    <string name="fire_tv_mode_deactivate">Desactivar el modo Fire TV</string>
+    <string name="fire_tv_mode_usage_required_toast">Concede primero el acceso de uso y luego activa.</string>
+    <string name="fire_tv_mode_activated_toast">Modo Fire TV activado. Permite la grabación de pantalla cuando Android lo pida.</string>
+    <string name="fire_tv_mode_usage_settings_unavailable">No se pudo abrir los ajustes de Acceso de uso en este dispositivo.</string>
+
     <string name="settings_section_youtube">Redirección de YouTube</string>
     <string name="settings_smarttube_redirect">Redirigir recomendaciones de YouTube</string>
     <string name="settings_smarttube_status_enabled">Estado: activado - una recomendación de vídeo de YouTube abre una búsqueda en la app elegida abajo, independientemente de tu app de películas/series de arriba</string>

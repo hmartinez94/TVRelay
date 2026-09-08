@@ -19,6 +19,7 @@ public final class Preferences {
     private static final String KEY_SMARTTUBE_ENABLED = "smarttube_redirect_enabled";
     private static final String KEY_OCR_FALLBACK_ENABLED = "ocr_fallback_enabled";
     private static final String KEY_OCR_DISCLOSURE_ACCEPTED = "ocr_disclosure_accepted";
+    private static final String KEY_FIRE_TV_MODE_ENABLED = "fire_tv_mode_enabled";
     private static final String KEY_ACCESSIBILITY_ENABLE_CLICKED_AT = "accessibility_enable_clicked_at";
     private static final String KEY_ACCESSIBILITY_SERVICE_EVER_CONNECTED = "accessibility_service_ever_connected";
     private static final String KEY_YOUTUBE_REDIRECT_TARGET = "youtube_redirect_target";
@@ -210,6 +211,28 @@ public final class Preferences {
 
     public static void setOcrDisclosureAccepted(Context context, boolean accepted) {
         prefs(context).edit().putBoolean(KEY_OCR_DISCLOSURE_ACCEPTED, accepted).apply();
+    }
+
+    /**
+     * Whether Fire TV mode is armed - the UsageStats + OCR detection path
+     * for Fire TV, where the accessibility-click pipeline gets no events at
+     * all (see FireTvWatcherService / CLAUDE.md's "Fire TV wall"). Default
+     * OFF, same reasoning as isOcrFallbackEnabled()/isSmartTubeEnabled(): it
+     * needs external grants (usage access + screen recording) and only
+     * applies to one platform, so it never turns itself on. Unlike a plain
+     * toggle this reflects intent, not live running state - the watcher is
+     * activated (and re-activated after a reboot) explicitly from
+     * FireTvModeStepFragment, since screen-recording consent doesn't survive
+     * a reboot. Also gates PlayerLauncher.stopOcrSessionIfRunning() (which
+     * becomes a no-op while on, so the capture session - and the watcher
+     * process's priority - stays alive across launches).
+     */
+    public static boolean isFireTvModeEnabled(Context context) {
+        return prefs(context).getBoolean(KEY_FIRE_TV_MODE_ENABLED, false);
+    }
+
+    public static void setFireTvModeEnabled(Context context, boolean enabled) {
+        prefs(context).edit().putBoolean(KEY_FIRE_TV_MODE_ENABLED, enabled).apply();
     }
 
     /**

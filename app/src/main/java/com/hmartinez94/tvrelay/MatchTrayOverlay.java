@@ -1,6 +1,5 @@
 package com.hmartinez94.tvrelay;
 
-import android.accessibilityservice.AccessibilityService;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -26,12 +25,15 @@ import java.util.List;
  * entirely rather than fixed, once this overlay proved to work better
  * anyway. See CLAUDE.md.
  *
- * Constructed from the bound accessibility service, not a plain Context:
+ * Takes a Context, but which one matters: when built from the bound
+ * accessibility service (the Google TV path), it can use
  * TYPE_ACCESSIBILITY_OVERLAY - which, unlike WatchNowOverlay's
  * TYPE_APPLICATION_OVERLAY, needs no "display over other apps" permission
- * at all - can only be added using a bound service's own window token.
- * Confirmed working on real hardware (ONN 4K Pro). If adding it ever fails
- * (a different device/OS version, say), this falls back to
+ * at all - since that overlay type can only be added using a bound
+ * service's own window token. Confirmed working on real hardware (ONN 4K
+ * Pro). If adding it ever fails - a different device/OS version, or a
+ * non-accessibility host like FireTvWatcherService (the Fire TV path, a
+ * plain Service with no accessibility token) - this falls back to
  * TYPE_APPLICATION_OVERLAY when that permission is granted, and finally to
  * resolving and opening the top candidate directly with no chooser at all -
  * matching what happens when the chooser setting is off - rather than ever
@@ -76,64 +78,87 @@ final class MatchTrayOverlay {
         void onPicked(TitleCandidate candidate);
     }
 
-    private final AccessibilityService service;
+    private final Context context;
     private final WindowManager windowManager;
     private final Listener listener;
     private View content;
     private BroadcastReceiver homeReceiver;
 
-    MatchTrayOverlay(AccessibilityService service, Listener listener) {
-        this.service = service;
-        this.windowManager = (WindowManager) service.getSystemService(Context.WINDOW_SERVICE);
+    MatchTrayOverlay(Context context, Listener listener) {
+        this.context = context;
+        this.windowManager = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
         this.listener = listener;
     }
 
     void show(String queryTitle, List<TitleCandidate> candidates) {
         hide();
 
-        View tray = MatchTrayView.build(service, queryTitle, candidates, this::handlePick, this::handleCancel);
+        // Prefer TYPE_ACCESSIBILITY_OVERLAY (no "display over other apps"
+        // permission needed) - works only when hosted by a bound
+        // accessibility service (Google TV). On a non-a11y host
+        // (FireTvWatcherService) that attempt fails and we fall back to
+        // TYPE_APPLICATION_OVERLAY. Each attempt builds a FRESH view: a
+        // failed addView can leave the View registered in WindowManagerGlobal
+        // even though it threw, so reusing the same View for the second
+        // attempt throws IllegalStateException("has already been added") -
+        // confirmed real bug on the Fire TV watcher path (2026-09-07), which
+        // silently dropped the chooser and auto-picked the top candidate.
+        if (tryAddTray(WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY, queryTitle, candidates)) {
+            Log.d(TAG, "Match tray shown via TYPE_ACCESSIBILITY_OVERLAY");
+            return;
+        }
 
+        if (Settings.canDrawOverlays(context)) {
+            int appOverlayType = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
+                    ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+                    : WindowManager.LayoutParams.TYPE_PHONE;
+            if (tryAddTray(appOverlayType, queryTitle, candidates)) {
+                Log.d(TAG, "Match tray shown via TYPE_APPLICATION_OVERLAY");
+                return;
+            }
+        }
+
+        Log.w(TAG, "No usable overlay type - resolving top candidate automatically");
+        handlePick(candidates.get(0));
+    }
+
+    /**
+     * Builds a fresh tray view and tries to add it at the given window type.
+     * Returns true on success (sets content, registers the Home receiver);
+     * on failure logs, removes the view if it got partially registered (see
+     * show()'s "already been added" note), and returns false so the caller
+     * can try the next fallback with a clean slate.
+     */
+    private boolean tryAddTray(int windowType, String queryTitle, List<TitleCandidate> candidates) {
+        View tray = MatchTrayView.build(context, queryTitle, candidates, this::handlePick, this::handleCancel);
         WindowManager.LayoutParams params = new WindowManager.LayoutParams(
                 WindowManager.LayoutParams.WRAP_CONTENT,
                 WindowManager.LayoutParams.WRAP_CONTENT,
-                WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
+                windowType,
                 WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
                 PixelFormat.TRANSLUCENT);
         params.gravity = Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL;
         params.y = dp(48);
-
         try {
             windowManager.addView(tray, params);
             content = tray;
             registerHomeReceiver();
-            Log.d(TAG, "Match tray shown via TYPE_ACCESSIBILITY_OVERLAY");
-            return;
+            return true;
         } catch (Exception e) {
-            Log.w(TAG, "TYPE_ACCESSIBILITY_OVERLAY unavailable, falling back", e);
-        }
-
-        if (Settings.canDrawOverlays(service)) {
-            params.type = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
-                    ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
-                    : WindowManager.LayoutParams.TYPE_PHONE;
+            Log.w(TAG, "Overlay type " + windowType + " unavailable", e);
             try {
-                windowManager.addView(tray, params);
-                content = tray;
-                registerHomeReceiver();
-                Log.d(TAG, "Match tray shown via TYPE_APPLICATION_OVERLAY");
-                return;
-            } catch (Exception e) {
-                Log.w(TAG, "TYPE_APPLICATION_OVERLAY unavailable too, resolving automatically instead", e);
+                windowManager.removeView(tray);
+            } catch (Exception ignored) {
+                // Wasn't fully added - nothing to remove.
             }
+            return false;
         }
-
-        handlePick(candidates.get(0));
     }
 
     void hide() {
         if (homeReceiver != null) {
             try {
-                service.unregisterReceiver(homeReceiver);
+                context.unregisterReceiver(homeReceiver);
             } catch (Exception e) {
                 // Already unregistered - nothing to do.
             }
@@ -167,11 +192,11 @@ final class MatchTrayOverlay {
     private void handlePick(TitleCandidate candidate) {
         hide();
         listener.onPicked(candidate);
-        new Thread(() -> PlayerLauncher.openCandidate(service, candidate)).start();
+        new Thread(() -> PlayerLauncher.openCandidate(context, candidate)).start();
     }
 
     private int dp(int value) {
-        return Math.round(value * service.getResources().getDisplayMetrics().density);
+        return Math.round(value * context.getResources().getDisplayMetrics().density);
     }
 
     /**
@@ -199,9 +224,9 @@ final class MatchTrayOverlay {
         };
         IntentFilter filter = new IntentFilter(Intent.ACTION_CLOSE_SYSTEM_DIALOGS);
         if (Build.VERSION.SDK_INT >= 33) {
-            service.registerReceiver(homeReceiver, filter, Context.RECEIVER_EXPORTED);
+            context.registerReceiver(homeReceiver, filter, Context.RECEIVER_EXPORTED);
         } else {
-            service.registerReceiver(homeReceiver, filter);
+            context.registerReceiver(homeReceiver, filter);
         }
     }
 }
