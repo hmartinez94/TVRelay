@@ -5,7 +5,7 @@
 
 🌐 [Official site](https://hmartinez94.github.io/TVRelay/) — a friendlier overview than this README, if that's more your speed.
 
-Google TV's home screen recommends a movie, you click it, and it opens whatever app the recommendation happened to come from - usually not the one you actually wanted to watch it in. TVRelay intercepts that click and opens the title in **Nuvio**, **Stremio**, **WuPlay**, **Jellyfin**, or **Wholphin** instead, with a one-tap confirmation so a stray click never redirects you by accident.
+Google TV's home screen recommends a movie, you click it, and it opens whatever app the recommendation happened to come from - usually not the one you actually wanted to watch it in. TVRelay intercepts that click and opens the title in **Nuvio**, **Stremio**, **WuPlay**, **Jellyfin**, **Wholphin**, or **Moonfin** instead, with a one-tap confirmation so a stray click never redirects you by accident.
 
 <img src=".github/screenshots/watch-now-overlay.jpg" alt="A Google TV recommendation page for the movie Obsession, with a 'Watch now in Nuvio' button from TVRelay floating over it" width="720">
 
@@ -36,7 +36,7 @@ Not every recommendation card exposes a title this way; see [Limitations](#limit
 ## Requirements
 
 - A device with the **Google TV** launcher (Chromecast with Google TV, or Google TV editions from Sony, TCL, Hisense, etc.). Fire TV doesn't run this launcher out of the box - it uses a separate "Fire TV mode" instead; see [Setup → Fire TV](#fire-tv-fire-stick).
-- **Nuvio**, **Stremio**, **WuPlay**, **Jellyfin**, and/or **Wholphin** installed on the device - whichever one you plan to pick in Settings. See [Limitations](#limitations) for how Jellyfin/Wholphin differ from the other three.
+- **Nuvio**, **Stremio**, **WuPlay**, **Jellyfin**, **Wholphin**, and/or **Moonfin** installed on the device - whichever one you plan to pick in Settings. See [Limitations](#limitations) for how the three Jellyfin-server clients (Jellyfin, Wholphin, Moonfin) differ from Nuvio/Stremio/WuPlay - and how Moonfin differs from the other two.
 
 ## Installation
 
@@ -136,6 +136,7 @@ Typing a 32-character key with a TV remote is painful, so that screen has a **"S
 
 - **YouTube video recommendations can optionally redirect to SmartTube or TizenTube Cobalt** (Settings → "Redirect YouTube recommendations", on by default, with a "Target app" dropdown to pick which of the two) instead of being left alone - independent of whichever movie/show player you've picked above. Confirmed working against real clicks. **TizenTube Cobalt is only officially supported if you've also installed [TizenTube Bridge](https://github.com/TobiPeterG/tizentube-bridge):** on its own, TizenTube Cobalt only accepts a search from TVRelay the first time it's opened after being fully closed - once it's already running in the background, the same search silently lands on its home feed instead, and there's no way for TVRelay to force another app to fully restart. TizenTube Bridge requires uninstalling the device's official YouTube app first (often not possible on certified Google TV devices), and isn't confirmed to fix this specific issue either - **SmartTube doesn't have this limitation** and is the safer default if you want the redirect to work reliably every time.
 - **Jellyfin and Wholphin open a search by default, not the title itself** - neither has a universal-catalog deep link the way Nuvio/Stremio/WuPlay do, so picking either just opens its own search screen, pre-filled with the title. **[Wholphin](https://github.com/damontecres/Wholphin)** is a separate, open-source, from-scratch Android TV client for a Jellyfin server (not a fork of the official app) - both connect to the same kind of server, so they share one config screen: in Settings under the "Configure Jellyfin server" row, enter your server's URL and an API key (Dashboard → API Keys) and turn on "Find in library first" - once set up, a title that's already on your server opens directly, the same way Nuvio does, regardless of which of the two you picked; anything not on your server still falls back to the search screen.
+- **[Moonfin](https://github.com/Moonfin-Client/Moonfin-Core) is a third Jellyfin-server client, but unlike Jellyfin/Wholphin it has no search screen at all** - it connects to the same kind of server and shares the exact same "Configure Jellyfin server" setup above, but "Find in library first" isn't optional for it: with it off, or on a title that isn't on your server, clicking just does nothing (TVRelay reports it couldn't find the title rather than opening Moonfin to a screen it can't act on).
 - **Some recommendation cards, and voice search results, don't expose a title directly** - a real limitation of what the launcher hands third-party apps, not a TVRelay bug, and clicking one does nothing by default. Two ways to still get there:
   - **Search for a title manually** (Settings) - type it yourself; everything after that works exactly like an automatically-detected click.
   - **Screen-reading fallback** (Settings → "Screen-reading fallback for undetectable cards", off by default): reads the title straight off the screen using on-device text recognition when a card or voice-search result has no title in its click event, then continues automatically from there. Nothing captured ever leaves the device, but turning this on means Android shows its own persistent screen-recording indicator the whole time it's active, since it uses the same system permission a screen recorder would - that's a system-level notice, not something TVRelay can hide.
@@ -153,11 +154,12 @@ adb shell am start -a android.intent.action.SEARCH -e query "iron man" -n org.je
 adb shell am start -a android.intent.action.VIEW -d "<item id>" -n org.jellyfin.androidtv/org.jellyfin.androidtv.ui.startup.StartupActivity           # Jellyfin (direct open - "Find in library first")
 adb shell am start -a android.intent.action.SEARCH -e query "iron man" -n com.github.damontecres.wholphin/.MainActivity                              # Wholphin (search hand-off)
 adb shell am start -a android.intent.action.VIEW -e itemId "<item id>" -n com.github.damontecres.wholphin/.MainActivity                               # Wholphin (direct open - "Find in library first")
+adb shell am start -a android.intent.action.VIEW -d "moonfin://item?id=<item id>" -p org.moonfin.androidtv                                            # Moonfin (direct open - "Find in library first"; no search hand-off exists)
 adb shell am start -a android.intent.action.VIEW -d "https://www.youtube.com/results?search_query=iron+man" -p org.smarttube.stable    # SmartTube
 adb shell am start -a android.intent.action.VIEW -d "https://www.youtube.com/results?search_query=iron+man" -p io.gh.reisxd.tizentube.cobalt   # TizenTube Cobalt
 ```
 
-For the direct-open lines, `<item id>` is a real item's `Id` field from your own server (e.g. from Jellyfin's web UI URL when viewing that title, or from its `/Items?searchTerm=...` API response) - it's server-specific, so there's no universal example id the way there is for Nuvio/WuPlay's IMDb-based ones above. It's the same id regardless of whether you're using Jellyfin's own app or Wholphin, since both read from the same server.
+For the direct-open lines, `<item id>` is a real item's `Id` field from your own server (e.g. from Jellyfin's web UI URL when viewing that title, or from its `/Items?searchTerm=...` API response) - it's server-specific, so there's no universal example id the way there is for Nuvio/WuPlay's IMDb-based ones above. It's the same id regardless of whether you're using Jellyfin's own app, Wholphin, or Moonfin, since all three read from the same server.
 
 Each should land on Iron Man's page (or a search for "iron man"). If none of them do, the issue is with the target app's own build, not TVRelay. If they work, the click likely isn't being detected - check for that with:
 
@@ -191,7 +193,7 @@ The APK is written to `app\build\outputs\apk\debug\app-debug.apk`.
 
 TVRelay's function is limited to detecting certain recommendations shown by the device's launcher, identifying the selected content, and opening its page in a third-party app you've already installed and configured yourself - it does not host, store, distribute, or provide any movies, series, streams, torrents, or other audiovisual content, and has no visibility into or control over what those third-party apps and their add-ons actually serve. You're responsible for your own use of them, including making sure that use complies with applicable law and their respective terms of service.
 
-TVRelay is not affiliated with, sponsored by, authorized by, or endorsed by Google, Google TV, Amazon, Fire TV, Nuvio, Stremio, WuPlay, Wako, Plex, Jellyfin, or Wholphin. Google, Google TV, Android TV, Amazon, Fire TV, Nuvio, Stremio, WuPlay, Wako, Plex, Jellyfin, and Wholphin are trademarks or products of their respective owners.
+TVRelay is not affiliated with, sponsored by, authorized by, or endorsed by Google, Google TV, Amazon, Fire TV, Nuvio, Stremio, WuPlay, Wako, Plex, Jellyfin, Wholphin, or Moonfin. Google, Google TV, Android TV, Amazon, Fire TV, Nuvio, Stremio, WuPlay, Wako, Plex, Jellyfin, Wholphin, and Moonfin are trademarks or products of their respective owners.
 
 ## Credits
 

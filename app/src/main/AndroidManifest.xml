@@ -65,6 +65,8 @@
         <package android:name="com.plexapp.android" />
         <package android:name="org.jellyfin.androidtv" />
         <package android:name="com.github.damontecres.wholphin" />
+        <package android:name="org.moonfin.androidtv" />
+        <package android:name="org.moonfin.androidtv.beta" />
         <package android:name="org.smarttube.stable" />
         <package android:name="org.smarttube.beta" />
         <package android:name="io.gh.reisxd.tizentube.cobalt" />

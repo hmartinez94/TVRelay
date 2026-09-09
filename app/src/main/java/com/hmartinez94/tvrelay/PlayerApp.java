@@ -43,6 +43,20 @@ import java.util.List;
  * Jellyfin/Wholphin's default/fallback behavior - only planTitleSearch()
  * needs to know about the opt-in on top.
  *
+ * MOONFIN is a third usesJellyfinServer() player, added 2026-09-09, but
+ * unlike Jellyfin/Wholphin it has no fallback search screen at all - its
+ * Android app declares no ACTION_SEARCH filter and no moonfin://search
+ * scheme (confirmed by reading its whole open-source tree), only a
+ * moonfin://item?id=<itemId> / moonfin://play?id=<itemId> content deep link
+ * (ACTION_VIEW, scheme "moonfin") accepting the same server-local item UUID
+ * as Jellyfin/Wholphin. hasTitleSearchFallback() is false for MOONFIN
+ * (titleSearchComponent left null) precisely to mark this: planTitleSearch()
+ * skips prepareTitleSearch() entirely on a miss rather than let it throw,
+ * and reports failure instead - see PlayerLauncher.planTitleSearch()/
+ * prepare(). Practically, the library lookup opt-in isn't optional for
+ * Moonfin the way it is for Jellyfin/Wholphin: with it off, or on a miss,
+ * there is nothing useful left to do.
+ *
  * NUVIO carries two packages, not one - NuvioMedia/NuvioTV ships a Play Store build (com.nuvio.app)
  * and a differently-packaged GitHub Releases build (com.nuvio.tv) from the
  * same source, both accepting byte-identical nuvio:// URIs. PlayerLauncher
@@ -56,6 +70,15 @@ import java.util.List;
  * opt-in library-lookup config as JELLYFIN rather than needing its own
  * server URL/API key screen - only its ServerItemStyle (how the item id
  * gets passed - Intent data vs. an "itemId" extra) actually differs.
+ *
+ * MOONFIN (`org.moonfin.androidtv`, plus an `org.moonfin.androidtv.beta`
+ * sideload variant tried second - see getPackages()) is a Flutter rewrite of
+ * a Jellyfin client, also sharing the same opt-in library-lookup config and
+ * server-local item id - added 2026-09-09. Its ServerItemStyle is a third
+ * shape neither Jellyfin's nor Wholphin's: URI_TEMPLATE, a full custom-scheme
+ * URI (moonfin://item?id=%s) with the item id substituted in, rather than
+ * bare Intent data or an extra - see PlayerLauncher.openServerItem(). See the
+ * javadoc above for why it has no title-search fallback at all.
  *
  * PLEX is disabled (enabled=false) rather than removed, at explicit user
  * request (no technical reason - the ACTION_SEARCH route in PlayerLauncher
@@ -112,7 +135,13 @@ public enum PlayerApp {
     JELLYFIN("org.jellyfin.androidtv", "Jellyfin", R.string.settings_player_jellyfin_description, true,
             "org.jellyfin.androidtv.ui.startup.StartupActivity", true, ServerItemStyle.URI_DATA),
     WHOLPHIN("com.github.damontecres.wholphin", "Wholphin", R.string.settings_player_wholphin_description, true,
-            "com.github.damontecres.wholphin.MainActivity", true, ServerItemStyle.ITEM_ID_EXTRA);
+            "com.github.damontecres.wholphin.MainActivity", true, ServerItemStyle.ITEM_ID_EXTRA),
+    // No titleSearchComponent (null) - Moonfin has no search screen a third
+    // party can open at all, unlike Jellyfin/Wholphin above. See
+    // hasTitleSearchFallback() and the class javadoc.
+    MOONFIN(Arrays.asList("org.moonfin.androidtv", "org.moonfin.androidtv.beta"), "Moonfin",
+            R.string.settings_player_moonfin_description, true,
+            null, true, ServerItemStyle.URI_TEMPLATE, "moonfin://item?id=%s");
 
     enum LaunchStyle {
         DEEP_LINK,
@@ -122,15 +151,21 @@ public enum PlayerApp {
     /**
      * How a server-item id (see PlayerLauncher.openServerItem()) gets passed
      * to a Jellyfin-server player's Activity - the one thing that differs
-     * between Jellyfin's and Wholphin's otherwise-identical direct-open
-     * contract. URI_DATA: ACTION_VIEW with the id as the Intent's data (what
-     * Jellyfin's own StartupActivity.openNextActivity() reads).
+     * between Jellyfin's, Wholphin's, and Moonfin's otherwise-identical
+     * direct-open contract. URI_DATA: ACTION_VIEW with the id as the Intent's
+     * data (what Jellyfin's own StartupActivity.openNextActivity() reads).
      * ITEM_ID_EXTRA: ACTION_VIEW with the id in an "itemId" extra (Wholphin's
-     * own documented Intents.md contract).
+     * own documented Intents.md contract). URI_TEMPLATE: ACTION_VIEW on a
+     * full custom-scheme URI built by substituting the id into
+     * getServerItemUriTemplate() (Moonfin's moonfin://item?id=%s) - unlike
+     * the other two styles this is targeted by package via
+     * openAcrossPackages(), not an explicit component, since Moonfin's beta
+     * sideload uses a different applicationId under the same class names.
      */
     enum ServerItemStyle {
         URI_DATA,
-        ITEM_ID_EXTRA
+        ITEM_ID_EXTRA,
+        URI_TEMPLATE
     }
 
     private final List<String> packages;
@@ -145,6 +180,7 @@ public enum PlayerApp {
     private final String titleSearchComponent;
     private final boolean usesJellyfinServer;
     private final ServerItemStyle serverItemStyle;
+    private final String serverItemUriTemplate;
 
     /** Single-package deep-link player with no TMDB-native fast path (Stremio, WuPlay). */
     PlayerApp(String packageName, String label, int descriptionRes, boolean enabled,
@@ -177,12 +213,26 @@ public enum PlayerApp {
         this.titleSearchComponent = null;
         this.usesJellyfinServer = false;
         this.serverItemStyle = null;
+        this.serverItemUriTemplate = null;
     }
 
-    /** Title-search player (Plex, Jellyfin, Wholphin) - see PlayerLauncher.prepareTitleSearch()/openServerItem(). */
+    /** Single-package title-search player (Plex, Jellyfin, Wholphin) - see PlayerLauncher.prepareTitleSearch()/openServerItem(). */
     PlayerApp(String packageName, String label, int descriptionRes, boolean enabled,
               String titleSearchComponent, boolean usesJellyfinServer, ServerItemStyle serverItemStyle) {
-        this.packages = Collections.singletonList(packageName);
+        this(Collections.singletonList(packageName), label, descriptionRes, enabled,
+                titleSearchComponent, usesJellyfinServer, serverItemStyle, null);
+    }
+
+    /**
+     * Multi-package title-search player (Moonfin - stable + beta sideload
+     * package, tried in order like Nuvio's two packages). serverItemUriTemplate
+     * is only non-null for ServerItemStyle.URI_TEMPLATE, where it's a full
+     * format string (one %s, the item id) - see PlayerLauncher.openServerItem().
+     */
+    PlayerApp(List<String> packages, String label, int descriptionRes, boolean enabled,
+              String titleSearchComponent, boolean usesJellyfinServer, ServerItemStyle serverItemStyle,
+              String serverItemUriTemplate) {
+        this.packages = packages;
         this.label = label;
         this.launchStyle = LaunchStyle.TITLE_SEARCH;
         this.descriptionRes = descriptionRes;
@@ -194,6 +244,7 @@ public enum PlayerApp {
         this.titleSearchComponent = titleSearchComponent;
         this.usesJellyfinServer = usesJellyfinServer;
         this.serverItemStyle = serverItemStyle;
+        this.serverItemUriTemplate = serverItemUriTemplate;
     }
 
     /** The primary package - what every caller outside PlayerLauncher's multi-package handling wants. */
@@ -210,9 +261,19 @@ public enum PlayerApp {
         return label;
     }
 
-    /** True for players that only accept a title search hand-off (Plex, Jellyfin, Wholphin) - see PlayerLauncher.prepareTitleSearch(). */
+    /** True for players that only accept a title search hand-off (Plex, Jellyfin, Wholphin, Moonfin) - see PlayerLauncher.prepareTitleSearch(). */
     boolean usesTitleSearch() {
         return launchStyle == LaunchStyle.TITLE_SEARCH;
+    }
+
+    /**
+     * False for a title-search player with no search screen a third party
+     * can open at all (Moonfin - see the class javadoc). PlayerLauncher.
+     * planTitleSearch()/prepare() check this before ever calling
+     * prepareTitleSearch(), which throws for a null titleSearchComponent.
+     */
+    boolean hasTitleSearchFallback() {
+        return titleSearchComponent != null;
     }
 
     /** 0 when this player needs no extra explanation in the Settings radio row. */
@@ -255,12 +316,17 @@ public enum PlayerApp {
         return serverItemStyle;
     }
 
+    /** Format string (one %s, the server item id) for ServerItemStyle.URI_TEMPLATE - null for every other style. */
+    String getServerItemUriTemplate() {
+        return serverItemUriTemplate;
+    }
+
     /**
      * True for a player that connects to the user's own Jellyfin server and
      * so can use the shared opt-in "find it in your library first" direct-
      * open path (Preferences.isJellyfinLibraryLookupReady() /
-     * JellyfinClient) - JELLYFIN itself, and WHOLPHIN, an alternate
-     * front-end for the same server type with the same server-local item
+     * JellyfinClient) - JELLYFIN itself, WHOLPHIN, and MOONFIN, alternate
+     * front-ends for the same server type with the same server-local item
      * id contract. See PlayerLauncher.planTitleSearch()/openServerItem().
      */
     boolean usesJellyfinServer() {

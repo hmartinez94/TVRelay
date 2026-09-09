@@ -195,11 +195,11 @@ public class SettingsStepFragment extends GuidedStepSupportFragment {
         addHeader(actions, context, ACTION_HEADER_PLAYER, R.string.settings_section_player);
         actions.add(buildPlayerAppAction(context));
         if (Preferences.getSelectedApp(context).usesJellyfinServer()) {
-            // Only relevant while Jellyfin or Wholphin is actually selected -
-            // both connect to the same kind of server and share this same
-            // opt-in config (see PlayerApp.usesJellyfinServer()) - see
-            // JellyfinSettingsStepFragment/onSubGuidedActionClicked() below
-            // for how this row's presence stays in sync with the player
+            // Only relevant while Jellyfin, Wholphin, or Moonfin is actually
+            // selected - all three connect to the same kind of server and
+            // share this same opt-in config (see PlayerApp.usesJellyfinServer())
+            // - see JellyfinSettingsStepFragment/onSubGuidedActionClicked()
+            // below for how this row's presence stays in sync with the player
             // dropdown above it.
             actions.add(buildJellyfinServerAction(context));
         }
@@ -378,11 +378,21 @@ public class SettingsStepFragment extends GuidedStepSupportFragment {
                 .build();
     }
 
-    /** The "Configure Jellyfin server" row - only added while Jellyfin or Wholphin is selected, see buildActions(). */
+    /** The "Configure Jellyfin server" row - only added while Jellyfin, Wholphin, or Moonfin is selected, see buildActions(). */
     private GuidedAction buildJellyfinServerAction(Context context) {
-        String description = Preferences.isJellyfinLibraryLookupReady(context)
-                ? getString(R.string.settings_jellyfin_configured_description, Preferences.getJellyfinUrl(context))
-                : getString(R.string.settings_jellyfin_not_configured, Preferences.getSelectedApp(context).getLabel());
+        PlayerApp selected = Preferences.getSelectedApp(context);
+        String description;
+        if (Preferences.isJellyfinLibraryLookupReady(context)) {
+            description = getString(R.string.settings_jellyfin_configured_description, Preferences.getJellyfinUrl(context));
+        } else if (selected.hasTitleSearchFallback()) {
+            description = getString(R.string.settings_jellyfin_not_configured, selected.getLabel());
+        } else {
+            // Moonfin: unlike Jellyfin/Wholphin, leaving this unset doesn't
+            // fall back to "will just open a search" - it has no search
+            // screen at all (see PlayerApp.hasTitleSearchFallback()), so a
+            // click just fails outright until this is set up.
+            description = getString(R.string.settings_jellyfin_not_configured_no_search, selected.getLabel());
+        }
         return new GuidedAction.Builder(context)
                 .id(ACTION_JELLYFIN_SERVER)
                 .title(getString(R.string.settings_jellyfin_configure))

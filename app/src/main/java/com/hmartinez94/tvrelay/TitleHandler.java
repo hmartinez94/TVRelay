@@ -106,14 +106,15 @@ final class TitleHandler {
 
         PlayerApp app = Preferences.getSelectedApp(appContext);
         if (app.usesTitleSearch()) {
-            // Plex/Jellyfin never have a *universal-catalog* content deep
-            // link (see PlayerApp's class doc), so this always at least
+            // Plex/Jellyfin/Wholphin never have a *universal-catalog* content
+            // deep link (see PlayerApp's class doc), so this always at least
             // falls back to a plain search hand-off with no
             // MetadataResolver call - see PlayerLauncher.prepareTitleSearch().
-            // Jellyfin specifically may also open the title directly - see
-            // PlayerLauncher.planTitleSearch(), which now makes one Jellyfin
-            // request when Preferences.isJellyfinLibraryLookupReady() - so
-            // this whole branch runs on backgroundExecutor.
+            // Jellyfin/Wholphin/Moonfin specifically may also open the title
+            // directly - see PlayerLauncher.planTitleSearch(), which now
+            // makes one Jellyfin request when
+            // Preferences.isJellyfinLibraryLookupReady() - so this whole
+            // branch runs on backgroundExecutor.
             backgroundExecutor.execute(() -> {
                 PlayerLauncher.TitleSearchPlan plan = PlayerLauncher.planTitleSearch(appContext, title);
 
@@ -126,6 +127,25 @@ final class TitleHandler {
                                 () -> showChooser(title, plan.candidates)));
                     } else {
                         mainHandler.post(() -> showChooser(title, plan.candidates));
+                    }
+                    return;
+                }
+
+                if (!plan.foundInLibrary && !app.hasTitleSearchFallback()) {
+                    // Moonfin: no library hit and nothing to fall back to -
+                    // it has no search screen at all (see
+                    // hasTitleSearchFallback()), so offering "Search in
+                    // Moonfin" here would confirm an action that does
+                    // nothing. abandon(), not hide(): same "no pending match
+                    // to ever offer back" case as an outright IMDb
+                    // resolution failure below.
+                    Log.w(TAG, "Not in " + app.getLabel() + "'s library and no search fallback available: " + title);
+                    if (confirmFirst) {
+                        mainHandler.post(() -> {
+                            overlay.abandon();
+                            coordinator.onOverlayStateChanged();
+                            coordinator.onOverlayActivity();
+                        });
                     }
                     return;
                 }

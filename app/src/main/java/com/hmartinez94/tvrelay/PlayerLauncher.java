@@ -163,7 +163,14 @@ final class PlayerLauncher {
         }
         PlayerApp app = Preferences.getSelectedApp(context);
         if (app.usesTitleSearch()) {
-            return prepareTitleSearch(context, candidate.displayTitle);
+            // hasTitleSearchFallback() is false only for Moonfin, and only
+            // reachable here at all if a candidate with no jellyfinItemId
+            // somehow got this far while Moonfin is selected - every real
+            // caller resolves through planTitleSearch() instead, which
+            // already never lets that happen (see its javadoc). null is the
+            // same "nothing to open" signal this method already returns
+            // elsewhere, rather than letting prepareTitleSearch() throw.
+            return app.hasTitleSearchFallback() ? prepareTitleSearch(context, candidate.displayTitle) : null;
         }
         String tmdbTemplate = forType(candidate.type, app.getTmdbMovieUriTemplate(), app.getTmdbSeriesUriTemplate());
         if (tmdbTemplate != null && candidate.tmdbMediaPath != null) {
@@ -201,12 +208,17 @@ final class PlayerLauncher {
         PlayerApp app = Preferences.getSelectedApp(context);
         String title = TitleCleanup.stripTrailingParentheticals(rawTitle);
 
-        // Every title-search player (Plex, Jellyfin, Wholphin) builds the
-        // exact same ACTION_SEARCH + query-extra shape, targeting its own
-        // explicit component (see PlayerApp.getTitleSearchComponent()'s
-        // javadoc for why an explicit component, not implicit resolution).
-        // NUVIO/STREMIO/WUPLAY never reach here - prepare() only calls this
-        // method when app.usesTitleSearch() is true.
+        // Every title-search player with a search screen (Plex, Jellyfin,
+        // Wholphin) builds the exact same ACTION_SEARCH + query-extra shape,
+        // targeting its own explicit component (see PlayerApp.
+        // getTitleSearchComponent()'s javadoc for why an explicit component,
+        // not implicit resolution). NUVIO/STREMIO/WUPLAY never reach here -
+        // prepare() only calls this method when app.usesTitleSearch() is
+        // true. MOONFIN also never reaches here despite usesTitleSearch()
+        // being true for it too - both prepare() and planTitleSearch() check
+        // hasTitleSearchFallback() first and never call this method when
+        // it's false, so the throw below is a genuine can't-happen
+        // assertion, not a real path for Moonfin.
         if (app.getTitleSearchComponent() == null) {
             throw new IllegalStateException("prepareTitleSearch() called for a non-search player: " + app);
         }
@@ -238,8 +250,8 @@ final class PlayerLauncher {
 
     /**
      * Direct-open for a Jellyfin-server library hit (see planTitleSearch()),
-     * for either Jellyfin or Wholphin - see PlayerApp.ServerItemStyle's
-     * javadoc for the one way their otherwise-identical contract differs.
+     * for Jellyfin, Wholphin, or Moonfin - see PlayerApp.ServerItemStyle's
+     * javadoc for the ways their otherwise-identical contract differs.
      * URI_DATA (Jellyfin): StartupActivity.openNextActivity() (Jellyfin's
      * own Kotlin source, confirmed via WebFetch 2026-08-26) accepts
      * ACTION_VIEW with intent.data.toString() fed straight into the SDK's
@@ -252,12 +264,27 @@ final class PlayerLauncher {
      * detail page, not its separate immediate-playback PLAYBACK action
      * (deliberately not used here, to keep behavior consistent between the
      * two players rather than making Wholphin auto-play while Jellyfin only
-     * opens a detail page). Both target their explicit component (see
-     * getTitleSearchComponent()'s javadoc) with no packageless retry - a
-     * malformed/stale id should report failure, not silently land somewhere
-     * unhelpful.
+     * opens a detail page). URI_DATA/ITEM_ID_EXTRA both target their
+     * explicit component (see getTitleSearchComponent()'s javadoc) with no
+     * packageless retry - a malformed/stale id should report failure, not
+     * silently land somewhere unhelpful.
+     *
+     * URI_TEMPLATE (Moonfin): unlike the other two, Moonfin has no explicit
+     * component to target - its titleSearchComponent is null (see
+     * hasTitleSearchFallback()) and its stable/beta packages don't share one
+     * class name anyway. Instead the id is substituted into
+     * getServerItemUriTemplate() (moonfin://item?id=%s) and the resulting
+     * ACTION_VIEW is routed through openAcrossPackages(), the same
+     * try-each-package-in-order mechanism NUVIO's two packages already use,
+     * relying on Moonfin's declared moonfin:// scheme filter rather than a
+     * named Activity.
      */
     private static boolean openServerItem(Context context, PlayerApp app, String itemId) {
+        if (app.getServerItemStyle() == PlayerApp.ServerItemStyle.URI_TEMPLATE) {
+            Intent intent = new Intent(Intent.ACTION_VIEW,
+                    Uri.parse(String.format(app.getServerItemUriTemplate(), itemId)));
+            return openAcrossPackages(context, intent, app);
+        }
         Intent intent;
         if (app.getServerItemStyle() == PlayerApp.ServerItemStyle.ITEM_ID_EXTRA) {
             intent = new Intent(Intent.ACTION_VIEW);
@@ -301,11 +328,15 @@ final class PlayerLauncher {
      * call only from a background thread, same as
      * MetadataResolver.resolveCandidates().
      *
-     * For every player other than Jellyfin/Wholphin, or either of those with
-     * the feature off/not fully configured, or a library search that finds
-     * nothing exactly: foundInLibrary=false, candidates empty, launch=the
-     * plain search hand-off - i.e. today's behavior, byte-identical, unless
-     * the feature is deliberately turned on and set up.
+     * For every player other than Jellyfin/Wholphin/Moonfin, or any of those
+     * with the feature off/not fully configured, or a library search that
+     * finds nothing exactly: foundInLibrary=false, candidates empty,
+     * launch=the plain search hand-off - i.e. today's behavior, byte-
+     * identical, unless the feature is deliberately turned on and set up.
+     * Moonfin is the one exception to "plain search hand-off": it has no
+     * search screen at all (see hasTitleSearchFallback()), so its miss
+     * launch just reports failure instead of calling prepareTitleSearch(),
+     * which would throw for it - see that method's guard.
      */
     static TitleSearchPlan planTitleSearch(Context context, String rawTitle) {
         PlayerApp app = Preferences.getSelectedApp(context);
@@ -315,6 +346,9 @@ final class PlayerLauncher {
                 TitleCandidate best = candidates.get(0);
                 return new TitleSearchPlan(true, candidates, () -> openServerItem(context, app, best.jellyfinItemId));
             }
+        }
+        if (!app.hasTitleSearchFallback()) {
+            return new TitleSearchPlan(false, Collections.emptyList(), () -> false);
         }
         return new TitleSearchPlan(false, Collections.emptyList(), prepareTitleSearch(context, rawTitle));
     }

@@ -25,6 +25,7 @@
     <string name="settings_player_plex_description">Opens Plex\'s search screen - you\'ll need to type the title yourself, and it only finds titles already in your library</string>
     <string name="settings_player_jellyfin_description">Opens a search in Jellyfin by default - set up \"Find in library first\" below to open titles on your own server directly instead</string>
     <string name="settings_player_wholphin_description">Opens a search in Wholphin by default - an independent, open-source Jellyfin client. Set up \"Find in library first\" below to open titles on your own server directly instead</string>
+    <string name="settings_player_moonfin_description">Only opens titles already on your Jellyfin server - Moonfin has no search screen to fall back to, so set up \"Find in library first\" below or clicked titles won\'t open</string>
     <string name="settings_player_wako_description">Opens titles using their TMDB id directly - doesn\'t work if you\'ve set Metadata provider to TheTVDB</string>
     <string name="settings_ocr_fallback">Screen-reading fallback for undetectable cards</string>
     <string name="settings_ocr_status_enabled">Status: enabled - a persistent recording indicator stays visible while this is on. Captures the screen on-device (nothing uploaded) when a card or voice-search result has no readable title</string>
@@ -79,15 +80,16 @@
     <string name="settings_metadata_provider">Metadata provider</string>
     <string name="settings_about">About &amp; help</string>
 
-    <!-- Only shown in Settings while Jellyfin or Wholphin is the selected
-         player app - see SettingsStepFragment.buildActions()/PlayerApp.
-         usesJellyfinServer(). -->
+    <!-- Only shown in Settings while Jellyfin, Wholphin, or Moonfin is the
+         selected player app - see SettingsStepFragment.buildActions()/
+         PlayerApp.usesJellyfinServer(). -->
     <string name="settings_jellyfin_configure">Configure Jellyfin server</string>
     <string name="settings_jellyfin_configured_description">Server: %1$s</string>
     <string name="settings_jellyfin_not_configured">Not set up - %1$s will just open a search</string>
+    <string name="settings_jellyfin_not_configured_no_search">Not set up - %1$s has no search screen, so clicked titles won\'t open until this is set up</string>
 
     <string name="jellyfin_settings_title">Configure Jellyfin server</string>
-    <string name="jellyfin_settings_description">Optional. When \"Find in library first\" is on and set up below, a clicked or typed title that\'s already on your Jellyfin server opens directly - the same way Nuvio does - instead of just opening a search. Applies whether Jellyfin or Wholphin (an independent, open-source Jellyfin client) is your selected player, since both connect to the same kind of server. Get an API key from your server\'s Dashboard → API Keys.</string>
+    <string name="jellyfin_settings_description">Optional for Jellyfin/Wholphin, required for Moonfin. When \"Find in library first\" is on and set up below, a clicked or typed title that\'s already on your Jellyfin server opens directly - the same way Nuvio does - instead of just opening a search. Applies whether Jellyfin, Wholphin (an independent, open-source Jellyfin client), or Moonfin is your selected player, since all three connect to the same kind of server - Moonfin specifically has no search screen of its own, so without this set up its clicked titles just won\'t open. Get an API key from your server\'s Dashboard → API Keys.</string>
     <string name="jellyfin_lookup_enabled">Find in library first</string>
     <string name="jellyfin_lookup_status_enabled">Status: enabled - a title that\'s an exact match on your server opens directly; anything else still falls back to a search</string>
     <string name="jellyfin_lookup_status_disabled">Status: disabled - always just opens a search, like before</string>
@@ -110,7 +112,7 @@
     <string name="restricted_settings_scan_more">Still not clear? Scan the code for more detail.</string>
 
     <string name="about_title">About &amp; help</string>
-    <string name="about_legal">TVRelay is an independent automation and redirection tool. It does not host, store, distribute, or provide movies, series, streams, torrents, or any other audiovisual content. It has no relationship with Nuvio, Stremio, WuPlay, Wako, Plex, Jellyfin, or Wholphin, or the origin or legality of any content you access through those apps - that depends entirely on which apps and add-ons you have installed and configured, under your own responsibility. TVRelay is not affiliated with, sponsored by, authorized by, or endorsed by Google, Nuvio, Stremio, WuPlay, Wako, Plex, Jellyfin, or Wholphin.</string>
+    <string name="about_legal">TVRelay is an independent automation and redirection tool. It does not host, store, distribute, or provide movies, series, streams, torrents, or any other audiovisual content. It has no relationship with Nuvio, Stremio, WuPlay, Wako, Plex, Jellyfin, Wholphin, or Moonfin, or the origin or legality of any content you access through those apps - that depends entirely on which apps and add-ons you have installed and configured, under your own responsibility. TVRelay is not affiliated with, sponsored by, authorized by, or endorsed by Google, Nuvio, Stremio, WuPlay, Wako, Plex, Jellyfin, Wholphin, or Moonfin.</string>
     <string name="about_tmdb_attribution">This product uses the TMDB API but is not endorsed or certified by TMDB. themoviedb.org</string>
     <string name="about_tvdb_attribution">If you switch to TheTVDB as your metadata provider: this product uses the TheTVDB API but is not endorsed or certified by TheTVDB. thetvdb.com</string>
     <!-- Order swapped in AboutStepFragment: TMDB is the default provider now, so its attribution reads first. -->
