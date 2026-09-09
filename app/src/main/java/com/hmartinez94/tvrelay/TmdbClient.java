@@ -53,19 +53,20 @@ final class TmdbClient {
             Log.w(TAG, "No TMDB API key available (none bundled, none set in Settings)");
             return Collections.emptyList();
         }
-        return TitleSearchFallbacks.resolve(title, t -> resolveCandidates(apiKey, t));
+        boolean hideAlternateTitles = Preferences.isAlternateTitlesHidden(context);
+        return TitleSearchFallbacks.resolve(title, t -> resolveCandidates(apiKey, hideAlternateTitles, t));
     }
 
-    private static List<TitleCandidate> resolveCandidates(String apiKey, String title) {
+    private static List<TitleCandidate> resolveCandidates(String apiKey, boolean hideAlternateTitles, String title) {
         try {
-            return search(apiKey, title);
+            return search(apiKey, hideAlternateTitles, title);
         } catch (Exception e) {
             Log.e(TAG, "TMDB lookup failed for: " + title, e);
             return Collections.emptyList();
         }
     }
 
-    private static List<TitleCandidate> search(String apiKey, String title) throws IOException, JSONException {
+    private static List<TitleCandidate> search(String apiKey, boolean hideAlternateTitles, String title) throws IOException, JSONException {
         // Region-qualified, not just the bare language - confirmed real bug
         // (2026-09-08) via direct TMDB queries: Locale.getLanguage() alone
         // drops the country (e.g. "es" from an es-MX device), and TMDB's
@@ -107,7 +108,7 @@ final class TmdbClient {
             // relevance-ranked and title collisions are common (same
             // "Obsession" case confirmed against TheTVDB - see CLAUDE.md).
             String normalizedQuery = ExactMatchPicker.normalize(title);
-            ExactMatchPicker<TitleCandidate> picker = new ExactMatchPicker<>();
+            ExactMatchPicker<TitleCandidate> picker = new ExactMatchPicker<>(hideAlternateTitles);
 
             for (int i = 0; i < results.length(); i++) {
                 JSONObject result = results.getJSONObject(i);
@@ -147,7 +148,7 @@ final class TmdbClient {
                         ? originalName : null;
                 TitleCandidate candidate = TitleCandidate.fromTmdb(
                         displayTitle, akaTitle, year, mediaType, isExactMatch, result.getInt("id"), mediaPath);
-                picker.offer(candidate, isExactMatch, year);
+                picker.offer(candidate, isExactMatch, akaTitle != null, year);
             }
 
             List<TitleCandidate> ranked = picker.ranked();

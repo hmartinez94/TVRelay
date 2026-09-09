@@ -20,24 +20,63 @@ import java.util.Locale;
 final class ExactMatchPicker<T> {
 
     /** Displayed candidates are capped here - see ranked(). */
-    private static final int MAX_RANKED = 6;
+    private static final int MAX_RANKED = 20;
 
+    private final boolean hideAlternateTitles;
     private final List<Entry<T>> offered = new ArrayList<>();
 
     private T topRelevanceResult;
     private T bestExactMatch;
+    private boolean bestExactHasAlternateTitle = true; // worst case, so the first exact match always wins
     private int bestExactYear = Integer.MIN_VALUE;
 
-    /** Call once per search result, in the order the API returned them. */
-    void offer(T candidate, boolean isExactTitleMatch, int year) {
-        offered.add(new Entry<>(candidate, isExactTitleMatch, year));
+    /**
+     * @param hideAlternateTitles when true, a candidate offered with
+     *                            hasAlternateTitle=true (see offer()) is
+     *                            excluded from consideration entirely -
+     *                            never becomes the relevance fallback, never
+     *                            becomes the best exact match, never appears
+     *                            in ranked() - rather than merely being
+     *                            sorted after non-alternate-title matches.
+     *                            Backs Settings' "Hide alternate-title (aka)
+     *                            matches" toggle (default off) - see
+     *                            Preferences.isAlternateTitlesHidden().
+     */
+    ExactMatchPicker(boolean hideAlternateTitles) {
+        this.hideAlternateTitles = hideAlternateTitles;
+    }
+
+    /**
+     * Call once per search result, in the order the API returned them.
+     * hasAlternateTitle is meaningless when isExactTitleMatch is false, same
+     * as year - see ranked()'s javadoc for why this exists and what it
+     * demotes. A no-op when this candidate has an alternate title and the
+     * constructor's hideAlternateTitles was true - see that param's javadoc.
+     */
+    void offer(T candidate, boolean isExactTitleMatch, boolean hasAlternateTitle, int year) {
+        if (hasAlternateTitle && hideAlternateTitles) {
+            return;
+        }
+        offered.add(new Entry<>(candidate, isExactTitleMatch, hasAlternateTitle, year));
         if (topRelevanceResult == null) {
             topRelevanceResult = candidate;
         }
-        if (isExactTitleMatch && (bestExactMatch == null || year > bestExactYear)) {
+        if (isExactTitleMatch && isBetterExactMatch(hasAlternateTitle, year)) {
             bestExactMatch = candidate;
+            bestExactHasAlternateTitle = hasAlternateTitle;
             bestExactYear = year;
         }
+    }
+
+    /** Mirrors ranked()'s two-key sort (no-alternate-title first, then higher year) so ranked().get(0) always equals result(). */
+    private boolean isBetterExactMatch(boolean hasAlternateTitle, int year) {
+        if (bestExactMatch == null) {
+            return true;
+        }
+        if (hasAlternateTitle != bestExactHasAlternateTitle) {
+            return !hasAlternateTitle;
+        }
+        return year > bestExactYear;
     }
 
     boolean hasExactMatch() {
@@ -50,10 +89,27 @@ final class ExactMatchPicker<T> {
     }
 
     /**
-     * If any exact title match exists: ONLY the exact matches, newest year
-     * first, capped at MAX_RANKED. Otherwise: the relevance-fallback
+     * If any exact title match exists: ONLY the exact matches, sorted with
+     * candidates that have a distinct alternate/original title (see
+     * TitleCandidate.akaTitle - what the chooser shows as an "aka <name>"
+     * line) after ones that don't, newest year first within each of those
+     * two tiers - capped at MAX_RANKED. Otherwise: the relevance-fallback
      * candidates in offer order, so ranked().get(0) still matches result()'s
      * fallback behavior when there's no exact match at all.
+     *
+     * The alternate-title demotion (2026-09-08) was confirmed necessary
+     * against a real case: TMDB returns 11 exact matches for "Begin Again",
+     * and the well-known 2014 film was the *oldest* of them, so pure
+     * year-descending sorting pushed it off a 6-item cap entirely beneath
+     * several obscure same-titled foreign productions. Deliberately keyed
+     * on whether a candidate *shows* an aka line, not on which specific
+     * field (localized vs. original title) matched the query - the latter
+     * wouldn't have fixed this case, since every one of those foreign
+     * entries matched via its own localized English title, not its
+     * native-script original one. For a search where no candidate has an
+     * alternate title (the common case), this key always compares equal
+     * across every candidate, so the sort falls through to the plain
+     * year-descending order this always used.
      *
      * Confirmed real bug, fixed here: this used to pad the list with
      * relevance-fallback candidates whenever there were fewer than
@@ -66,7 +122,8 @@ final class ExactMatchPicker<T> {
      * ranked().get(0) is always identical to result() - exact matches are
      * sorted with a stable comparator (ties keep the earliest-offered, i.e.
      * most relevant, candidate first), which is the same tiebreak result()
-     * itself uses via offer()'s strict ">" check.
+     * itself uses via offer()'s strict ">" check, and the same two-key
+     * preference isBetterExactMatch() uses.
      */
     List<T> ranked() {
         List<Entry<T>> exact = new ArrayList<>();
@@ -77,7 +134,10 @@ final class ExactMatchPicker<T> {
         // Integer.compare, not subtraction: a candidate with an unknown
         // year (Integer.MIN_VALUE) would otherwise overflow a plain
         // "b.year - a.year" comparison and sort first instead of last.
-        Collections.sort(exact, (a, b) -> Integer.compare(b.year, a.year));
+        Collections.sort(exact, (a, b) -> {
+            int alternateCompare = Boolean.compare(a.hasAlternateTitle, b.hasAlternateTitle);
+            return alternateCompare != 0 ? alternateCompare : Integer.compare(b.year, a.year);
+        });
 
         List<Entry<T>> source = exact.isEmpty() ? rest : exact;
         List<T> ranked = new ArrayList<>(Math.min(source.size(), MAX_RANKED));
@@ -123,11 +183,13 @@ final class ExactMatchPicker<T> {
     private static final class Entry<T> {
         final T candidate;
         final boolean isExactTitleMatch;
+        final boolean hasAlternateTitle;
         final int year;
 
-        Entry(T candidate, boolean isExactTitleMatch, int year) {
+        Entry(T candidate, boolean isExactTitleMatch, boolean hasAlternateTitle, int year) {
             this.candidate = candidate;
             this.isExactTitleMatch = isExactTitleMatch;
+            this.hasAlternateTitle = hasAlternateTitle;
             this.year = year;
         }
     }

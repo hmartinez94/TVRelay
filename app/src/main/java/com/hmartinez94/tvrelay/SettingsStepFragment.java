@@ -52,6 +52,7 @@ public class SettingsStepFragment extends GuidedStepSupportFragment {
     private static final long ACTION_UPDATE_AVAILABLE = 13;
     private static final long ACTION_JELLYFIN_SERVER = 14;
     private static final long ACTION_FIRE_TV_MODE = 15;
+    private static final long ACTION_HIDE_ALTERNATE_TITLES = 16;
 
     /** Throttle for the GitHub release check kicked off from onResume() - see maybeCheckForUpdate(). */
     private static final long UPDATE_CHECK_INTERVAL_MS = 24L * 60 * 60 * 1000;
@@ -230,6 +231,16 @@ public class SettingsStepFragment extends GuidedStepSupportFragment {
                         : R.string.settings_chooser_status_disabled))
                 .checkSetId(GuidedAction.CHECKBOX_CHECK_SET_ID)
                 .checked(chooserEnabled)
+                .build());
+        boolean alternateTitlesHidden = Preferences.isAlternateTitlesHidden(context);
+        actions.add(new GuidedAction.Builder(context)
+                .id(ACTION_HIDE_ALTERNATE_TITLES)
+                .title(getString(R.string.settings_hide_aka))
+                .description(getString(alternateTitlesHidden
+                        ? R.string.settings_hide_aka_status_enabled
+                        : R.string.settings_hide_aka_status_disabled))
+                .checkSetId(GuidedAction.CHECKBOX_CHECK_SET_ID)
+                .checked(alternateTitlesHidden)
                 .build());
         boolean ocrFallbackEnabled = Preferences.isOcrFallbackEnabled(context);
         actions.add(new GuidedAction.Builder(context)
@@ -415,6 +426,17 @@ public class SettingsStepFragment extends GuidedStepSupportFragment {
             action.setDescription(getString(enabled
                     ? R.string.settings_chooser_status_enabled
                     : R.string.settings_chooser_status_disabled));
+            notifyActionChanged(getActions().indexOf(action));
+            return;
+        }
+
+        if (id == ACTION_HIDE_ALTERNATE_TITLES) {
+            boolean hidden = !Preferences.isAlternateTitlesHidden(context);
+            Preferences.setAlternateTitlesHidden(context, hidden);
+            action.setChecked(hidden);
+            action.setDescription(getString(hidden
+                    ? R.string.settings_hide_aka_status_enabled
+                    : R.string.settings_hide_aka_status_disabled));
             notifyActionChanged(getActions().indexOf(action));
             return;
         }

@@ -106,7 +106,10 @@ final class JellyfinClient {
             }
 
             String normalizedQuery = ExactMatchPicker.normalize(title);
-            ExactMatchPicker<TitleCandidate> picker = new ExactMatchPicker<>();
+            // false: Jellyfin candidates never have an alternate title to hide
+            // in the first place (fromJellyfin() never sets akaTitle) - see
+            // its offer() call below.
+            ExactMatchPicker<TitleCandidate> picker = new ExactMatchPicker<>(false);
 
             for (int i = 0; i < items.length(); i++) {
                 JSONObject item = items.getJSONObject(i);
@@ -125,7 +128,10 @@ final class JellyfinClient {
                         ? item.optInt("ProductionYear", Integer.MIN_VALUE)
                         : Integer.MIN_VALUE;
                 TitleCandidate candidate = TitleCandidate.fromJellyfin(name, year, mediaType, isExactMatch, id);
-                picker.offer(candidate, isExactMatch, year);
+                // Jellyfin candidates never show an "aka" line (fromJellyfin()
+                // never sets akaTitle) - see ExactMatchPicker.ranked()'s javadoc
+                // for what this parameter demotes.
+                picker.offer(candidate, isExactMatch, false, year);
             }
 
             List<TitleCandidate> ranked = picker.ranked();

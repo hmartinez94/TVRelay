@@ -116,7 +116,11 @@ final class MatchTrayView {
         }
 
         HorizontalScrollView scroller = new HorizontalScrollView(context);
-        scroller.setHorizontalScrollBarEnabled(false);
+        // Scrollbar shown, not hidden - at up to MAX_RANKED (see
+        // ExactMatchPicker) candidates, scrolling well past screen width is
+        // now the normal case for an ambiguous title, not a rare edge case,
+        // so a visible affordance that there's more to the right matters.
+        scroller.setHorizontalScrollBarEnabled(true);
         scroller.setClipToPadding(false);
         LinearLayout.LayoutParams scrollerParams = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);

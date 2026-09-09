@@ -118,7 +118,10 @@ final class TvdbClient {
             // distinct titles across release years) - both confirmed
             // on-device (see CLAUDE.md).
             String normalizedQuery = ExactMatchPicker.normalize(title);
-            ExactMatchPicker<TitleCandidate> picker = new ExactMatchPicker<>();
+            // false: TheTVDB candidates never have an alternate title to hide
+            // in the first place (fromTvdb() never sets akaTitle) - see its
+            // offer() call below.
+            ExactMatchPicker<TitleCandidate> picker = new ExactMatchPicker<>(false);
 
             for (int i = 0; i < results.length(); i++) {
                 JSONObject result = results.getJSONObject(i);
@@ -156,7 +159,12 @@ final class TvdbClient {
                         || normalizedQuery.equals(ExactMatchPicker.normalize(altTitle));
                 int year = ExactMatchPicker.parseYear(yearRaw);
                 TitleCandidate candidate = TitleCandidate.fromTvdb(displayTitle, year, mediaType, isExactMatch, imdbId);
-                picker.offer(candidate, isExactMatch, year);
+                // TheTVDB candidates never show an "aka" line (fromTvdb() never
+                // sets akaTitle) - see ExactMatchPicker.ranked()'s javadoc for
+                // what this parameter demotes. Deliberately not wired up to
+                // altTitle here; that would be adding a new display feature for
+                // TheTVDB, not just reusing an existing one like TmdbClient does.
+                picker.offer(candidate, isExactMatch, false, year);
             }
 
             List<TitleCandidate> ranked = picker.ranked();

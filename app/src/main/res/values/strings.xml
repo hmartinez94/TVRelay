@@ -19,6 +19,9 @@
     <string name="settings_show_chooser">Ask when a match is ambiguous</string>
     <string name="settings_chooser_status_enabled">Status: enabled - shows a chooser when a title matches more than one thing exactly, instead of guessing</string>
     <string name="settings_chooser_status_disabled">Status: disabled - always opens the newest exact match automatically</string>
+    <string name="settings_hide_aka">Hide alternate-title (aka) matches</string>
+    <string name="settings_hide_aka_status_enabled">Status: enabled - a match only known under a different original-language title is skipped entirely</string>
+    <string name="settings_hide_aka_status_disabled">Status: disabled - shown, but listed after same-language matches</string>
     <string name="settings_player_plex_description">Opens Plex\'s search screen - you\'ll need to type the title yourself, and it only finds titles already in your library</string>
     <string name="settings_player_jellyfin_description">Opens a search in Jellyfin by default - set up \"Find in library first\" below to open titles on your own server directly instead</string>
     <string name="settings_player_wholphin_description">Opens a search in Wholphin by default - an independent, open-source Jellyfin client. Set up \"Find in library first\" below to open titles on your own server directly instead</string>

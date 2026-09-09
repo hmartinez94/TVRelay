@@ -16,6 +16,7 @@ public final class Preferences {
     private static final String KEY_METADATA_PROVIDER = "metadata_provider";
     private static final String KEY_TMDB_API_KEY = "tmdb_api_key";
     private static final String KEY_SHOW_CHOOSER = "show_match_chooser";
+    private static final String KEY_HIDE_ALTERNATE_TITLES = "hide_alternate_title_matches";
     private static final String KEY_SMARTTUBE_ENABLED = "smarttube_redirect_enabled";
     private static final String KEY_OCR_FALLBACK_ENABLED = "ocr_fallback_enabled";
     private static final String KEY_OCR_DISCLOSURE_ACCEPTED = "ocr_disclosure_accepted";
@@ -129,6 +130,24 @@ public final class Preferences {
 
     public static void setChooserEnabled(Context context, boolean enabled) {
         prefs(context).edit().putBoolean(KEY_SHOW_CHOOSER, enabled).apply();
+    }
+
+    /**
+     * Whether a candidate with a distinct alternate/original title (what the
+     * chooser shows as an "aka <name>" line - see TitleCandidate.akaTitle,
+     * ExactMatchPicker's constructor) is excluded from matching entirely,
+     * rather than merely sorted after same-language matches - see
+     * ExactMatchPicker.ranked()'s javadoc for the "Begin Again" case this
+     * demotion (and this stronger opt-in exclusion) was built from. Default
+     * off: aka matches are shown, just demoted, unless a user explicitly
+     * decides they'd rather never see them at all.
+     */
+    public static boolean isAlternateTitlesHidden(Context context) {
+        return prefs(context).getBoolean(KEY_HIDE_ALTERNATE_TITLES, false);
+    }
+
+    public static void setAlternateTitlesHidden(Context context, boolean hidden) {
+        prefs(context).edit().putBoolean(KEY_HIDE_ALTERNATE_TITLES, hidden).apply();
     }
 
     /**
