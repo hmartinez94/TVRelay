@@ -99,17 +99,28 @@
     <string name="update_up_to_date">TVRelay está actualizado - tienes la última versión (%1$s)</string>
     <string name="update_available_toast">Actualización disponible para TVRelay - la versión %1$s está lista para instalar</string>
 
+    <string name="update_warning_title">Antes de actualizar</string>
+    <string name="update_warning_prefix">Instalar esta actualización a través de</string>
+    <string name="update_warning_highlight">la app volverá a activar el bloqueo de Ajustes restringidos de Android</string>
+    <string name="update_warning_suffix">si la Accesibilidad está activada actualmente - se apagará sola, y tendrás que repetir la solución por ADB (o atvTools) después. Si prefieres evitarlo, cancela aquí e instala la actualización tú mismo.</string>
+    <string name="update_warning_continue">Continuar con la actualización</string>
+    <string name="update_warning_sideload">Cancelar - la instalaré yo mismo</string>
+    <string name="update_warning_sideload_toast">Descarga el nuevo APK desde la página de Releases e instálalo por ADB (o Downloader/Send Files to TV) en su lugar - mira la sección de instalación del README</string>
+
     <string name="restricted_settings_help_title">La Accesibilidad no se activa</string>
-    <string name="restricted_settings_help_intro">TVRelay notó que intentaste activar la Accesibilidad, pero todavía no aparece como activada. Normalmente esto significa que Android la bloqueó - así es como solucionarlo.</string>
-    <string name="restricted_settings_open_app_info">Abrir la información de la app de TVRelay</string>
-    <string name="restricted_settings_open_app_info_description">Busca \"Permitir ajuste restringido\" en el menú de tres puntos/más, luego vuelve e intenta Accesibilidad de nuevo</string>
+    <string name="restricted_settings_help_intro">Android bloqueó la Accesibilidad - no es un error. Así se soluciona:</string>
+    <string name="restricted_settings_adb_fix">Ejecuta esto por ADB (o con atvTools):</string>
+    <string name="restricted_settings_adb_fix_command">adb shell appops set com.hmartinez94.tvrelay ACCESS_RESTRICTED_SETTINGS allow</string>
     <string name="restricted_settings_retry_accessibility">Intentar Ajustes de Accesibilidad de nuevo</string>
+    <string name="restricted_settings_open_app_info">Prueba \"Permitir ajuste restringido\" en la información de la app</string>
+    <string name="restricted_settings_open_app_info_description">No en todos los dispositivos</string>
+    <string name="restricted_settings_scan_more">¿Sigue sin quedar claro? Escanea el código para más detalle.</string>
 
     <string name="about_title">Acerca de y ayuda</string>
     <string name="about_legal">TVRelay es una herramienta independiente de automatización y redirección. No aloja, almacena, distribuye ni proporciona películas, series, streams, torrents ni ningún otro contenido audiovisual. No tiene relación con Nuvio, Stremio, WuPlay, Plex, Jellyfin ni Wholphin, ni con el origen o legalidad de ningún contenido al que accedas a través de esas apps - eso depende por completo de qué apps y complementos tengas instalados y configurados, bajo tu propia responsabilidad. TVRelay no está afiliada, patrocinada, autorizada ni respaldada por Google, Nuvio, Stremio, WuPlay, Plex, Jellyfin ni Wholphin.</string>
     <string name="about_tmdb_attribution">Este producto usa la API de TMDB pero no está avalado ni certificado por TMDB. themoviedb.org</string>
     <string name="about_tvdb_attribution">Si cambias a TheTVDB como proveedor de metadatos: este producto usa la API de TheTVDB pero no está avalado ni certificado por TheTVDB. thetvdb.com</string>
-    <string name="about_restricted_settings">Si instalaste esta app manualmente y el interruptor de Accesibilidad se apaga solo justo después de activarlo: es la protección \"Ajustes restringidos\" de Android para apps no instaladas desde una tienda de aplicaciones, no un fallo. Busca \"Permitir ajuste restringido\" en la pantalla de información de esta app en Ajustes del sistema. Si no la encuentras, conéctate por ADB y ejecuta:\n\nadb shell settings put secure enabled_accessibility_services com.hmartinez94.tvrelay/com.hmartinez94.tvrelay.TvRelayAccessibilityService\nadb shell settings put secure accessibility_enabled 1\n\n(El primer comando reemplaza toda la lista - separa los servicios con dos puntos si ya usas otro, como TalkBack.)</string>
+    <string name="about_restricted_settings">Si instalaste esta app manualmente y el interruptor de Accesibilidad se apaga solo justo después de activarlo: es la protección \"Ajustes restringidos\" de Android para apps no instaladas desde una tienda de aplicaciones, no un fallo. Muchos dispositivos Google TV/Android TV no tienen ninguna opción \"Permitir ajuste restringido\" en Ajustes para quitar esto - si el tuyo la tiene, está en la pantalla de información de esta app, en el menú de tres puntos/más. Si no (o prefieres no buscarla), conéctate por ADB - o usa la app atvTools (gratis, Google Play) desde tu teléfono si no tienes una computadora a mano - y ejecuta:\n\nadb shell appops set com.hmartinez94.tvrelay ACCESS_RESTRICTED_SETTINGS allow\nadb shell settings put secure enabled_accessibility_services com.hmartinez94.tvrelay/com.hmartinez94.tvrelay.TvRelayAccessibilityService\nadb shell settings put secure accessibility_enabled 1\n\n(El último comando reemplaza toda la lista - separa los servicios con dos puntos si ya usas otro, como TalkBack.)</string>
     <string name="about_close">Cerrar</string>
 
     <string name="watch_now_loading">Buscando…</string>

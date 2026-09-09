@@ -501,5 +501,50 @@ class Component extends DCLogic {
   }
 }
 </script>
+<script>
+// The page above is client-rendered by dc-runtime (support.js): it loads
+// React/ReactDOM from a CDN, then replaces the entire <x-dc> block with a
+// freshly-rendered #dc-root div. That replacement happens after the
+// browser's own one-shot "scroll to #anchor on load" already fired against
+// the original static markup - and since #dc-root briefly renders near-zero
+// height before React commits the full tree, the page's scroll position
+// gets clamped back to the top and never recovers on its own. Confirmed
+// real bug (2026-09-08): a QR code linking to #adb-accessibility opened the
+// page but always landed at the top instead of that section. This just
+// retries the native scroll a few times after the swap, since there's no
+// public "render complete" event to hook (see support.js's __dcBoot).
+(function () {
+  if (!location.hash) return;
+  var id = location.hash.slice(1);
+  var attempts = 0;
+  var maxAttempts = 40; // ~4s at 100ms
+  var stop = function () {
+    clearInterval(timer);
+    window.removeEventListener("wheel", stop);
+    window.removeEventListener("touchstart", stop);
+    window.removeEventListener("keydown", stop);
+  };
+  // Cancel immediately if the user starts scrolling/interacting themselves
+  // - this is a background retry to correct for the framework's own
+  // load-time reflow, not something that should keep yanking a phone's
+  // scroll position back once someone's actually reading the page.
+  window.addEventListener("wheel", stop, { passive: true });
+  window.addEventListener("touchstart", stop, { passive: true });
+  window.addEventListener("keydown", stop);
+  var timer = setInterval(function () {
+    attempts++;
+    var el = document.getElementById(id);
+    if (el) {
+      var top = el.getBoundingClientRect().top;
+      if (Math.abs(top) > 4) {
+        el.scrollIntoView({ behavior: "auto", block: "start" });
+      }
+    }
+    if (attempts >= maxAttempts) {
+      stop();
+    }
+  }, 100);
+})();
+</script>
 </body>
 </html>

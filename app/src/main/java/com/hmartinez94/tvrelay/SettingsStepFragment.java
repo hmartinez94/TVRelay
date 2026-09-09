@@ -290,7 +290,7 @@ public class SettingsStepFragment extends GuidedStepSupportFragment {
                         ? R.string.settings_accessibility_status_enabled
                         : R.string.settings_accessibility_status_disabled))
                 .build());
-        if (shouldOfferRestrictedSettingsHelp(context, serviceEnabled)) {
+        if (shouldOfferRestrictedSettingsHelp(context)) {
             actions.add(new GuidedAction.Builder(context)
                     .id(ACTION_RESTRICTED_SETTINGS_HELP)
                     .title(getString(R.string.settings_restricted_settings_help))
@@ -487,7 +487,7 @@ public class SettingsStepFragment extends GuidedStepSupportFragment {
         } else if (id == ACTION_ABOUT) {
             GuidedStepSupportFragment.add(getFragmentManager(), new AboutStepFragment());
         } else if (id == ACTION_UPDATE_AVAILABLE) {
-            GuidedStepSupportFragment.add(getFragmentManager(), new UpdateStepFragment());
+            GuidedStepSupportFragment.add(getFragmentManager(), new UpdateWarningStepFragment());
         }
     }
 
@@ -587,35 +587,17 @@ public class SettingsStepFragment extends GuidedStepSupportFragment {
 
     /**
      * Whether to offer the Restricted Settings walkthrough as an extra
-     * Settings row. There's no direct API to ask "is this app
-     * restricted-settings-blocked" (see CLAUDE.md's "capabilities wall" for
-     * why this project generally has to infer OS-level restrictions rather
-     * than query them directly) - so this combines the only three signals
-     * actually available:
-     *  - the service isn't currently enabled (nothing to help with otherwise)
-     *  - it has never once actually connected (Preferences.
-     *    hasAccessibilityServiceEverConnected()) - avoids a false positive
-     *    for a service that worked before and was later turned off/crashed,
-     *    which Restricted Settings (a first-enable-only block) can't explain
-     *  - the user has actually clicked "Enable in Accessibility settings"
-     *    before (Preferences.getAccessibilityEnableClickedAt() > 0) - avoids
-     *    offering help before the user has even tried
-     * ...and gates all of it behind InstallSource.isPlayStoreInstall(),
-     * since Play is a trusted installer and is never subject to this
-     * restriction in the first place - see CLAUDE.md's "Distribution &
-     * monetization decisions" (a real Play Internal Testing release already
-     * exists for this app).
+     * Settings row. Deliberately always shown for any sideloaded install
+     * (2026-09-08, at explicit user request) rather than only appearing
+     * after the user had already tried and failed to enable Accessibility -
+     * a user who knows to look for it shouldn't have to trigger the failure
+     * first, and there's no harm in a sideloaded user seeing it early.
+     * Still gated behind InstallSource.isPlayStoreInstall(), since Play is a
+     * trusted installer and is never subject to this restriction in the
+     * first place - see CLAUDE.md's "Distribution & monetization decisions"
+     * (a real Play Internal Testing release already exists for this app).
      */
-    private static boolean shouldOfferRestrictedSettingsHelp(Context context, boolean serviceEnabled) {
-        if (serviceEnabled) {
-            return false;
-        }
-        if (Preferences.hasAccessibilityServiceEverConnected(context)) {
-            return false;
-        }
-        if (Preferences.getAccessibilityEnableClickedAt(context) <= 0) {
-            return false;
-        }
+    private static boolean shouldOfferRestrictedSettingsHelp(Context context) {
         return !InstallSource.isPlayStoreInstall(context);
     }
 

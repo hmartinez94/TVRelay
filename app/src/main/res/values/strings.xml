@@ -97,17 +97,20 @@
     <string name="jellyfin_save_incomplete">Enter both the server URL and API key, or turn off \"Find in library first\"</string>
 
     <string name="restricted_settings_help_title">Accessibility isn\'t turning on</string>
-    <string name="restricted_settings_help_intro">TVRelay noticed you tried enabling Accessibility, but it still isn\'t listed as enabled. This usually means Android blocked it - here\'s how to fix it.</string>
-    <string name="restricted_settings_open_app_info">Open TVRelay\'s app info</string>
-    <string name="restricted_settings_open_app_info_description">Look for \"Allow restricted setting\" in the overflow/three-dot menu there, then come back and try Accessibility again</string>
+    <string name="restricted_settings_help_intro">Android blocked Accessibility - not a bug. Here\'s the fix:</string>
+    <string name="restricted_settings_adb_fix">Run this over ADB (or atvTools):</string>
+    <string name="restricted_settings_adb_fix_command">adb shell appops set com.hmartinez94.tvrelay ACCESS_RESTRICTED_SETTINGS allow</string>
     <string name="restricted_settings_retry_accessibility">Try Accessibility settings again</string>
+    <string name="restricted_settings_open_app_info">Try \"Allow restricted setting\" in app info</string>
+    <string name="restricted_settings_open_app_info_description">Not on every device</string>
+    <string name="restricted_settings_scan_more">Still not clear? Scan the code for more detail.</string>
 
     <string name="about_title">About &amp; help</string>
     <string name="about_legal">TVRelay is an independent automation and redirection tool. It does not host, store, distribute, or provide movies, series, streams, torrents, or any other audiovisual content. It has no relationship with Nuvio, Stremio, WuPlay, Plex, Jellyfin, or Wholphin, or the origin or legality of any content you access through those apps - that depends entirely on which apps and add-ons you have installed and configured, under your own responsibility. TVRelay is not affiliated with, sponsored by, authorized by, or endorsed by Google, Nuvio, Stremio, WuPlay, Plex, Jellyfin, or Wholphin.</string>
     <string name="about_tmdb_attribution">This product uses the TMDB API but is not endorsed or certified by TMDB. themoviedb.org</string>
     <string name="about_tvdb_attribution">If you switch to TheTVDB as your metadata provider: this product uses the TheTVDB API but is not endorsed or certified by TheTVDB. thetvdb.com</string>
     <!-- Order swapped in AboutStepFragment: TMDB is the default provider now, so its attribution reads first. -->
-    <string name="about_restricted_settings">If you sideloaded this app and the Accessibility toggle switches itself back off right after you enable it: that\'s Android\'s \"Restricted settings\" protection for apps not installed from an app store, not a bug. Look for \"Allow restricted setting\" on this app\'s system App info screen. If you can\'t find it, connect over ADB and run:\n\nadb shell settings put secure enabled_accessibility_services com.hmartinez94.tvrelay/com.hmartinez94.tvrelay.TvRelayAccessibilityService\nadb shell settings put secure accessibility_enabled 1\n\n(The first command replaces the whole list - separate services with a colon if you already use another one, like TalkBack.)</string>
+    <string name="about_restricted_settings">If you sideloaded this app and the Accessibility toggle switches itself back off right after you enable it: that\'s Android\'s \"Restricted settings\" protection for apps not installed from an app store, not a bug. Many Google TV/Android TV devices don\'t have an \"Allow restricted setting\" option anywhere in Settings to clear this - if yours does, it\'s on this app\'s system App info screen, in the overflow/three-dot menu. If not (or you\'d rather skip hunting for it), connect over ADB - or use the atvTools app (free, Google Play) from your phone if you don\'t have a computer handy - and run:\n\nadb shell appops set com.hmartinez94.tvrelay ACCESS_RESTRICTED_SETTINGS allow\nadb shell settings put secure enabled_accessibility_services com.hmartinez94.tvrelay/com.hmartinez94.tvrelay.TvRelayAccessibilityService\nadb shell settings put secure accessibility_enabled 1\n\n(The last command replaces the whole list - separate services with a colon if you already use another one, like TalkBack.)</string>
     <string name="about_close">Close</string>
 
     <string name="watch_now_loading">Looking that up…</string>
@@ -162,4 +165,12 @@
     <string name="update_cancel">Cancel</string>
     <string name="update_up_to_date">TVRelay is up to date - you have the latest version (%1$s)</string>
     <string name="update_available_toast">TVRelay update available - version %1$s is ready to install</string>
+
+    <string name="update_warning_title">Before you update</string>
+    <string name="update_warning_prefix">Installing this update through the app</string>
+    <string name="update_warning_highlight">will re-trigger Android\'s Restricted settings block</string>
+    <string name="update_warning_suffix">if Accessibility is currently enabled - it\'ll switch itself back off, and you\'ll need to redo the ADB (or atvTools) fix afterward. If you\'d rather avoid that, cancel here and sideload the update yourself instead.</string>
+    <string name="update_warning_continue">Continue with the update</string>
+    <string name="update_warning_sideload">Cancel - I\'ll sideload it myself</string>
+    <string name="update_warning_sideload_toast">Download the new APK from the Releases page and install it via ADB (or Downloader/Send Files to TV) instead - see the README\'s Installation section</string>
 </resources>
