@@ -57,11 +57,16 @@ import java.util.List;
  * Moonfin the way it is for Jellyfin/Wholphin: with it off, or on a miss,
  * there is nothing useful left to do.
  *
- * NUVIO carries two packages, not one - NuvioMedia/NuvioTV ships a Play Store build (com.nuvio.app)
+ * NUVIO carries three packages, not one - NuvioMedia/NuvioTV ships a Play Store build (com.nuvio.app)
  * and a differently-packaged GitHub Releases build (com.nuvio.tv) from the
- * same source, both accepting byte-identical nuvio:// URIs. PlayerLauncher
- * tries every entry in getPackages() in order, falling back generically
- * only past the last one - see openAcrossPackages().
+ * same source, plus hackerslash/NuvioTV-Lite (com.nuvio.tv.lite), an active
+ * fork for low-RAM boxes (smaller APK, capped playback buffers) that installs
+ * alongside the standard build rather than replacing it - confirmed
+ * 2026-09-09 by reading its source: it reuses MainActivity and the main
+ * manifest's nuvio:// intent-filter unchanged, only stripping the boot
+ * receiver/TV-channel-sync job service. All three accept byte-identical
+ * nuvio:// URIs. PlayerLauncher tries every entry in getPackages() in order,
+ * falling back generically only past the last one - see openAcrossPackages().
  *
  * WHOLPHIN (`com.github.damontecres.wholphin`) is a separate, from-scratch
  * (not forked) open-source Android TV client for a Jellyfin server - added
@@ -100,7 +105,7 @@ public enum PlayerApp {
     // tested on-device and confirmed failing), so feeding TMDB's own
     // "movie"/"tv" path segment straight into a template would silently
     // build a dead URI for Wako.
-    NUVIO(Arrays.asList("com.nuvio.app", "com.nuvio.tv"), "Nuvio", 0, true,
+    NUVIO(Arrays.asList("com.nuvio.app", "com.nuvio.tv", "com.nuvio.tv.lite"), "Nuvio", 0, true,
             "nuvio://movie/%s", "nuvio://detail/tv/%s",
             "nuvio://tmdb/movie/%s", "nuvio://tmdb/tv/%s"),
     STREMIO("com.stremio.one", "Stremio", 0, true,

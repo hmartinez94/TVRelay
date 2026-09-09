@@ -275,7 +275,7 @@ final class PlayerLauncher {
      * class name anyway. Instead the id is substituted into
      * getServerItemUriTemplate() (moonfin://item?id=%s) and the resulting
      * ACTION_VIEW is routed through openAcrossPackages(), the same
-     * try-each-package-in-order mechanism NUVIO's two packages already use,
+     * try-each-package-in-order mechanism NUVIO's packages already use,
      * relying on Moonfin's declared moonfin:// scheme filter rather than a
      * named Activity.
      */
@@ -535,7 +535,7 @@ final class PlayerLauncher {
      * URI scheme only that app's own builds claim. Every deep-link player
      * but Nuvio has exactly one package, making this a single attempt with
      * a generic retry, same as before per-player special-casing existed;
-     * Nuvio's two real, differently-packaged builds (see PlayerApp's class
+     * Nuvio's real, differently-packaged builds (see PlayerApp's class
      * doc) get tried in order first. intentTemplate carries the
      * action/data/etc. already built by the caller (prepare()'s TMDB-native
      * path, or open()'s IMDb-based path) - copied per attempt since

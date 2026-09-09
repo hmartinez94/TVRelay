@@ -59,6 +59,7 @@
     <queries>
         <package android:name="com.nuvio.app" />
         <package android:name="com.nuvio.tv" />
+        <package android:name="com.nuvio.tv.lite" />
         <package android:name="com.stremio.one" />
         <package android:name="app.wuplay.androidtv" />
         <package android:name="app.wako" />
