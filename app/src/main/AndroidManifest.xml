@@ -113,11 +113,23 @@
              be launched from an Activity, not directly from the background
              AccessibilityService/foreground Service that actually wants the
              capture - this activity exists purely to bridge that gap and
-             finishes immediately once the user responds. -->
+             finishes immediately once the user responds.
+
+             taskAffinity="" is required: without it, this activity shares
+             MainActivity's default task affinity, so FLAG_ACTIVITY_NEW_TASK
+             (see OcrCaptureManager.requestTitleCapture()) doesn't create a
+             new task on the first-ever capture of a session - it resurrects
+             the app's existing backgrounded task instead, visually
+             reopening whatever screen (e.g. Settings) was left on top when
+             the user last exited. The OCR capture that follows then reads
+             that resurrected screen instead of the launcher's detail page,
+             misdetecting the app's own name as the title. Confirmed
+             on-device via WindowManager transition logs. -->
         <activity
             android:name=".OcrConsentActivity"
             android:exported="false"
             android:excludeFromRecents="true"
+            android:taskAffinity=""
             android:theme="@android:style/Theme.Translucent.NoTitleBar" />
 
         <service
