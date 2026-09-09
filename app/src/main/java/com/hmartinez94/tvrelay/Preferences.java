@@ -23,6 +23,7 @@ public final class Preferences {
     private static final String KEY_FIRE_TV_MODE_ENABLED = "fire_tv_mode_enabled";
     private static final String KEY_YOUTUBE_REDIRECT_TARGET = "youtube_redirect_target";
     private static final String KEY_OVERLAY_REAPPEAR_ENABLED = "overlay_reappear_enabled";
+    private static final String KEY_OVERLAY_LONG_PRESS_ONLY = "overlay_long_press_only";
     private static final String KEY_UPDATE_CHECKED_AT = "update_checked_at";
     private static final String KEY_UPDATE_LATEST_VERSION = "update_latest_version";
     private static final String KEY_UPDATE_APK_URL = "update_apk_url";
@@ -265,6 +266,36 @@ public final class Preferences {
 
     public static void setOverlayReappearEnabled(Context context, boolean enabled) {
         prefs(context).edit().putBoolean(KEY_OVERLAY_REAPPEAR_ENABLED, enabled).apply();
+    }
+
+    /**
+     * Raw stored value of the "Long press only" toggle - only meant for the
+     * Settings row's own checkbox state (SettingsStepFragment). Every
+     * runtime caller (WatchNowOverlay) must go through
+     * isOverlayLongPressOnlyReady() instead, so a stale "on" value can't
+     * keep changing button behavior after Reappear is turned back off.
+     * Default off.
+     */
+    public static boolean isOverlayLongPressOnlyEnabled(Context context) {
+        return prefs(context).getBoolean(KEY_OVERLAY_LONG_PRESS_ONLY, false);
+    }
+
+    public static void setOverlayLongPressOnlyEnabled(Context context, boolean enabled) {
+        prefs(context).edit().putBoolean(KEY_OVERLAY_LONG_PRESS_ONLY, enabled).apply();
+    }
+
+    /**
+     * The single gate WatchNowOverlay actually checks before requiring a
+     * long press to confirm - true only when the toggle is on AND Reappear
+     * is also on, same "enabled AND its prerequisites" shape as
+     * isJellyfinLibraryLookupReady(). Deliberately doesn't also check the
+     * overlay permission here: WatchNowOverlay.ensureButton() already bails
+     * out with no button at all when that's missing, so there's nothing to
+     * wire either way, and this is read on every confirm - not worth a
+     * Settings.canDrawOverlays() binder call each time.
+     */
+    public static boolean isOverlayLongPressOnlyReady(Context context) {
+        return isOverlayLongPressOnlyEnabled(context) && isOverlayReappearEnabled(context);
     }
 
     /**

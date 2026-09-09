@@ -53,6 +53,7 @@ public class SettingsStepFragment extends GuidedStepSupportFragment {
     private static final long ACTION_JELLYFIN_SERVER = 14;
     private static final long ACTION_FIRE_TV_MODE = 15;
     private static final long ACTION_HIDE_ALTERNATE_TITLES = 16;
+    private static final long ACTION_OVERLAY_LONG_PRESS = 17;
 
     /** Throttle for the GitHub release check kicked off from onResume() - see maybeCheckForUpdate(). */
     private static final long UPDATE_CHECK_INTERVAL_MS = 24L * 60 * 60 * 1000;
@@ -282,15 +283,42 @@ public class SettingsStepFragment extends GuidedStepSupportFragment {
                         ? R.string.settings_overlay_status_enabled
                         : R.string.settings_overlay_status_disabled))
                 .build());
+        // Reappear is meaningless without the overlay permission - hide()
+        // never even gets a button to conceal/reveal without it (see
+        // WatchNowOverlay.ensureButton()) - so the row is disabled (not just
+        // hidden, so its own default-on state stays visible/predictable)
+        // until overlayGranted is true, matching ACTION_ENABLE_OVERLAY above.
         boolean overlayReappearEnabled = Preferences.isOverlayReappearEnabled(context);
         actions.add(new GuidedAction.Builder(context)
                 .id(ACTION_OVERLAY_REAPPEAR)
                 .title(getString(R.string.settings_overlay_reappear))
-                .description(getString(overlayReappearEnabled
-                        ? R.string.settings_overlay_reappear_status_enabled
-                        : R.string.settings_overlay_reappear_status_disabled))
+                .description(getString(!overlayGranted
+                        ? R.string.settings_overlay_reappear_status_requires_permission
+                        : overlayReappearEnabled
+                                ? R.string.settings_overlay_reappear_status_enabled
+                                : R.string.settings_overlay_reappear_status_disabled))
                 .checkSetId(GuidedAction.CHECKBOX_CHECK_SET_ID)
                 .checked(overlayReappearEnabled)
+                .enabled(overlayGranted)
+                .build());
+        // Same reasoning as Reappear's own gate above, plus Reappear itself:
+        // long-press-only's short-press dismiss (see WatchNowOverlay.hide())
+        // only does anything when Reappear is on - see
+        // Preferences.isOverlayLongPressOnlyReady().
+        boolean overlayLongPressOnlyEnabled = Preferences.isOverlayLongPressOnlyEnabled(context);
+        actions.add(new GuidedAction.Builder(context)
+                .id(ACTION_OVERLAY_LONG_PRESS)
+                .title(getString(R.string.settings_overlay_long_press))
+                .description(getString(!overlayGranted
+                        ? R.string.settings_overlay_long_press_status_requires_permission
+                        : !overlayReappearEnabled
+                                ? R.string.settings_overlay_long_press_status_requires_reappear
+                                : overlayLongPressOnlyEnabled
+                                        ? R.string.settings_overlay_long_press_status_enabled
+                                        : R.string.settings_overlay_long_press_status_disabled))
+                .checkSetId(GuidedAction.CHECKBOX_CHECK_SET_ID)
+                .checked(overlayLongPressOnlyEnabled)
+                .enabled(overlayGranted && overlayReappearEnabled)
                 .build());
 
         addHeader(actions, context, ACTION_HEADER_ACCESSIBILITY, R.string.settings_section_accessibility);
@@ -463,12 +491,48 @@ public class SettingsStepFragment extends GuidedStepSupportFragment {
         }
 
         if (id == ACTION_OVERLAY_REAPPEAR) {
+            if (!Settings.canDrawOverlays(context)) {
+                // Belt-and-suspenders: the row's .enabled(false) above should
+                // already stop this click from reaching here.
+                return;
+            }
             boolean enabled = !Preferences.isOverlayReappearEnabled(context);
             Preferences.setOverlayReappearEnabled(context, enabled);
             action.setChecked(enabled);
             action.setDescription(getString(enabled
                     ? R.string.settings_overlay_reappear_status_enabled
                     : R.string.settings_overlay_reappear_status_disabled));
+            notifyActionChanged(getActions().indexOf(action));
+
+            // Long-press-only depends on this setting too (see its own
+            // .enabled() in buildActions()) - update it in place rather than
+            // a full setActions() rebuild, which would reset D-pad focus to
+            // the top of the list.
+            GuidedAction longPressAction = findActionById(ACTION_OVERLAY_LONG_PRESS);
+            if (longPressAction != null) {
+                longPressAction.setEnabled(enabled);
+                longPressAction.setDescription(getString(enabled
+                        ? (Preferences.isOverlayLongPressOnlyEnabled(context)
+                                ? R.string.settings_overlay_long_press_status_enabled
+                                : R.string.settings_overlay_long_press_status_disabled)
+                        : R.string.settings_overlay_long_press_status_requires_reappear));
+                notifyActionChanged(getActions().indexOf(longPressAction));
+            }
+            return;
+        }
+
+        if (id == ACTION_OVERLAY_LONG_PRESS) {
+            if (!Settings.canDrawOverlays(context) || !Preferences.isOverlayReappearEnabled(context)) {
+                // Belt-and-suspenders: the row's .enabled(false) above should
+                // already stop this click from reaching here.
+                return;
+            }
+            boolean enabled = !Preferences.isOverlayLongPressOnlyEnabled(context);
+            Preferences.setOverlayLongPressOnlyEnabled(context, enabled);
+            action.setChecked(enabled);
+            action.setDescription(getString(enabled
+                    ? R.string.settings_overlay_long_press_status_enabled
+                    : R.string.settings_overlay_long_press_status_disabled));
             notifyActionChanged(getActions().indexOf(action));
             return;
         }

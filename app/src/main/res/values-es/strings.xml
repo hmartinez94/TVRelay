@@ -62,6 +62,12 @@
     <string name="settings_overlay_reappear">Reaparecer al descartar</string>
     <string name="settings_overlay_reappear_status_enabled">Estado: activado - descartar el botón de confirmación con Atrás o una pulsación del D-pad solo lo oculta; reaparece unos segundos después hasta que vuelvas a la pantalla de inicio del launcher</string>
     <string name="settings_overlay_reappear_status_disabled">Estado: desactivado - descartar el botón de confirmación lo elimina definitivamente, como el comportamiento original</string>
+    <string name="settings_overlay_reappear_status_requires_permission">Requiere activar la confirmación \"Ver ahora\" más arriba</string>
+    <string name="settings_overlay_long_press">Solo pulsación larga</string>
+    <string name="settings_overlay_long_press_status_enabled">Estado: activado - mantén pulsado Aceptar en el botón de confirmación para abrir la app; una pulsación corta solo lo oculta y reaparece unos segundos después</string>
+    <string name="settings_overlay_long_press_status_disabled">Estado: desactivado - una pulsación normal del botón de confirmación abre la app al momento</string>
+    <string name="settings_overlay_long_press_status_requires_permission">Requiere activar la confirmación \"Ver ahora\" más arriba</string>
+    <string name="settings_overlay_long_press_status_requires_reappear">Requiere activar \"Reaparecer al descartar\" más arriba</string>
 
     <string name="settings_section_accessibility">Accesibilidad y permisos</string>
     <string name="settings_enable_accessibility">Activar en Ajustes de Accesibilidad</string>
@@ -131,8 +137,11 @@
 
     <string name="watch_now_loading">Buscando…</string>
     <string name="watch_now_confirm">Ver ahora en %1$s</string>
+    <string name="watch_now_confirm_hold">Mantén pulsado para ver en %1$s</string>
     <string name="watch_now_choose">Elegir en %1$s</string>
+    <string name="watch_now_choose_hold">Mantén pulsado para elegir en %1$s</string>
     <string name="watch_now_search">Buscar en %1$s</string>
+    <string name="watch_now_search_hold">Mantén pulsado para buscar en %1$s</string>
 
     <string name="search_title">Buscar un título</string>
     <string name="search_description">Algunas tarjetas de recomendación no exponen su título a las herramientas de accesibilidad, así que TVRelay no siempre puede detectarlas automáticamente. Escribe aquí el título en su lugar - todo lo demás (buscarlo, abrir tu app elegida) funciona exactamente igual.</string>

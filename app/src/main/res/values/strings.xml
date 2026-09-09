@@ -64,6 +64,12 @@
     <string name="settings_overlay_reappear">Reappear after dismissing</string>
     <string name="settings_overlay_reappear_status_enabled">Status: enabled - dismissing the confirm button with Back or a D-pad press only hides it; it reappears a few seconds later until you return to the launcher\'s home screen</string>
     <string name="settings_overlay_reappear_status_disabled">Status: disabled - dismissing the confirm button discards it for good, like the original behavior</string>
+    <string name="settings_overlay_reappear_status_requires_permission">Requires \"Watch now\" confirmation to be enabled above</string>
+    <string name="settings_overlay_long_press">Long press only</string>
+    <string name="settings_overlay_long_press_status_enabled">Status: enabled - hold Select on the confirm button to open the app; a short press only hides it, and it reappears a few seconds later</string>
+    <string name="settings_overlay_long_press_status_disabled">Status: disabled - a normal press on the confirm button opens the app right away</string>
+    <string name="settings_overlay_long_press_status_requires_permission">Requires \"Watch now\" confirmation to be enabled above</string>
+    <string name="settings_overlay_long_press_status_requires_reappear">Requires \"Reappear after dismissing\" to be enabled above</string>
 
     <string name="settings_section_accessibility">Accessibility &amp; Permissions</string>
     <string name="settings_enable_accessibility">Enable in Accessibility settings</string>
@@ -121,8 +127,11 @@
 
     <string name="watch_now_loading">Looking that up…</string>
     <string name="watch_now_confirm">Watch now in %1$s</string>
+    <string name="watch_now_confirm_hold">Hold to watch in %1$s</string>
     <string name="watch_now_choose">Choose in %1$s</string>
+    <string name="watch_now_choose_hold">Hold to choose in %1$s</string>
     <string name="watch_now_search">Search in %1$s</string>
+    <string name="watch_now_search_hold">Hold to search in %1$s</string>
 
     <string name="search_title">Search for a title</string>
     <string name="search_description">Some recommendation cards don\'t expose their title to accessibility tools, so TVRelay can\'t always detect them automatically. Type the title here instead - everything after that (looking it up, opening your chosen app) works exactly the same way.</string>
