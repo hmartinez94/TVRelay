@@ -373,6 +373,17 @@ public class TvRelayAccessibilityService extends AccessibilityService {
             return;
         }
 
+        // Navbar tabs ("Apps"/"Home"/"Live") have a null contentDescription
+        // too, but carry their own label in event.getText() - a genuinely
+        // blank "Top picks" card has both empty. Without this check, a
+        // navbar click fell into the source==null branch below like a
+        // blank card, spuriously triggering OCR (confirmed on-device).
+        List<CharSequence> text = event.getText();
+        if (text != null && !text.isEmpty()) {
+            Log.d(TAG, "Ignoring chrome click with a text label but no contentDesc: " + text);
+            return;
+        }
+
         // Some rows populate content-desc a moment after the click - it's
         // still empty at event time. Retry once, shortly after, by
         // re-reading the node.
