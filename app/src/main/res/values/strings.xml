@@ -25,6 +25,7 @@
     <string name="settings_player_plex_description">Opens Plex\'s search screen - you\'ll need to type the title yourself, and it only finds titles already in your library</string>
     <string name="settings_player_jellyfin_description">Opens a search in Jellyfin by default - set up \"Find in library first\" below to open titles on your own server directly instead</string>
     <string name="settings_player_wholphin_description">Opens a search in Wholphin by default - an independent, open-source Jellyfin client. Set up \"Find in library first\" below to open titles on your own server directly instead</string>
+    <string name="settings_player_wako_description">Opens titles using their TMDB id directly - doesn\'t work if you\'ve set Metadata provider to TheTVDB</string>
     <string name="settings_ocr_fallback">Screen-reading fallback for undetectable cards</string>
     <string name="settings_ocr_status_enabled">Status: enabled - a persistent recording indicator stays visible while this is on. Captures the screen on-device (nothing uploaded) when a card or voice-search result has no readable title</string>
     <string name="settings_ocr_status_disabled">Status: disabled - cards and voice-search results with no readable title are left alone</string>
@@ -109,7 +110,7 @@
     <string name="restricted_settings_scan_more">Still not clear? Scan the code for more detail.</string>
 
     <string name="about_title">About &amp; help</string>
-    <string name="about_legal">TVRelay is an independent automation and redirection tool. It does not host, store, distribute, or provide movies, series, streams, torrents, or any other audiovisual content. It has no relationship with Nuvio, Stremio, WuPlay, Plex, Jellyfin, or Wholphin, or the origin or legality of any content you access through those apps - that depends entirely on which apps and add-ons you have installed and configured, under your own responsibility. TVRelay is not affiliated with, sponsored by, authorized by, or endorsed by Google, Nuvio, Stremio, WuPlay, Plex, Jellyfin, or Wholphin.</string>
+    <string name="about_legal">TVRelay is an independent automation and redirection tool. It does not host, store, distribute, or provide movies, series, streams, torrents, or any other audiovisual content. It has no relationship with Nuvio, Stremio, WuPlay, Wako, Plex, Jellyfin, or Wholphin, or the origin or legality of any content you access through those apps - that depends entirely on which apps and add-ons you have installed and configured, under your own responsibility. TVRelay is not affiliated with, sponsored by, authorized by, or endorsed by Google, Nuvio, Stremio, WuPlay, Wako, Plex, Jellyfin, or Wholphin.</string>
     <string name="about_tmdb_attribution">This product uses the TMDB API but is not endorsed or certified by TMDB. themoviedb.org</string>
     <string name="about_tvdb_attribution">If you switch to TheTVDB as your metadata provider: this product uses the TheTVDB API but is not endorsed or certified by TheTVDB. thetvdb.com</string>
     <!-- Order swapped in AboutStepFragment: TMDB is the default provider now, so its attribution reads first. -->

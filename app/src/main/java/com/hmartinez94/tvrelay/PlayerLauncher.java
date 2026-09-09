@@ -39,7 +39,7 @@ import java.util.function.BooleanSupplier;
  * isJellyfinLibraryLookupReady(), an opt-in that needs a server URL + API
  * key (JellyfinSettingsStepFragment). When on and the clicked title is an
  * exact match in the user's own library, TVRelay opens that title's detail
- * page directly, the same way Nuvio/Stremio/WuPlay do; otherwise (feature
+ * page directly, the same way Nuvio/Stremio/WuPlay/Wako do; otherwise (feature
  * off, not configured, or no library hit) it falls through to the plain
  * search hand-off above, unchanged. Jellyfin's /Items endpoint has no
  * provider-id filter exposed (see JellyfinClient's class doc), so this
@@ -130,16 +130,24 @@ final class PlayerLauncher {
      * thread it already had to be on.
      *
      * For a title-search player, nothing needs resolving either - see
-     * prepareTitleSearch(). For Nuvio + a TMDB-provenance candidate,
-     * likewise nothing needs resolving: Nuvio accepts a TMDB id directly
-     * (nuvio://tmdb/{movie|tv}/{id}), so the returned supplier is a plain,
+     * prepareTitleSearch(). For a TMDB-native player (Nuvio, Wako) + a
+     * TMDB-provenance candidate, likewise nothing needs resolving: both
+     * accept a TMDB id directly (nuvio://tmdb/{movie|tv}/{id},
+     * wako://media/{movie|show}/{id}), so the returned supplier is a plain,
      * already-built Intent launch with no network call in it at all -
      * faster, and it works even for a candidate TMDB hasn't cross-referenced
      * to an IMDb id yet (see TmdbClient.resolveImdbId, which would
      * otherwise fail those). Every other case (TheTVDB candidates, or
-     * Stremio - which has no TMDB-native scheme) resolves an IMDb id first,
-     * exactly as before this existed - a blocking network call for TMDB in
-     * that case.
+     * Stremio/WuPlay - which have no TMDB-native scheme) resolves an IMDb id
+     * first, exactly as before this existed - a blocking network call for
+     * TMDB in that case.
+     *
+     * Returns null - "nothing to open", handled by every caller already
+     * (see TitleHandler/SearchStepFragment) - not only when resolution
+     * fails, but also for the one combination with no route at all: a
+     * TheTVDB-sourced candidate with Wako selected, since Wako has no
+     * IMDb-based URI (see PlayerApp.WAKO). That's checked before the
+     * resolve call, so it costs nothing.
      */
     static BooleanSupplier prepare(Context context, TitleCandidate candidate) {
         if (candidate.jellyfinItemId != null) {
@@ -158,11 +166,23 @@ final class PlayerLauncher {
         if (app.usesTitleSearch()) {
             return prepareTitleSearch(context, candidate.displayTitle);
         }
-        if (app.getTmdbUriTemplate() != null && candidate.tmdbMediaPath != null) {
-            Uri uri = Uri.parse(String.format(app.getTmdbUriTemplate(), candidate.tmdbMediaPath, candidate.tmdbId));
-            Intent intent = new Intent(Intent.ACTION_VIEW, uri);
+        String tmdbTemplate = forType(candidate.type, app.getTmdbMovieUriTemplate(), app.getTmdbSeriesUriTemplate());
+        if (tmdbTemplate != null && candidate.tmdbMediaPath != null) {
+            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(String.format(tmdbTemplate, candidate.tmdbId)));
             return () -> openAcrossPackages(context, intent, app);
         }
+
+        // No TMDB-native route for this candidate, so the only route left is
+        // an IMDb id - which WAKO has none of at all (confirmed absence, see
+        // PlayerApp.WAKO / CLAUDE.md). Checked before MetadataResolver.resolve()
+        // so this costs zero network calls; returns null exactly like any
+        // other unresolvable title (see this method's javadoc / callers).
+        if (forType(candidate.type, app.getMovieUriTemplate(), app.getSeriesUriTemplate()) == null) {
+            Log.w(TAG, app + " has no deep link for this candidate (no TMDB id, no IMDb-based "
+                    + app + " URI): " + candidate.displayTitle);
+            return null;
+        }
+
         TvdbMatch match = MetadataResolver.resolve(context, candidate);
         return match != null ? () -> open(context, match) : null;
     }
@@ -444,16 +464,30 @@ final class PlayerLauncher {
         return new YouTubeRedirect(SMARTTUBE_LABEL, prepareSmartTube(context, rawTitle));
     }
 
+    /**
+     * Picks the movie-or-series half of a template pair - the shape every
+     * deep-link URI on PlayerApp comes in, for both the IMDb pair and the
+     * TMDB-native pair. Extracted so prepare() and open() don't each write
+     * out the same ternary.
+     */
+    private static String forType(MediaType type, String movieTemplate, String seriesTemplate) {
+        return type == MediaType.SERIES ? seriesTemplate : movieTemplate;
+    }
+
     /** IMDb-id-based launch for an already-resolved match - see prepare() for the TMDB-native and title-search fast paths. */
     static boolean open(Context context, TvdbMatch match) {
         PlayerApp app = Preferences.getSelectedApp(context);
 
         // PLEX/JELLYFIN/WHOLPHIN never reach here - prepare() routes
         // title-search players to prepareTitleSearch() before any IMDb
-        // resolution happens. If this throws, something upstream regressed
-        // (this used to be an unguarded "else build a Stremio URI", which is
-        // exactly the bug this explicit check exists to prevent).
-        String template = match.getType() == MediaType.SERIES ? app.getSeriesUriTemplate() : app.getMovieUriTemplate();
+        // resolution happens - and neither does WAKO, which has no
+        // IMDb-based URI at all and is turned away by prepare()'s explicit
+        // guard before the resolve call. So this stays a genuine
+        // should-be-unreachable assertion: if it throws, something upstream
+        // regressed (this used to be an unguarded "else build a Stremio
+        // URI", which is exactly the bug this explicit check exists to
+        // prevent).
+        String template = forType(match.getType(), app.getMovieUriTemplate(), app.getSeriesUriTemplate());
         if (template == null) {
             throw new IllegalStateException(app + " does not support IMDb-based open() - see prepareTitleSearch()");
         }

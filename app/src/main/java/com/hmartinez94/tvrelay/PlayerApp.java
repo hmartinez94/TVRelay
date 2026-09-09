@@ -17,7 +17,18 @@ import java.util.List;
  * `wuplay://{movie|series}/{imdbId}` scheme confirmed working on-device
  * 2026-08-24, added in WuPlay's own v0.8.3-beta release the same day (see
  * CLAUDE.md's "WuPlay wall" - this reverses that section's original
- * finding, which is why it's dated and kept rather than deleted). JELLYFIN
+ * finding, which is why it's dated and kept rather than deleted). WAKO
+ * (`app.wako`) is the same shape - its `wako://media/{movie|show}/{tmdbId}`
+ * scheme was confirmed working on-device 2026-09-08 (see CLAUDE.md's "Wako"
+ * section) - but is disabled (enabled=false), same as PLEX below and for an
+ * unrelated reason: confirmed the same day, with a real user watching live,
+ * that the deep link only works when Wako's process isn't already running -
+ * a warm Wako silently reopens whatever it last showed instead of
+ * navigating to the new title, proven with adb alone (identical PID before
+ * and after a second deep link) so it's not something PlayerLauncher's
+ * Intent construction could ever fix - no third-party app can force another
+ * app's process to restart. Re-enable by flipping this flag back to true if
+ * Wako's own app ever starts handling a warm relaunch correctly. JELLYFIN
  * and WHOLPHIN have no *universal-catalog* content deep link - see
  * CLAUDE.md's "Plex and Jellyfin" and "Wholphin support" notes - so they
  * keep LaunchStyle.TITLE_SEARCH and, by default, still get the same plain
@@ -59,15 +70,39 @@ import java.util.List;
 public enum PlayerApp {
     // Deep-link players: movieUriTemplate/seriesUriTemplate are format
     // strings with one %s placeholder for the IMDb id - see
-    // PlayerLauncher.open(). Nuvio alone also gets a tmdbUriTemplate (two
-    // %s placeholders: TMDB's own media-path segment, then the TMDB id -
-    // see prepare()'s TMDB-native fast path) and a second package.
+    // PlayerLauncher.open(). tmdbMovieUriTemplate/tmdbSeriesUriTemplate are
+    // the same shape for a TMDB id instead (see prepare()'s TMDB-native
+    // fast path) - a full URI each, type token included, deliberately NOT
+    // "one template + a substituted media-type segment": Nuvio and Wako do
+    // not share a type vocabulary (nuvio://tmdb/tv/... vs
+    // wako://media/show/... - "show", singular, is the only form Wako
+    // accepts; wako://media/tv/... and wako://media/series/... were both
+    // tested on-device and confirmed failing, see CLAUDE.md's "Wako"
+    // section), so feeding TMDB's own "movie"/"tv" path segment straight
+    // into a template would silently build a dead URI for Wako.
     NUVIO(Arrays.asList("com.nuvio.app", "com.nuvio.tv"), "Nuvio", 0, true,
-            "nuvio://movie/%s", "nuvio://detail/tv/%s", "nuvio://tmdb/%s/%s"),
+            "nuvio://movie/%s", "nuvio://detail/tv/%s",
+            "nuvio://tmdb/movie/%s", "nuvio://tmdb/tv/%s"),
     STREMIO("com.stremio.one", "Stremio", 0, true,
             "stremio:///detail/movie/%s", "stremio:///detail/series/%s"),
     WUPLAY("app.wuplay.androidtv", "WuPlay", 0, true,
             "wuplay://movie/%s", "wuplay://series/%s"),
+    // TMDB-native ONLY - the first player here with no IMDb-based URI at
+    // all. wako://media/{movie|show}/{tmdbId} was confirmed working
+    // on-device 2026-09-08 (Iron Man tmdb 1726, Breaking Bad tmdb 1396);
+    // wako://media/movie/imdb/tt... and wako://movie/tt... were both tested
+    // and silently no-opped to Wako's home screen, so the null/null IMDb
+    // pair below is a confirmed absence, not an unfinished TODO - see
+    // CLAUDE.md and PlayerLauncher.prepare()'s guard, which is what stops
+    // a TheTVDB-sourced candidate reaching open() and throwing.
+    // DISABLED (enabled=false, 2026-09-08) - see the class javadoc above
+    // and CLAUDE.md's "Wako" section: the deep link only works on a cold
+    // start, confirmed with a real click and independently reproduced via
+    // adb (identical process PID before/after a warm relaunch). Not a
+    // TVRelay bug - nothing here needs fixing, only Wako's own app does.
+    WAKO(Collections.singletonList("app.wako"), "Wako", R.string.settings_player_wako_description, false,
+            null, null,
+            "wako://media/movie/%s", "wako://media/show/%s"),
 
     // Title-search players: titleSearchComponent is the fully-qualified
     // Activity PlayerLauncher.prepareTitleSearch() targets explicitly (see
@@ -108,7 +143,8 @@ public enum PlayerApp {
     private final boolean enabled;
     private final String movieUriTemplate;
     private final String seriesUriTemplate;
-    private final String tmdbUriTemplate;
+    private final String tmdbMovieUriTemplate;
+    private final String tmdbSeriesUriTemplate;
     private final String titleSearchComponent;
     private final boolean usesJellyfinServer;
     private final ServerItemStyle serverItemStyle;
@@ -117,12 +153,21 @@ public enum PlayerApp {
     PlayerApp(String packageName, String label, int descriptionRes, boolean enabled,
               String movieUriTemplate, String seriesUriTemplate) {
         this(Collections.singletonList(packageName), label, descriptionRes, enabled,
-                movieUriTemplate, seriesUriTemplate, null);
+                movieUriTemplate, seriesUriTemplate, null, null);
     }
 
-    /** Deep-link player with one or more packages to try in order, and an optional TMDB-native fast path (Nuvio). */
+    /**
+     * Deep-link player with one or more packages to try in order, and any
+     * combination of IMDb-based and TMDB-native URI templates. Both pairs
+     * are independently nullable: Nuvio has both, Stremio/WuPlay have only
+     * the IMDb pair, Wako has only the TMDB pair (no working IMDb-based
+     * wako:// URI exists - see WAKO above). PlayerLauncher.prepare() picks
+     * between them per candidate and bails out cleanly when neither
+     * applies.
+     */
     PlayerApp(List<String> packages, String label, int descriptionRes, boolean enabled,
-              String movieUriTemplate, String seriesUriTemplate, String tmdbUriTemplate) {
+              String movieUriTemplate, String seriesUriTemplate,
+              String tmdbMovieUriTemplate, String tmdbSeriesUriTemplate) {
         this.packages = packages;
         this.label = label;
         this.launchStyle = LaunchStyle.DEEP_LINK;
@@ -130,7 +175,8 @@ public enum PlayerApp {
         this.enabled = enabled;
         this.movieUriTemplate = movieUriTemplate;
         this.seriesUriTemplate = seriesUriTemplate;
-        this.tmdbUriTemplate = tmdbUriTemplate;
+        this.tmdbMovieUriTemplate = tmdbMovieUriTemplate;
+        this.tmdbSeriesUriTemplate = tmdbSeriesUriTemplate;
         this.titleSearchComponent = null;
         this.usesJellyfinServer = false;
         this.serverItemStyle = null;
@@ -146,7 +192,8 @@ public enum PlayerApp {
         this.enabled = enabled;
         this.movieUriTemplate = null;
         this.seriesUriTemplate = null;
-        this.tmdbUriTemplate = null;
+        this.tmdbMovieUriTemplate = null;
+        this.tmdbSeriesUriTemplate = null;
         this.titleSearchComponent = titleSearchComponent;
         this.usesJellyfinServer = usesJellyfinServer;
         this.serverItemStyle = serverItemStyle;
@@ -191,9 +238,14 @@ public enum PlayerApp {
         return seriesUriTemplate;
     }
 
-    /** Format string (two %s: TMDB's media-path segment, then the TMDB id) for a TMDB-native fast path - null except for Nuvio. */
-    String getTmdbUriTemplate() {
-        return tmdbUriTemplate;
+    /** Format string (one %s, the TMDB id) for a TMDB-native movie deep link - null for a player with no TMDB-native path. */
+    String getTmdbMovieUriTemplate() {
+        return tmdbMovieUriTemplate;
+    }
+
+    /** Format string (one %s, the TMDB id) for a TMDB-native series deep link - null for a player with no TMDB-native path. */
+    String getTmdbSeriesUriTemplate() {
+        return tmdbSeriesUriTemplate;
     }
 
     /** Fully-qualified Activity a title-search player's Intent targets explicitly - null for a deep-link player. */

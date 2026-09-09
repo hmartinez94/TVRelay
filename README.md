@@ -191,7 +191,7 @@ The APK is written to `app\build\outputs\apk\debug\app-debug.apk`.
 
 TVRelay's function is limited to detecting certain recommendations shown by the device's launcher, identifying the selected content, and opening its page in a third-party app you've already installed and configured yourself - it does not host, store, distribute, or provide any movies, series, streams, torrents, or other audiovisual content, and has no visibility into or control over what those third-party apps and their add-ons actually serve. You're responsible for your own use of them, including making sure that use complies with applicable law and their respective terms of service.
 
-TVRelay is not affiliated with, sponsored by, authorized by, or endorsed by Google, Google TV, Amazon, Fire TV, Nuvio, Stremio, WuPlay, Plex, Jellyfin, or Wholphin. Google, Google TV, Android TV, Amazon, Fire TV, Nuvio, Stremio, WuPlay, Plex, Jellyfin, and Wholphin are trademarks or products of their respective owners.
+TVRelay is not affiliated with, sponsored by, authorized by, or endorsed by Google, Google TV, Amazon, Fire TV, Nuvio, Stremio, WuPlay, Wako, Plex, Jellyfin, or Wholphin. Google, Google TV, Android TV, Amazon, Fire TV, Nuvio, Stremio, WuPlay, Wako, Plex, Jellyfin, and Wholphin are trademarks or products of their respective owners.
 
 ## Credits
 
