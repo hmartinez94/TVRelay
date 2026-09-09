@@ -46,7 +46,6 @@ public class TvRelayAccessibilityService extends AccessibilityService {
     //   "Scary Movie, costs: $9.99, original price: $19.99, rotten rating: 23% on Rotten Tomatoes"
     //   "REACHER, requires Prime Video subscription, fresh rating: 95% on Rotten Tomatoes"
     //   "Fountain of Youth, Apple TV, rotten rating: 35% on Rotten Tomatoes"
-    // The Spanish strings match the reference app this is based on.
     private static final String[] TITLE_MARKERS = {
             "cuesta:", "se necesita una suscripción a", "puntuación:",
             "costs:", "rating:"
@@ -163,11 +162,6 @@ public class TvRelayAccessibilityService extends AccessibilityService {
     @Override
     protected void onServiceConnected() {
         super.onServiceConnected();
-
-        // Records the "actually bound, for real" signal used by
-        // SettingsStepFragment's Restricted-settings heuristic - see
-        // Preferences.hasAccessibilityServiceEverConnected().
-        Preferences.setAccessibilityServiceEverConnected(this, true);
 
         overlay = new WatchNowOverlay(this);
 

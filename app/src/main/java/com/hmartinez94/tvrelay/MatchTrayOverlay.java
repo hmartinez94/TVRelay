@@ -18,12 +18,11 @@ import java.util.List;
  * Floating host for MatchTrayView, added straight to WindowManager so the
  * chooser appears over whatever the launcher is showing with no screen
  * transition. This used to be one of two hosts A/B-tested against a
- * translucent Activity (MatchChooserActivity) - that Activity never
- * actually rendered as translucent (setContentView(View) forces its
- * argument to MATCH_PARENT regardless of the view's own size, so its
- * opaque tray background filled the whole screen) and was dropped
- * entirely rather than fixed, once this overlay proved to work better
- * anyway.
+ * translucent host Activity - that Activity never actually rendered as
+ * translucent (setContentView(View) forces its argument to MATCH_PARENT
+ * regardless of the view's own size, so its opaque tray background filled
+ * the whole screen) and was dropped entirely rather than fixed, once this
+ * overlay proved to work better anyway.
  *
  * Takes a Context, but which one matters: when built from the bound
  * accessibility service (the Google TV path), it can use

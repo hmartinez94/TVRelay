@@ -24,7 +24,6 @@ final class ExactMatchPicker<T> {
     private final boolean hideAlternateTitles;
     private final List<Entry<T>> offered = new ArrayList<>();
 
-    private T topRelevanceResult;
     private T bestExactMatch;
     private boolean bestExactHasAlternateTitle = true; // worst case, so the first exact match always wins
     private int bestExactYear = Integer.MIN_VALUE;
@@ -57,9 +56,6 @@ final class ExactMatchPicker<T> {
             return;
         }
         offered.add(new Entry<>(candidate, isExactTitleMatch, hasAlternateTitle, year));
-        if (topRelevanceResult == null) {
-            topRelevanceResult = candidate;
-        }
         if (isExactTitleMatch && isBetterExactMatch(hasAlternateTitle, year)) {
             bestExactMatch = candidate;
             bestExactHasAlternateTitle = hasAlternateTitle;
@@ -67,7 +63,7 @@ final class ExactMatchPicker<T> {
         }
     }
 
-    /** Mirrors ranked()'s two-key sort (no-alternate-title first, then higher year) so ranked().get(0) always equals result(). */
+    /** Mirrors ranked()'s two-key sort (no-alternate-title first, then higher year). */
     private boolean isBetterExactMatch(boolean hasAlternateTitle, int year) {
         if (bestExactMatch == null) {
             return true;
@@ -82,19 +78,13 @@ final class ExactMatchPicker<T> {
         return bestExactMatch != null;
     }
 
-    /** The best exact-title match by year, else the top relevance result, else null if offer() was never called. */
-    T result() {
-        return bestExactMatch != null ? bestExactMatch : topRelevanceResult;
-    }
-
     /**
      * If any exact title match exists: ONLY the exact matches, sorted with
      * candidates that have a distinct alternate/original title (see
      * TitleCandidate.akaTitle - what the chooser shows as an "aka <name>"
      * line) after ones that don't, newest year first within each of those
      * two tiers - capped at MAX_RANKED. Otherwise: the relevance-fallback
-     * candidates in offer order, so ranked().get(0) still matches result()'s
-     * fallback behavior when there's no exact match at all.
+     * candidates in offer order.
      *
      * The alternate-title demotion (2026-09-08) was confirmed necessary
      * against a real case: TMDB returns 11 exact matches for "Begin Again",
@@ -118,11 +108,9 @@ final class ExactMatchPicker<T> {
      * chooser must only ever offer titles that actually match what the
      * user searched for.
      *
-     * ranked().get(0) is always identical to result() - exact matches are
-     * sorted with a stable comparator (ties keep the earliest-offered, i.e.
-     * most relevant, candidate first), which is the same tiebreak result()
-     * itself uses via offer()'s strict ">" check, and the same two-key
-     * preference isBetterExactMatch() uses.
+     * Exact matches are sorted with a stable comparator (ties keep the
+     * earliest-offered, i.e. most relevant, candidate first), the same
+     * two-key preference isBetterExactMatch() uses.
      */
     List<T> ranked() {
         List<Entry<T>> exact = new ArrayList<>();

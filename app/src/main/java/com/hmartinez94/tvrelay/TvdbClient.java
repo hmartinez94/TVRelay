@@ -129,19 +129,6 @@ final class TvdbClient {
                 String name = result.optString("name", "");
                 String altTitle = result.optString("title", "");
                 String yearRaw = result.optString("year", "");
-                // Temporary diagnostic logging while confirming the
-                // exact-match fix actually sees the right candidates, and
-                // checking whether network/image_url are populated on a
-                // real search (neither is displayed yet - see
-                // TitleCandidate) - remove once confirmed working
-                // across real queries.
-                Log.d(TAG, "Candidate " + i + ": type=" + type
-                        + " name=[" + name + "]"
-                        + " title=[" + altTitle + "]"
-                        + " year=[" + yearRaw + "]"
-                        + " network=[" + result.optString("network", "") + "]"
-                        + " image_url=[" + result.optString("image_url", "") + "]"
-                        + " remote_ids=" + result.optJSONArray("remote_ids"));
                 MediaType mediaType;
                 if ("movie".equals(type)) {
                     mediaType = MediaType.MOVIE;

@@ -17,8 +17,8 @@ import java.util.List;
  * plain leanback list rather than MatchTrayView's floating tray: unlike the
  * accessibility-service launcher-click path, the user is already inside
  * TVRelay here, so a native-looking list costs no extra screen transition -
- * see MatchChooserActivity/MatchTrayOverlay for the launcher-click hosts,
- * which is exactly the tradeoff the floating tray exists to avoid there.
+ * see MatchTrayOverlay for the launcher-click host, which is exactly the
+ * tradeoff the floating tray exists to avoid there.
  */
 public class MatchChooserStepFragment extends GuidedStepSupportFragment {
 

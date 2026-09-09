@@ -129,7 +129,6 @@ public class RestrictedSettingsStepFragment extends GuidedStepSupportFragment {
             startActivity(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
                     Uri.parse("package:" + requireContext().getPackageName())));
         } else if (id == ACTION_RETRY_ACCESSIBILITY) {
-            Preferences.setAccessibilityEnableClickedAt(requireContext(), System.currentTimeMillis());
             startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS));
         } else if (id == ACTION_CLOSE) {
             getFragmentManager().popBackStack();

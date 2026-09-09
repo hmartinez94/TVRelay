@@ -502,7 +502,6 @@ public class SettingsStepFragment extends GuidedStepSupportFragment {
         }
 
         if (id == ACTION_ENABLE_ACCESSIBILITY) {
-            Preferences.setAccessibilityEnableClickedAt(context, System.currentTimeMillis());
             startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS));
         } else if (id == ACTION_RESTRICTED_SETTINGS_HELP) {
             GuidedStepSupportFragment.add(getFragmentManager(), new RestrictedSettingsStepFragment());

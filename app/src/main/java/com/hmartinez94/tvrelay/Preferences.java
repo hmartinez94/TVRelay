@@ -21,8 +21,6 @@ public final class Preferences {
     private static final String KEY_OCR_FALLBACK_ENABLED = "ocr_fallback_enabled";
     private static final String KEY_OCR_DISCLOSURE_ACCEPTED = "ocr_disclosure_accepted";
     private static final String KEY_FIRE_TV_MODE_ENABLED = "fire_tv_mode_enabled";
-    private static final String KEY_ACCESSIBILITY_ENABLE_CLICKED_AT = "accessibility_enable_clicked_at";
-    private static final String KEY_ACCESSIBILITY_SERVICE_EVER_CONNECTED = "accessibility_service_ever_connected";
     private static final String KEY_YOUTUBE_REDIRECT_TARGET = "youtube_redirect_target";
     private static final String KEY_OVERLAY_REAPPEAR_ENABLED = "overlay_reappear_enabled";
     private static final String KEY_UPDATE_CHECKED_AT = "update_checked_at";
@@ -255,40 +253,6 @@ public final class Preferences {
     }
 
     /**
-     * Timestamp (millis, System.currentTimeMillis()) of the last time the
-     * user tapped "Enable in Accessibility settings" - 0 if never. One of two
-     * signals SettingsStepFragment combines to decide whether to offer the
-     * Restricted Settings walkthrough - see
-     * SettingsStepFragment.shouldOfferRestrictedSettingsHelp().
-     */
-    public static long getAccessibilityEnableClickedAt(Context context) {
-        return prefs(context).getLong(KEY_ACCESSIBILITY_ENABLE_CLICKED_AT, 0L);
-    }
-
-    public static void setAccessibilityEnableClickedAt(Context context, long timestampMillis) {
-        prefs(context).edit().putLong(KEY_ACCESSIBILITY_ENABLE_CLICKED_AT, timestampMillis).apply();
-    }
-
-    /**
-     * Whether TvRelayAccessibilityService.onServiceConnected() has ever fired
-     * - i.e. the OS actually bound the service at least once, a stronger
-     * signal than Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES merely
-     * listing the component (which only reflects whether the OS accepted the
-     * enable request, not whether the service actually bound). Used to avoid
-     * a false positive: if the service connected before, a later "not
-     * enabled" reading means it was turned off deliberately or crashed - not
-     * Android's Restricted Settings block, which only ever prevents the
-     * *first* successful enable.
-     */
-    public static boolean hasAccessibilityServiceEverConnected(Context context) {
-        return prefs(context).getBoolean(KEY_ACCESSIBILITY_SERVICE_EVER_CONNECTED, false);
-    }
-
-    public static void setAccessibilityServiceEverConnected(Context context, boolean connected) {
-        prefs(context).edit().putBoolean(KEY_ACCESSIBILITY_SERVICE_EVER_CONNECTED, connected).apply();
-    }
-
-    /**
      * Whether WatchNowOverlay.hide() (a Back/D-pad dismiss) conceals the
      * confirm button and lets it reappear a few seconds later - see
      * WatchNowOverlay's class doc - or, when this is off, discards the
@@ -307,8 +271,7 @@ public final class Preferences {
      * Timestamp (millis) of the last time GithubReleaseClient was actually
      * queried for a newer release - 0 if never. Throttles that network call
      * (see SettingsStepFragment) so opening Settings repeatedly doesn't hit
-     * the GitHub API every time; same timestamp-throttle shape as
-     * getAccessibilityEnableClickedAt() above.
+     * the GitHub API every time.
      */
     public static long getUpdateCheckedAt(Context context) {
         return prefs(context).getLong(KEY_UPDATE_CHECKED_AT, 0L);
