@@ -13,28 +13,23 @@ import java.util.function.BooleanSupplier;
 /**
  * Opens a title in whichever app the user picked in Settings.
  *
- * Nuvio: nuvio://movie/{imdbId} (movies), nuvio://detail/tv/{imdbId} (series) -
- * OR, when the candidate came from TMDB, nuvio://tmdb/{movie|tv}/{tmdbId}
- * directly (see prepare()/openCandidate() - confirmed working on-device
- * 2026-08-23, verified against com.nuvio.app the same way the IMDb scheme
- * already was, via `adb shell am start`). Tried against two real packages,
- * not just one - see openNuvio()/NUVIO_GITHUB_PACKAGE for why Nuvio ships
- * two differently-packaged builds from the same source.
- * Stremio: stremio:///detail/movie/{imdbId}, stremio:///detail/series/{imdbId} -
- * always IMDb-based, no TMDB-native equivalent exists in Stremio's addon
- * ecosystem, which is built around IMDb ids universally.
- * WuPlay: wuplay://movie/{imdbId}, wuplay://series/{imdbId} - IMDb-based,
- * confirmed working on-device 2026-08-24. Added in WuPlay's own
- * v0.8.3-beta release the same day - CLAUDE.md's "WuPlay wall" originally
- * (2026-08-23) found no content deep link existed at all, only a
- * profile-switcher; that finding is now reversed, not still true.
- * Plex / Jellyfin: neither has a *universal-catalog* content deep link (see
- * PlayerApp's class doc and CLAUDE.md), so both still default to a plain
- * title search hand-off via prepareTitleSearch(). Jellyfin pre-fills the
- * query; Plex's ACTION_SEARCH route (the only working one - see CLAUDE.md
- * for a decompiled trace) opens Plex's real search screen but does NOT
- * pre-fill it, a confirmed gap in Plex's own app, not something fixable
- * here. (Plex is currently disabled - not removed - see
+ * The per-player facts this needs (deep-link URI templates, packages to
+ * try, title-search component, server-item shape) live on PlayerApp itself
+ * (2026-09-08 refactor - see that enum's class doc) rather than being
+ * spread across switch(app) statements here; this class is now mostly
+ * generic dispatch (open()/prepareTitleSearch()/openServerItem()/
+ * openAcrossPackages()) plus the handful of things that genuinely aren't
+ * per-player data - resolution order in prepare(), the Jellyfin-library
+ * opt-in in planTitleSearch(), and the unrelated SmartTube/TizenTube
+ * YouTube-redirect toggle below.
+ *
+ * Plex / Jellyfin / Wholphin have no *universal-catalog* content deep link
+ * (see PlayerApp's class doc and CLAUDE.md), so all three default to a
+ * plain title search hand-off via prepareTitleSearch(). Jellyfin and
+ * Wholphin pre-fill the query; Plex's ACTION_SEARCH route (the only working
+ * one - see CLAUDE.md for a decompiled trace) opens Plex's real search
+ * screen but does NOT pre-fill it, a confirmed gap in Plex's own app, not
+ * something fixable here. (Plex is currently disabled - not removed - see
  * PlayerApp.isEnabled().) Title search never touches MetadataResolver at
  * all - see TvRelayAccessibilityService and SearchStepFragment, which route
  * through planTitleSearch() before ever calling resolveCandidates().
@@ -64,20 +59,6 @@ import java.util.function.BooleanSupplier;
 final class PlayerLauncher {
 
     private static final String TAG = "PlayerLauncher";
-
-    // Nuvio ships two real, differently-packaged builds from the same source
-    // tree (NuvioMedia/NuvioTV's app/build.gradle.kts, checked 2026-09-07):
-    // PlayerApp.NUVIO's packageName ("com.nuvio.app") is only the "playstore"
-    // product flavor's applicationId override. The default/"full" flavor -
-    // what GitHub Releases sideloads actually ship - has no override and so
-    // keeps the module's base applicationId, "com.nuvio.tv". Confirmed via
-    // the flavor block itself, not a guess. The nuvio:// deep-link
-    // intent-filter (movie/detail/tmdb paths alike) lives in the shared
-    // app/src/main/AndroidManifest.xml, untouched by the playstore flavor's
-    // manifest override (app/src/playstore/AndroidManifest.xml only strips
-    // some permissions/a service) - so both builds accept the exact same
-    // URIs, only the package name differs. See openNuvio() below.
-    private static final String NUVIO_GITHUB_PACKAGE = "com.nuvio.tv";
 
     // SmartTube: a sideloaded YouTube TV client, unrelated to PlayerApp -
     // see prepareSmartTube() and Preferences.isSmartTubeEnabled(). Two
@@ -116,32 +97,6 @@ final class PlayerLauncher {
     // to v1.0.2) - only one package to try, unlike SmartTube.
     private static final String TIZENTUBE_COBALT_LABEL = "TizenTube Cobalt";
     private static final String TIZENTUBE_COBALT_PACKAGE = "io.gh.reisxd.tizentube.cobalt";
-
-    // Confirmed via Jellyfin's own StartupActivity.kt source (WebFetch,
-    // 2026-08-26): it declares ACTION_VIEW/ACTION_SEARCH with no <data>
-    // element at all, so an implicit Intent can't resolve to it - every
-    // Jellyfin launch here targets this exact component explicitly. Shared
-    // by openJellyfinItem() and prepareTitleSearch()'s JELLYFIN case so the
-    // two can't drift to different class names.
-    private static final String JELLYFIN_STARTUP_ACTIVITY = "org.jellyfin.androidtv.ui.startup.StartupActivity";
-
-    // Wholphin (com.github.damontecres.wholphin): a separate, from-scratch
-    // open-source Jellyfin client - see PlayerApp's class doc and CLAUDE.md's
-    // "Wholphin support" section. Its own Intents.md (fetched from
-    // damontecres/Wholphin on GitHub, 2026-08-26) documents both routes used
-    // below: ACTION_SEARCH with a "query" extra (the same extra key
-    // SearchManager.QUERY already resolves to), and ACTION_VIEW with an
-    // "itemId" extra - the server-local Jellyfin item UUID, identical to
-    // what JellyfinClient's /Items search already returns and what
-    // openJellyfinItem() already opens for the official Jellyfin app.
-    // MainActivity is exported and declared explicitly (".MainActivity" in
-    // the manifest, i.e. this fully-qualified name) - targeted the same
-    // explicit-component way as Jellyfin's StartupActivity, both because
-    // it's the more defensive choice with no local server to test against,
-    // and because Wholphin's own manifest intent-filter requires a
-    // "wholphin:" data URI to match implicitly, which these plain-extra
-    // Intents don't carry.
-    private static final String WHOLPHIN_MAIN_ACTIVITY = "com.github.damontecres.wholphin.MainActivity";
 
     private PlayerLauncher() {
     }
@@ -203,10 +158,10 @@ final class PlayerLauncher {
         if (app.usesTitleSearch()) {
             return prepareTitleSearch(context, candidate.displayTitle);
         }
-        if (app == PlayerApp.NUVIO && candidate.tmdbMediaPath != null) {
-            Uri uri = Uri.parse("nuvio://tmdb/" + candidate.tmdbMediaPath + "/" + candidate.tmdbId);
+        if (app.getTmdbUriTemplate() != null && candidate.tmdbMediaPath != null) {
+            Uri uri = Uri.parse(String.format(app.getTmdbUriTemplate(), candidate.tmdbMediaPath, candidate.tmdbId));
             Intent intent = new Intent(Intent.ACTION_VIEW, uri);
-            return () -> openNuvio(context, intent, app.getLabel());
+            return () -> openAcrossPackages(context, intent, app);
         }
         TvdbMatch match = MetadataResolver.resolve(context, candidate);
         return match != null ? () -> open(context, match) : null;
@@ -227,64 +182,30 @@ final class PlayerLauncher {
         PlayerApp app = Preferences.getSelectedApp(context);
         String title = TitleCleanup.stripTrailingParentheticals(rawTitle);
 
-        Intent intent;
-        switch (app) {
-            case PLEX:
-                // https://watch.plex.tv/search?q= is dead - confirmed on
-                // real hardware (ActivityNotFoundException; no /search path
-                // is registered at all, see CLAUDE.md). This ACTION_SEARCH
-                // route is real and confirmed working (SplashActivity does
-                // have a matching, if uncategorized, intent-filter - hence
-                // the explicit component below) but does NOT pre-fill the
-                // query: traced via decompilation all the way through
-                // Plex's own internal SearchActivity -> ... -> c2() relay,
-                // which correctly forwards "query" right up until the final
-                // hand-off to MobileSearchActivity, which doesn't consume
-                // it - a real bug in Plex's own app on this build, not
-                // something wrong on our end. Still sent here (harmless,
-                // and free if Plex ever fixes it) because this at least
-                // reliably opens Plex's real search screen instead of
-                // nothing at all - see CLAUDE.md's "Plex removed" section
-                // for the full decompiled trace.
-                intent = new Intent(Intent.ACTION_SEARCH);
-                intent.putExtra(SearchManager.QUERY, title);
-                intent.setClassName(app.getPackageName(), "com.plexapp.plex.activities.SplashActivity");
-                break;
-            case JELLYFIN:
-                // StartupActivity declares an ACTION_SEARCH filter and
-                // really does read SearchManager.QUERY - verified two ways:
-                // directly against Jellyfin's own manifest/source, and by
-                // cross-checking Bananz0/OpenTVBridge's independent
-                // implementation (2026-08-24, see CLAUDE.md), which targets
-                // this exact class the same way. The alias
-                // ".startup.StartupActivity" declares no intent-filters of
-                // its own, so an explicit component removes any reliance on
-                // implicit-intent resolution picking the right one -
-                // there's no way for the user to test this locally without
-                // a Jellyfin server, so this is the more defensive choice.
-                intent = new Intent(Intent.ACTION_SEARCH);
-                intent.putExtra(SearchManager.QUERY, title);
-                intent.setClassName(app.getPackageName(), JELLYFIN_STARTUP_ACTIVITY);
-                break;
-            case WHOLPHIN:
-                // Wholphin's own Intents.md documents ACTION_SEARCH with a
-                // "query" extra (SearchManager.QUERY's value is literally
-                // "query", so this is the same extra Jellyfin's case above
-                // already sends). Explicit component for the same reason as
-                // Jellyfin: no local server to test the implicit-intent path
-                // against, and Wholphin's manifest intent-filter for this
-                // action also requires a "wholphin:" data URI to match
-                // implicitly anyway, which this plain-extra Intent has no
-                // need to carry.
-                intent = new Intent(Intent.ACTION_SEARCH);
-                intent.putExtra(SearchManager.QUERY, title);
-                intent.setClassName(app.getPackageName(), WHOLPHIN_MAIN_ACTIVITY);
-                break;
-            default:
-                // NUVIO/STREMIO never reach here - prepare() only calls
-                // this method when app.usesTitleSearch() is true.
-                throw new IllegalStateException("prepareTitleSearch() called for a non-search player: " + app);
+        // Every title-search player (Plex, Jellyfin, Wholphin) builds the
+        // exact same ACTION_SEARCH + query-extra shape, targeting its own
+        // explicit component (see PlayerApp.getTitleSearchComponent()'s
+        // javadoc for why an explicit component, not implicit resolution).
+        // NUVIO/STREMIO/WUPLAY never reach here - prepare() only calls this
+        // method when app.usesTitleSearch() is true.
+        if (app.getTitleSearchComponent() == null) {
+            throw new IllegalStateException("prepareTitleSearch() called for a non-search player: " + app);
         }
+        Intent intent = new Intent(Intent.ACTION_SEARCH);
+        intent.putExtra(SearchManager.QUERY, title);
+        intent.setClassName(app.getPackageName(), app.getTitleSearchComponent());
+        // Note for Plex specifically: this reliably opens Plex's real search
+        // screen but does NOT pre-fill the query - traced via decompilation
+        // all the way through Plex's own internal SearchActivity -> ... ->
+        // c2() relay, which correctly forwards "query" right up until the
+        // final hand-off to MobileSearchActivity, which doesn't consume it -
+        // a real bug in Plex's own app on this build, not something wrong on
+        // our end. Still sent (harmless, and free if Plex ever fixes it)
+        // because this is still better than the dead https://watch.plex.tv/
+        // search?q= URL it replaced - see CLAUDE.md's "Plex removed" section
+        // for the full decompiled trace. Jellyfin and Wholphin's own
+        // ACTION_SEARCH handling doesn't have this gap; both pre-fill
+        // correctly.
 
         // Dropping setPackage on a packageless retry would behave very
         // differently here than it does for Nuvio/Stremio's custom scheme:
@@ -297,49 +218,36 @@ final class PlayerLauncher {
     }
 
     /**
-     * Direct-open for a Jellyfin library hit (see planTitleSearch()) -
-     * StartupActivity.openNextActivity() (Jellyfin's own Kotlin source,
-     * confirmed via WebFetch 2026-08-26) accepts ACTION_VIEW with
-     * intent.data.toString() fed straight into the SDK's toUUIDOrNull(),
-     * documented to "accept simple and hyphenated notations" - so the bare
-     * hex Id JellyfinClient's /Items search returned works verbatim as the
-     * Intent data, no reformatting needed. Uri.parse() of a bare id with no
-     * scheme yields exactly that string back from toString(). Same
-     * explicit-component requirement as the search hand-off above (see
-     * JELLYFIN_STARTUP_ACTIVITY's comment) and the same reasoning against a
-     * packageless retry as prepareTitleSearch() - a malformed/stale id
-     * should report failure, not silently land somewhere unhelpful.
+     * Direct-open for a Jellyfin-server library hit (see planTitleSearch()),
+     * for either Jellyfin or Wholphin - see PlayerApp.ServerItemStyle's
+     * javadoc for the one way their otherwise-identical contract differs.
+     * URI_DATA (Jellyfin): StartupActivity.openNextActivity() (Jellyfin's
+     * own Kotlin source, confirmed via WebFetch 2026-08-26) accepts
+     * ACTION_VIEW with intent.data.toString() fed straight into the SDK's
+     * toUUIDOrNull(), documented to "accept simple and hyphenated
+     * notations" - so the bare hex Id JellyfinClient's /Items search
+     * returned works verbatim as the Intent data, no reformatting needed
+     * (Uri.parse() of a bare id with no scheme yields exactly that string
+     * back from toString()). ITEM_ID_EXTRA (Wholphin): its own Intents.md
+     * documents ACTION_VIEW with an "itemId" extra instead - opens the same
+     * detail page, not its separate immediate-playback PLAYBACK action
+     * (deliberately not used here, to keep behavior consistent between the
+     * two players rather than making Wholphin auto-play while Jellyfin only
+     * opens a detail page). Both target their explicit component (see
+     * getTitleSearchComponent()'s javadoc) with no packageless retry - a
+     * malformed/stale id should report failure, not silently land somewhere
+     * unhelpful.
      */
-    private static boolean openJellyfinItem(Context context, String itemId) {
-        Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(itemId));
-        intent.setClassName(PlayerApp.JELLYFIN.getPackageName(), JELLYFIN_STARTUP_ACTIVITY);
-        return openWithFallback(context, intent, PlayerApp.JELLYFIN.getLabel(), false);
-    }
-
-    /**
-     * Direct-open for a Jellyfin library hit, when Wholphin is the selected
-     * player instead of the official Jellyfin app - see openJellyfinItem()
-     * above for the (identical, server-local) item id contract. Per
-     * Wholphin's own Intents.md, this is ACTION_VIEW with an "itemId" extra
-     * (not intent.data like Jellyfin's own StartupActivity) - opens the
-     * item's detail page, same semantics as openJellyfinItem(), not
-     * Wholphin's separate immediate-playback PLAYBACK action (deliberately
-     * not used here, to keep behavior consistent between the two players
-     * rather than making Wholphin auto-play while Jellyfin only opens a
-     * detail page).
-     */
-    private static boolean openWholphinItem(Context context, String itemId) {
-        Intent intent = new Intent(Intent.ACTION_VIEW);
-        intent.putExtra("itemId", itemId);
-        intent.setClassName(PlayerApp.WHOLPHIN.getPackageName(), WHOLPHIN_MAIN_ACTIVITY);
-        return openWithFallback(context, intent, PlayerApp.WHOLPHIN.getLabel(), false);
-    }
-
-    /** Picks openJellyfinItem() or openWholphinItem() by which of the two Jellyfin-server players (see PlayerApp.usesJellyfinServer()) is actually selected. */
     private static boolean openServerItem(Context context, PlayerApp app, String itemId) {
-        return app == PlayerApp.WHOLPHIN
-                ? openWholphinItem(context, itemId)
-                : openJellyfinItem(context, itemId);
+        Intent intent;
+        if (app.getServerItemStyle() == PlayerApp.ServerItemStyle.ITEM_ID_EXTRA) {
+            intent = new Intent(Intent.ACTION_VIEW);
+            intent.putExtra("itemId", itemId);
+        } else {
+            intent = new Intent(Intent.ACTION_VIEW, Uri.parse(itemId));
+        }
+        intent.setClassName(app.getPackageName(), app.getTitleSearchComponent());
+        return openWithFallback(context, intent, app.getLabel(), false);
     }
 
     /**
@@ -540,62 +448,42 @@ final class PlayerLauncher {
     static boolean open(Context context, TvdbMatch match) {
         PlayerApp app = Preferences.getSelectedApp(context);
 
-        if (app == PlayerApp.NUVIO) {
-            Uri nuvioUri = match.getType() == MediaType.MOVIE
-                    ? Uri.parse("nuvio://movie/" + match.getImdbId())
-                    : Uri.parse("nuvio://detail/tv/" + match.getImdbId());
-            Intent intent = new Intent(Intent.ACTION_VIEW, nuvioUri);
-            return openNuvio(context, intent, app.getLabel());
+        // PLEX/JELLYFIN/WHOLPHIN never reach here - prepare() routes
+        // title-search players to prepareTitleSearch() before any IMDb
+        // resolution happens. If this throws, something upstream regressed
+        // (this used to be an unguarded "else build a Stremio URI", which is
+        // exactly the bug this explicit check exists to prevent).
+        String template = match.getType() == MediaType.SERIES ? app.getSeriesUriTemplate() : app.getMovieUriTemplate();
+        if (template == null) {
+            throw new IllegalStateException(app + " does not support IMDb-based open() - see prepareTitleSearch()");
         }
-
-        Intent intent;
-        switch (app) {
-            case STREMIO:
-                String stremioType = match.getType() == MediaType.SERIES ? "series" : "movie";
-                intent = new Intent(Intent.ACTION_VIEW, Uri.parse("stremio:///detail/" + stremioType + "/" + match.getImdbId()));
-                break;
-            case WUPLAY:
-                // wuplay://{movie|series}/{imdbId} - confirmed working
-                // on-device 2026-08-24, added in WuPlay's own v0.8.3-beta
-                // release the same day (see PlayerApp's class doc and
-                // CLAUDE.md's "WuPlay wall" - this reverses that section's
-                // original "no content deep link exists" finding).
-                String wuplayType = match.getType() == MediaType.SERIES ? "series" : "movie";
-                intent = new Intent(Intent.ACTION_VIEW, Uri.parse("wuplay://" + wuplayType + "/" + match.getImdbId()));
-                break;
-            default:
-                // PLEX/JELLYFIN never reach here - prepare() routes
-                // title-search players to prepareTitleSearch() before any
-                // IMDb resolution happens. If this throws, something
-                // upstream regressed (this used to be an unguarded "else
-                // build a Stremio URI", which is exactly the bug this
-                // explicit switch exists to prevent).
-                throw new IllegalStateException(app + " does not support IMDb-based open() - see prepareTitleSearch()");
-        }
-        intent.setPackage(app.getPackageName());
-
-        return openWithFallback(context, intent, app.getLabel(), true);
+        Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(String.format(template, match.getImdbId())));
+        return openAcrossPackages(context, intent, app);
     }
 
     /**
-     * Tries Nuvio's Play Store package first, then its GitHub-release
-     * package - see NUVIO_GITHUB_PACKAGE's comment for why two real
-     * packages exist and why the same intent works unmodified against
-     * either. intentTemplate carries the action/data/etc. already built by
-     * the caller (prepare()'s TMDB-native path, or open()'s IMDb-based
-     * path) - copied per attempt since Intent.setPackage() mutates in place
-     * and each attempt needs its own target. The second attempt still
-     * allows one more generic (packageless) retry, same as before this
-     * existed - harmless for a custom URI scheme only Nuvio-branded apps
-     * claim, and a safety net for a hypothetical third Nuvio distribution.
+     * Tries every package in app.getPackages(), in order, only allowing a
+     * generic (packageless) retry past the last one - harmless for a custom
+     * URI scheme only that app's own builds claim. Every deep-link player
+     * but Nuvio has exactly one package, making this a single attempt with
+     * a generic retry, same as before per-player special-casing existed;
+     * Nuvio's two real, differently-packaged builds (see PlayerApp's class
+     * doc) get tried in order first. intentTemplate carries the
+     * action/data/etc. already built by the caller (prepare()'s TMDB-native
+     * path, or open()'s IMDb-based path) - copied per attempt since
+     * Intent.setPackage() mutates in place and each attempt needs its own
+     * target.
      */
-    private static boolean openNuvio(Context context, Intent intentTemplate, String appLabel) {
-        Intent playStoreAttempt = new Intent(intentTemplate).setPackage(PlayerApp.NUVIO.getPackageName());
-        if (openWithFallback(context, playStoreAttempt, appLabel, false)) {
-            return true;
+    private static boolean openAcrossPackages(Context context, Intent intentTemplate, PlayerApp app) {
+        List<String> packages = app.getPackages();
+        for (int i = 0; i < packages.size(); i++) {
+            boolean isLastPackage = i == packages.size() - 1;
+            Intent attempt = new Intent(intentTemplate).setPackage(packages.get(i));
+            if (openWithFallback(context, attempt, app.getLabel(), isLastPackage)) {
+                return true;
+            }
         }
-        Intent githubAttempt = new Intent(intentTemplate).setPackage(NUVIO_GITHUB_PACKAGE);
-        return openWithFallback(context, githubAttempt, appLabel, true);
+        return false;
     }
 
     /**
