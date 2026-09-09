@@ -116,7 +116,7 @@ final class TvdbClient {
             // is relevance-ranked and title collisions are common
             // ("Backrooms" -> "The Backrooms"; "Obsession" matched six
             // distinct titles across release years) - both confirmed
-            // on-device (see CLAUDE.md).
+            // on-device.
             String normalizedQuery = ExactMatchPicker.normalize(title);
             // false: TheTVDB candidates never have an alternate title to hide
             // in the first place (fromTvdb() never sets akaTitle) - see its
@@ -133,7 +133,7 @@ final class TvdbClient {
                 // exact-match fix actually sees the right candidates, and
                 // checking whether network/image_url are populated on a
                 // real search (neither is displayed yet - see
-                // TitleCandidate/CLAUDE.md) - remove once confirmed working
+                // TitleCandidate) - remove once confirmed working
                 // across real queries.
                 Log.d(TAG, "Candidate " + i + ": type=" + type
                         + " name=[" + name + "]"

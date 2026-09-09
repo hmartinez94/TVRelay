@@ -14,8 +14,7 @@ import java.util.Locale;
  * through offer() as you iterate your own provider's JSON in whatever order
  * it came back in; the first candidate is kept as a relevance fallback, and
  * among exact title matches the highest release year wins, since a
- * recommendation card is essentially always current/recent content. See
- * CLAUDE.md for the on-device cases this was built from.
+ * recommendation card is essentially always current/recent content.
  */
 final class ExactMatchPicker<T> {
 

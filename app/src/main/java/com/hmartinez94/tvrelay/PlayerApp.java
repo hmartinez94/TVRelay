@@ -14,24 +14,22 @@ import java.util.List;
  * behavior change was intended, only where the per-player facts live.
  *
  * NUVIO, STREMIO, and WUPLAY get a direct content deep link - WuPlay's
- * `wuplay://{movie|series}/{imdbId}` scheme confirmed working on-device
- * 2026-08-24, added in WuPlay's own v0.8.3-beta release the same day (see
- * CLAUDE.md's "WuPlay wall" - this reverses that section's original
- * finding, which is why it's dated and kept rather than deleted). WAKO
- * (`app.wako`) is the same shape - its `wako://media/{movie|show}/{tmdbId}`
- * scheme was confirmed working on-device 2026-09-08 (see CLAUDE.md's "Wako"
- * section) - but is disabled (enabled=false), same as PLEX below and for an
- * unrelated reason: confirmed the same day, with a real user watching live,
- * that the deep link only works when Wako's process isn't already running -
- * a warm Wako silently reopens whatever it last showed instead of
- * navigating to the new title, proven with adb alone (identical PID before
- * and after a second deep link) so it's not something PlayerLauncher's
- * Intent construction could ever fix - no third-party app can force another
- * app's process to restart. Re-enable by flipping this flag back to true if
- * Wako's own app ever starts handling a warm relaunch correctly. JELLYFIN
- * and WHOLPHIN have no *universal-catalog* content deep link - see
- * CLAUDE.md's "Plex and Jellyfin" and "Wholphin support" notes - so they
- * keep LaunchStyle.TITLE_SEARCH and, by default, still get the same plain
+ * `wuplay://{movie|series}/{imdbId}` scheme was confirmed working on-device
+ * 2026-08-24, added in WuPlay's own v0.8.3-beta release that same day (an
+ * earlier version of this app had briefly given up on WuPlay support before
+ * that release added the scheme). WAKO (`app.wako`) is the same shape - its
+ * `wako://media/{movie|show}/{tmdbId}` scheme was confirmed working
+ * on-device 2026-09-08 - but is disabled (enabled=false), same as PLEX
+ * below and for an unrelated reason: confirmed the same day, with a real
+ * user watching live, that the deep link only works when Wako's process
+ * isn't already running - a warm Wako silently reopens whatever it last
+ * showed instead of navigating to the new title, proven with adb alone
+ * (identical PID before and after a second deep link) so it's not
+ * something PlayerLauncher's Intent construction could ever fix - no
+ * third-party app can force another app's process to restart. Re-enable by
+ * flipping this flag back to true if Wako's own app ever starts handling a
+ * warm relaunch correctly. JELLYFIN and WHOLPHIN have no *universal-catalog*
+ * content deep link, so they keep LaunchStyle.TITLE_SEARCH and, by default, still get the same plain
  * title search hand-off Plex does (see PlayerLauncher.prepareTitleSearch()).
  * Unlike Plex, Jellyfin/Wholphin can *also* open a title directly - not via
  * usesTitleSearch()/LaunchStyle at all, but via a separate opt-in
@@ -45,8 +43,7 @@ import java.util.List;
  * Jellyfin/Wholphin's default/fallback behavior - only planTitleSearch()
  * needs to know about the opt-in on top.
  *
- * NUVIO carries two packages, not one - see CLAUDE.md's "Nuvio dual-package
- * fallback": NuvioMedia/NuvioTV ships a Play Store build (com.nuvio.app)
+ * NUVIO carries two packages, not one - NuvioMedia/NuvioTV ships a Play Store build (com.nuvio.app)
  * and a differently-packaged GitHub Releases build (com.nuvio.tv) from the
  * same source, both accepting byte-identical nuvio:// URIs. PlayerLauncher
  * tries every entry in getPackages() in order, falling back generically
@@ -54,15 +51,15 @@ import java.util.List;
  *
  * WHOLPHIN (`com.github.damontecres.wholphin`) is a separate, from-scratch
  * (not forked) open-source Android TV client for a Jellyfin server - added
- * 2026-08-26, see CLAUDE.md's "Wholphin support" section for the research.
- * Its `itemId` is literally the same server-local item UUID Jellyfin's own
+ * 2026-08-26. Its `itemId` is literally the same server-local item UUID Jellyfin's own
  * app and JellyfinClient's /Items search use, so it reuses the exact same
  * opt-in library-lookup config as JELLYFIN rather than needing its own
  * server URL/API key screen - only its ServerItemStyle (how the item id
  * gets passed - Intent data vs. an "itemId" extra) actually differs.
  *
- * PLEX is disabled (enabled=false) rather than removed - see CLAUDE.md.
- * Its code (here and in PlayerLauncher) is left fully intact; only
+ * PLEX is disabled (enabled=false) rather than removed, at explicit user
+ * request (no technical reason - the ACTION_SEARCH route in PlayerLauncher
+ * is fully working). Its code (here and in PlayerLauncher) is left fully intact; only
  * SettingsStepFragment and Preferences.getSelectedApp() actually enforce
  * the disable, by skipping/falling-back on a disabled entry. Re-enable by
  * flipping this flag back to true if that's ever warranted again.
@@ -77,9 +74,9 @@ public enum PlayerApp {
     // not share a type vocabulary (nuvio://tmdb/tv/... vs
     // wako://media/show/... - "show", singular, is the only form Wako
     // accepts; wako://media/tv/... and wako://media/series/... were both
-    // tested on-device and confirmed failing, see CLAUDE.md's "Wako"
-    // section), so feeding TMDB's own "movie"/"tv" path segment straight
-    // into a template would silently build a dead URI for Wako.
+    // tested on-device and confirmed failing), so feeding TMDB's own
+    // "movie"/"tv" path segment straight into a template would silently
+    // build a dead URI for Wako.
     NUVIO(Arrays.asList("com.nuvio.app", "com.nuvio.tv"), "Nuvio", 0, true,
             "nuvio://movie/%s", "nuvio://detail/tv/%s",
             "nuvio://tmdb/movie/%s", "nuvio://tmdb/tv/%s"),
@@ -93,13 +90,13 @@ public enum PlayerApp {
     // wako://media/movie/imdb/tt... and wako://movie/tt... were both tested
     // and silently no-opped to Wako's home screen, so the null/null IMDb
     // pair below is a confirmed absence, not an unfinished TODO - see
-    // CLAUDE.md and PlayerLauncher.prepare()'s guard, which is what stops
-    // a TheTVDB-sourced candidate reaching open() and throwing.
-    // DISABLED (enabled=false, 2026-09-08) - see the class javadoc above
-    // and CLAUDE.md's "Wako" section: the deep link only works on a cold
-    // start, confirmed with a real click and independently reproduced via
-    // adb (identical process PID before/after a warm relaunch). Not a
-    // TVRelay bug - nothing here needs fixing, only Wako's own app does.
+    // PlayerLauncher.prepare()'s guard, which is what stops a
+    // TheTVDB-sourced candidate reaching open() and throwing.
+    // DISABLED (enabled=false, 2026-09-08) - see the class javadoc above:
+    // the deep link only works on a cold start, confirmed with a real click
+    // and independently reproduced via adb (identical process PID
+    // before/after a warm relaunch). Not a TVRelay bug - nothing here needs
+    // fixing, only Wako's own app does.
     WAKO(Collections.singletonList("app.wako"), "Wako", R.string.settings_player_wako_description, false,
             null, null,
             "wako://media/movie/%s", "wako://media/show/%s"),
@@ -223,7 +220,7 @@ public enum PlayerApp {
         return descriptionRes;
     }
 
-    /** False for a player kept in the codebase but not currently offered - see PLEX above and CLAUDE.md. */
+    /** False for a player kept in the codebase but not currently offered - see PLEX/WAKO above. */
     boolean isEnabled() {
         return enabled;
     }

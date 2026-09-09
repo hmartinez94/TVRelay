@@ -10,7 +10,7 @@ import android.os.Process;
  * FireTvModeStepFragment). Fire TV can't use the click-event pipeline the
  * rest of the app relies on - the current Fire TV home screen
  * (HomeActivity_vNext, the 2026 redesign) emits no AccessibilityEvents at
- * all to a sideloaded service (see CLAUDE.md's "Fire TV wall"). Instead,
+ * all to a sideloaded service. Instead,
  * "Fire TV mode" watches UsageStats for the launcher's own in-app detail
  * page opening and reads the title off the screen with the existing
  * MediaProjection + OCR pipeline - the same approach the reference app

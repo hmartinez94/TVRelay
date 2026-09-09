@@ -22,15 +22,18 @@ import java.util.List;
 
 /**
  * Interactive walkthrough offered when SettingsStepFragment infers the user
- * is stuck on Android 13+'s "Restricted settings" block (see CLAUDE.md's
- * "Restricted settings" background and the static explanation already in
- * about_restricted_settings). This screen deliberately only ever calls
+ * is stuck on Android 13+'s "Restricted settings" block (a sideload-install
+ * protection that can leave the accessibility service toggle greyed out -
+ * see the static explanation already in about_restricted_settings). This
+ * screen deliberately only ever calls
  * startActivity() with documented public Settings intents, or reads
  * read-only state - it never writes Settings.Secure directly and never
  * calls AppOpsManager to grant anything, since WRITE_SECURE_SETTINGS is
  * signature/system-only and unobtainable by a normal app. This follows the
  * same pattern this project uses everywhere else it runs into an
- * OS-enforced restriction (see CLAUDE.md's "The capabilities wall"):
+ * OS-enforced restriction (a sideloaded, non-isAccessibilityTool service
+ * cannot retrieve window content or take a screenshot on this device,
+ * regardless of manifest flags):
  * document it honestly and offer only what's actually possible, rather than
  * pretend a bypass exists.
  *

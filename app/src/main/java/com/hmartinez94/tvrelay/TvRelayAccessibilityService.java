@@ -90,10 +90,9 @@ public class TvRelayAccessibilityService extends AccessibilityService {
     // UNVERIFIED against a real event.getClassName() value for this exact
     // flow (a recommendation-card click, this feature's actual trigger) -
     // the only evidence for "HomeActivity" comes from a prior,
-    // since-reverted investigation (documented in this project's CLAUDE.md,
-    // not in this file) that temporarily widened eventTypes/packageNames to
-    // diagnose an unrelated voice-search bug, and captured a real logcat
-    // transition "HomeActivity -> katniss (FrameLayout) -> systemui ->
+    // since-reverted investigation that temporarily widened
+    // eventTypes/packageNames to diagnose an unrelated voice-search bug, and
+    // captured a real logcat transition "HomeActivity -> katniss (FrameLayout) -> systemui ->
     // launcherx EntityActivity" for a VOICE-SEARCH-driven detail page. That
     // TYPE_WINDOW_STATE_CHANGED event carried text=[Detail Page] (a static,
     // generic label - useless as a title) and contentDesc=[null], but only
@@ -209,8 +208,8 @@ public class TvRelayAccessibilityService extends AccessibilityService {
         // a WatchNowOverlay match is currently pending (to detect
         // return-to-lobby). info.packageNames below stays UNCHANGED for
         // this purpose - do not widen it to request window-state events for
-        // AMAZON_LAUNCHER_PACKAGE too; Fire TV is documented (see class
-        // comments already in this file, and the project's CLAUDE.md) to
+        // AMAZON_LAUNCHER_PACKAGE too; Fire TV is confirmed (see class
+        // comments already in this file) to
         // receive zero AccessibilityEvents of any type on real hardware, so
         // there's no point.
         info.eventTypes = currentEventTypes();
@@ -381,8 +380,10 @@ public class TvRelayAccessibilityService extends AccessibilityService {
         if (source == null) {
             // Genuinely empty payload - no contentDescription, no hero
             // text, no source node to retry against. This is the
-            // "Top picks for you" case from CLAUDE.md's "capabilities
-            // wall" - fall back to the OCR path instead of giving up.
+            // "Top picks for you" case: a sideloaded, non-isAccessibilityTool
+            // service can't retrieve window content on this device, so the
+            // click event's payload is all there is - fall back to the OCR
+            // path instead of giving up.
             triggerOcrCapture();
             return;
         }
@@ -430,7 +431,8 @@ public class TvRelayAccessibilityService extends AccessibilityService {
     }
 
     /**
-     * The voice-search trigger point - see CLAUDE.md's "voice search wall".
+     * The voice-search trigger point - voice search is a structural dead
+     * end for click-based detection, not a bug to fix.
      * Speaking a title into the launcher's mic never fires a click event at
      * all (the flow goes HomeActivity -> katniss -> systemui -> launcherx
      * EntityActivity with zero TYPE_VIEW_CLICKED events anywhere), so this
@@ -763,7 +765,7 @@ public class TvRelayAccessibilityService extends AccessibilityService {
      * Targets SmartTube or TizenTube Cobalt (io.gh.reisxd.tizentube.cobalt -
      * a real, separate Android TV port of the well-known "TizenTube" ad-block
      * mod - see PlayerLauncher's TIZENTUBE_COBALT_* constants for the full
-     * evidence and CLAUDE.md's "SmartTube redirect" section), per the user's
+     * evidence), per the user's
      * explicit Settings choice (Preferences.getYouTubeRedirectTarget(), a
      * dropdown - see PlayerLauncher.prepareYouTubeRedirect()), not
      * auto-detected install state. The preference name/method

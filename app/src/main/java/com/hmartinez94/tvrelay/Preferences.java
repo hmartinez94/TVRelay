@@ -66,9 +66,9 @@ public final class Preferences {
         }
         try {
             PlayerApp app = PlayerApp.valueOf(stored);
-            // Covers a player disabled after being saved (e.g. Plex, on a
-            // device that had it selected before it was disabled - see
-            // PlayerApp.isEnabled()/CLAUDE.md) - falls back the same way an
+            // Covers a player disabled after being saved (e.g. Plex/Wako, on
+            // a device that had it selected before it was disabled - see
+            // PlayerApp.isEnabled()) - falls back the same way an
             // unrecognized stored value already did below.
             return app.isEnabled() ? app : PlayerApp.NUVIO;
         } catch (IllegalArgumentException e) {
@@ -182,8 +182,8 @@ public final class Preferences {
      * Which sideloaded YouTube TV client the toggle above targets when it's
      * on - see YouTubeRedirectTarget and PlayerLauncher.prepareYouTubeRedirect().
      * An explicit Settings dropdown, not auto-detected install-state
-     * guessing (the original 2026-08-24 design - see CLAUDE.md's "SmartTube
-     * redirect" - replaced 2026-08-25 by user request, since a user with
+     * guessing (the original 2026-08-24 design auto-preferred SmartTube
+     * whenever it was installed - replaced 2026-08-25 by user request, since a user with
      * both apps installed had no way to actually pick TizenTube Cobalt over
      * the auto-preferred SmartTube).
      */
@@ -207,8 +207,8 @@ public final class Preferences {
      * Whether the screen-reading (MediaProjection + on-device OCR) fallback
      * is armed - see OcrCaptureManager and TvRelayAccessibilityService's
      * two trigger points (an empty click payload, and a voice-search result
-     * with no title - see CLAUDE.md's "capabilities wall" and "voice search
-     * wall"). Deliberately gated behind its own disclosure flag
+     * with no title - neither carries a readable title on this device, a
+     * platform limitation, not a TVRelay bug). Deliberately gated behind its own disclosure flag
      * (isOcrDisclosureAccepted), separate from the base
      * isDisclosureAccepted() - MediaProjection is a materially bigger,
      * more visible grant (a persistent system recording indicator) than
@@ -235,7 +235,7 @@ public final class Preferences {
     /**
      * Whether Fire TV mode is armed - the UsageStats + OCR detection path
      * for Fire TV, where the accessibility-click pipeline gets no events at
-     * all (see FireTvWatcherService / CLAUDE.md's "Fire TV wall"). Default
+     * all (see FireTvWatcherService). Default
      * OFF, same reasoning as isOcrFallbackEnabled()/isSmartTubeEnabled(): it
      * needs external grants (usage access + screen recording) and only
      * applies to one platform, so it never turns itself on. Unlike a plain

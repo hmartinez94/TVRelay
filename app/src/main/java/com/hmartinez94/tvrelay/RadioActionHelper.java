@@ -13,7 +13,7 @@ import java.util.function.LongPredicate;
  * group in this app (player choice, metadata provider choice) enforces
  * exclusivity itself as a result; this is the shared "check the clicked
  * action, uncheck the rest of its group" loop the call sites used to
- * duplicate. See CLAUDE.md for the original bug report.
+ * duplicate.
  */
 final class RadioActionHelper {
 

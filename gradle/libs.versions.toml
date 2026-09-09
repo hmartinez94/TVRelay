@@ -7,10 +7,11 @@ mlkitTextRecognition = "16.0.1"
 # Only androidx.activity itself is needed here (registerForActivityResult /
 # ComponentActivity, for OcrConsentActivity's one-shot MediaProjection
 # consent flow) - leanback 1.2.0 transitively pulls a much older
-# androidx.fragment (1.0.0, see the getParentFragmentManager() note in
-# CLAUDE.md) that predates the split-out androidx.activity artifact ever
-# reaching this project's compile classpath, so it's declared explicitly
-# rather than assumed to already be resolvable.
+# androidx.fragment (1.0.0 - getParentFragmentManager() doesn't even compile
+# against it, see getFragmentManager() usage throughout this project instead)
+# that predates the split-out androidx.activity artifact ever reaching this
+# project's compile classpath, so it's declared explicitly rather than
+# assumed to already be resolvable.
 androidxActivity = "1.9.3"
 # FileProvider, for handing the downloaded update APK to the system
 # installer as a content:// Uri (see ApkInstaller/AndroidManifest.xml's

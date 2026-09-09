@@ -24,10 +24,10 @@ import java.util.function.BooleanSupplier;
  * YouTube-redirect toggle below.
  *
  * Plex / Jellyfin / Wholphin have no *universal-catalog* content deep link
- * (see PlayerApp's class doc and CLAUDE.md), so all three default to a
+ * (see PlayerApp's class doc), so all three default to a
  * plain title search hand-off via prepareTitleSearch(). Jellyfin and
  * Wholphin pre-fill the query; Plex's ACTION_SEARCH route (the only working
- * one - see CLAUDE.md for a decompiled trace) opens Plex's real search
+ * one, confirmed by decompiling Plex's own app) opens Plex's real search
  * screen but does NOT pre-fill it, a confirmed gap in Plex's own app, not
  * something fixable here. (Plex is currently disabled - not removed - see
  * PlayerApp.isEnabled().) Title search never touches MetadataResolver at
@@ -48,8 +48,7 @@ import java.util.function.BooleanSupplier;
  * open-source Jellyfin client, not an official Jellyfin build - it shares
  * this same opt-in config because it connects to the same kind of server
  * and uses the same server-local item id, not because it's built from
- * Jellyfin's code (see PlayerApp's class doc and CLAUDE.md's "Wholphin
- * support"). openServerItem() picks which of the two players' own Intent
+ * Jellyfin's code (see PlayerApp's class doc). openServerItem() picks which of the two players' own Intent
  * contract to use for a given item id.
  *
  * Takes a plain Context (not specifically AccessibilityService) so it can be
@@ -174,7 +173,7 @@ final class PlayerLauncher {
 
         // No TMDB-native route for this candidate, so the only route left is
         // an IMDb id - which WAKO has none of at all (confirmed absence, see
-        // PlayerApp.WAKO / CLAUDE.md). Checked before MetadataResolver.resolve()
+        // PlayerApp.WAKO). Checked before MetadataResolver.resolve()
         // so this costs zero network calls; returns null exactly like any
         // other unresolvable title (see this method's javadoc / callers).
         if (forType(candidate.type, app.getMovieUriTemplate(), app.getSeriesUriTemplate()) == null) {
@@ -222,8 +221,8 @@ final class PlayerLauncher {
         // a real bug in Plex's own app on this build, not something wrong on
         // our end. Still sent (harmless, and free if Plex ever fixes it)
         // because this is still better than the dead https://watch.plex.tv/
-        // search?q= URL it replaced - see CLAUDE.md's "Plex removed" section
-        // for the full decompiled trace. Jellyfin and Wholphin's own
+        // search?q= URL it replaced, confirmed by decompiling Plex's own
+        // search-handoff path. Jellyfin and Wholphin's own
         // ACTION_SEARCH handling doesn't have this gap; both pre-fill
         // correctly.
 
@@ -325,8 +324,8 @@ final class PlayerLauncher {
      * the exact same YouTube search URL contract
      * (https://www.youtube.com/results?search_query={title}), just a
      * different package. Extracted so the two paths can't drift apart the
-     * way CLAUDE.md's TitleSearchFallbacks section describes real bugs
-     * arising from duplicating near-identical logic across code paths.
+     * way TitleSearchFallbacks was originally duplicated per-client and
+     * grew real bugs from that duplication before being unified.
      */
     private static Uri buildYouTubeSearchUri(String rawTitle) {
         String title = TitleCleanup.stripTrailingParentheticals(rawTitle);
@@ -342,8 +341,9 @@ final class PlayerLauncher {
      * Preferences.isSmartTubeEnabled() and TvRelayAccessibilityService's
      * YouTube-marker detection, which decides when this gets called at all -
      * this method itself doesn't check the setting. Opens a YouTube search
-     * for the title (no direct video-id deep link attempted - see
-     * CLAUDE.md), trying SmartTube's stable package first, then its beta
+     * for the title (no direct video-id deep link attempted - no reliable
+     * way to resolve a specific video id from just a title), trying
+     * SmartTube's stable package first, then its beta
      * package if that fails. No packageless fallback for either attempt,
      * same reasoning as prepareTitleSearch(): a bare YouTube search URL
      * would otherwise silently open in a browser or the official YouTube
@@ -580,8 +580,8 @@ final class PlayerLauncher {
      * signal that the user is leaving the launcher lobby for another app,
      * without needing to widen TvRelayAccessibilityService's event
      * filtering to watch every package (a real battery/perf/privacy cost
-     * already ruled out elsewhere in this codebase - see the "voice search
-     * wall" in CLAUDE.md).
+     * already ruled out elsewhere in this codebase - see the voice-search
+     * detection work in TvRelayAccessibilityService).
      *
      * Routed through OcrCaptureManager.stopActiveSessionAfterLaunch()
      * rather than calling Context.stopService() directly here - confirmed

@@ -30,11 +30,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Owns the actual MediaProjection/VirtualDisplay/ImageReader lifecycle for
- * the OCR capture fallback - see OcrCaptureManager for the state machine
- * that drives this, and "The capabilities wall" in CLAUDE.md for why this
- * exists at all (the AccessibilityService can't retrieve window content or
- * take its own screenshot; MediaProjection is a wholly separate,
- * non-gated permission path).
+ * the OCR capture fallback.
  *
  * Lifecycle, driven entirely by OcrConsentActivity/OcrCaptureManager:
  *  - Started (ContextCompat.startForegroundService) by OcrConsentActivity

@@ -19,9 +19,8 @@ import java.util.concurrent.Executors;
  * On the current Fire TV home screen (com.amazon.tv.launcher's
  * HomeActivity_vNext, the 2026 redesign) a sideloaded accessibility service
  * receives no AccessibilityEvents at all - not even window-state changes -
- * so the click path the Google TV side relies on is simply dead here (see
- * CLAUDE.md's "Fire TV wall", re-confirmed 2026-09-07). This service takes
- * the other route the reference app (Yushetf33/TvReccomendationBridge)
+ * so the click path the Google TV side relies on is simply dead here. 
+ * This service takes the other route the reference app (Yushetf33/TvReccomendationBridge)
  * documents and that was confirmed working on a real Fire TV Stick the same
  * day:
  *

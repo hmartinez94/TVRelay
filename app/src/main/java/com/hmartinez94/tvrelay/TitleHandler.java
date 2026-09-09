@@ -14,7 +14,7 @@ import java.util.function.BooleanSupplier;
  * through. Extracted from TvRelayAccessibilityService (2026-09-07) so the
  * Google TV accessibility path and the new Fire TV UsageStats+OCR path
  * (FireTvWatcherService) run identical logic instead of maintaining two
- * copies - see the plan / CLAUDE.md's Fire TV notes.
+ * copies.
  *
  * The only thing that differs between the two callers is what needs to
  * happen around an overlay-state change: the accessibility service has to

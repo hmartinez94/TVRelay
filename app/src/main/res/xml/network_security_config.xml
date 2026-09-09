@@ -8,10 +8,10 @@
   support, so a user-entered host can't be allowlisted narrowly - the only
   workable form is a blanket base-config relaxation.
 
-  This deliberately reverses the 2026-08-21 Kodi-removal cleanup, which
-  deleted this exact file on the grounds that every remaining call was HTTPS
-  (see CLAUDE.md's "What this is" section). That reasoning no longer holds
-  now that a user can point TVRelay at their own LAN server. Every
+  This deliberately reverses an earlier cleanup (when Kodi support was
+  removed) that deleted this exact file on the grounds that every remaining
+  call was HTTPS. That reasoning no longer holds now that a user can point
+  TVRelay at their own LAN server. Every
   first-party endpoint (TMDB, TheTVDB, ntfy.sh, GitHub) is still a
   hardcoded https:// URL, completely unaffected by this - the relaxation
   exists solely so cleartext works for a self-hosted server the user typed

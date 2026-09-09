@@ -205,8 +205,9 @@ public class SettingsStepFragment extends GuidedStepSupportFragment {
         }
 
         if (FireTvSupport.isFireTv(context)) {
-            // Fire TV can't use the click pipeline at all (see CLAUDE.md's
-            // "Fire TV wall") - this row opens the UsageStats + OCR activation
+            // Fire TV can't use the click pipeline at all (the accessibility
+            // service receives zero events on the Fire TV home screen - see
+            // FireTvWatcherService) - this row opens the UsageStats + OCR activation
             // flow instead. Only shown on a Fire TV device; on Google TV the
             // normal click path works and this would just be a worse,
             // permission-heavier duplicate.
@@ -345,8 +346,8 @@ public class SettingsStepFragment extends GuidedStepSupportFragment {
         for (int i = 0; i < apps.length; i++) {
             PlayerApp app = apps[i];
             if (!app.isEnabled()) {
-                // Disabled, not removed - see PlayerApp.isEnabled()/CLAUDE.md
-                // (currently: Plex). Index i is left as-is (not renumbered)
+                // Disabled, not removed - see PlayerApp.isEnabled()
+                // (currently: Plex, Wako). Index i is left as-is (not renumbered)
                 // so ACTION_PLAYER_BASE + i still lines up with
                 // PlayerApp.values() in onSubGuidedActionClicked below.
                 continue;
@@ -616,8 +617,8 @@ public class SettingsStepFragment extends GuidedStepSupportFragment {
      * first, and there's no harm in a sideloaded user seeing it early.
      * Still gated behind InstallSource.isPlayStoreInstall(), since Play is a
      * trusted installer and is never subject to this restriction in the
-     * first place - see CLAUDE.md's "Distribution & monetization decisions"
-     * (a real Play Internal Testing release already exists for this app).
+     * first place (a real Play Internal Testing release already exists for
+     * this app, confirming this).
      */
     private static boolean shouldOfferRestrictedSettingsHelp(Context context) {
         return !InstallSource.isPlayStoreInstall(context);

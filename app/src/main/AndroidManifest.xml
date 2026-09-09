@@ -6,8 +6,7 @@
 
     <!-- OCR capture fallback (OcrCaptureManager/OcrCaptureForegroundService)
          - a MediaProjection-based screenshot+OCR path for cards that carry
-         no accessible text at all (see "The capabilities wall" in
-         CLAUDE.md). MediaProjection is a wholly separate, non-gated
+         no accessible text at all. MediaProjection is a wholly separate, non-gated
          permission path from the AccessibilityService capabilities that
          wall describes - the user grants it via the system's own one-time
          screen-capture consent dialog, not an accessibility capability. -->
@@ -17,8 +16,8 @@
 
     <!-- Fire TV mode (FireTvWatcherService): polls UsageStats to detect the
          Fire TV launcher's detail page opening, since the accessibility-click
-         pipeline gets no events on the Fire TV home screen (see CLAUDE.md's
-         "Fire TV wall"). This is a special-access grant the user turns on via
+         pipeline gets no events on the Fire TV home screen. 
+         This is a special-access grant the user turns on via
          Settings -> Apps -> Special app access -> Usage access, not an
          install-time one - declared here so the app can request/read it.
          tools:ignore silences the (expected) "system-granted permission"

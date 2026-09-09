@@ -23,7 +23,7 @@ import java.util.List;
  * argument to MATCH_PARENT regardless of the view's own size, so its
  * opaque tray background filled the whole screen) and was dropped
  * entirely rather than fixed, once this overlay proved to work better
- * anyway. See CLAUDE.md.
+ * anyway.
  *
  * Takes a Context, but which one matters: when built from the bound
  * accessibility service (the Google TV path), it can use

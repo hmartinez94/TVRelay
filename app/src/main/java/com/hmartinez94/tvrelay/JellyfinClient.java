@@ -27,9 +27,7 @@ import okhttp3.Response;
  * the user's own library first" path - see Preferences.
  * isJellyfinLibraryLookupReady() and JellyfinSettingsStepFragment. When a hit
  * is found, TVRelay opens the title directly, the same way it does for
- * Nuvio/Stremio/WuPlay - see CLAUDE.md's "Plex and Jellyfin" section for the
- * full history (this used to be a search-only hand-off for both players;
- * Jellyfin is the one that grew a direct-open path).
+ * Nuvio/Stremio/WuPlay.
  *
  * Deliberately title-search only, never provider-id/IMDb-based:
  * Jellyfin's /Items endpoint has no provider-id filter exposed at all.

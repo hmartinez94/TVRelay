@@ -22,8 +22,8 @@ import okhttp3.Response;
  * Preferences.getEffectiveTmdbApiKey(): the app's own bundled key
  * (BuildConfig.TMDB_API_KEY) unless the user has entered their own in
  * Settings, in which case theirs takes priority - e.g. if the shared
- * default is ever rate-limited. See CLAUDE.md for the reasoning behind
- * bundling a default key (2026-08-23 decision).
+ * default is ever rate-limited (2026-08-23 decision: a bundled key removes
+ * the setup friction of requiring every user to get their own TMDB key).
  *
  * Unlike TheTVDB, a TMDB search result doesn't carry an external id -
  * that's a separate call (fetchImdbId/resolveImdbId, /{type}/{id}/external_ids)
@@ -106,7 +106,7 @@ final class TmdbClient {
 
             // See ExactMatchPicker for why this exists: TMDB's search is
             // relevance-ranked and title collisions are common (same
-            // "Obsession" case confirmed against TheTVDB - see CLAUDE.md).
+            // "Obsession" case confirmed against TheTVDB).
             String normalizedQuery = ExactMatchPicker.normalize(title);
             ExactMatchPicker<TitleCandidate> picker = new ExactMatchPicker<>(hideAlternateTitles);
 
@@ -133,7 +133,8 @@ final class TmdbClient {
                 // in English, so it legitimately passes the exact-match
                 // check above. That's a TMDB catalog-data quirk, the same
                 // class of issue as the "Backrooms" data-coverage gap
-                // (see CLAUDE.md) - not something string matching can or
+                // (a genuine data-coverage gap, not a bug in the matching
+                // logic) - not something string matching can or
                 // should second-guess. This log is what surfaced it.
                 Log.d(TAG, "Candidate " + i + ": media_type=" + mediaPath
                         + " name=[" + name + "] original=[" + originalName + "]"

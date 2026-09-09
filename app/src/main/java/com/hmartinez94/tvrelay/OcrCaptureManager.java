@@ -17,8 +17,7 @@ import com.google.mlkit.vision.text.latin.TextRecognizerOptions;
 
 /**
  * Screenshot+OCR fallback for launcher cards that carry zero accessible
- * text on their click event at all (the "Top picks for you" row - see
- * "The capabilities wall" in CLAUDE.md). MediaProjection is a wholly
+ * text on their click event at all. MediaProjection is a wholly
  * separate, non-gated permission path from the AccessibilityService
  * capabilities that wall describes: the user grants it once via the
  * system's own screen-capture consent dialog, not an accessibility

@@ -18,7 +18,8 @@ import java.util.List;
  * device, see FireTvSupport.isFireTv()). Fire TV mode reads a
  * recommendation's title off the screen via UsageStats + on-device OCR
  * (FireTvWatcherService), the only approach that works on the Fire TV home
- * screen (see CLAUDE.md's "Fire TV wall" / FireTvWatcherService's class doc).
+ * screen - the accessibility service receives zero events there at all, not
+ * even window/focus events (see FireTvWatcherService's class doc).
  *
  * It needs two one-time grants - Usage Access and Screen Recording - so this
  * screen walks the user through them rather than a plain checkbox toggle

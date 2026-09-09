@@ -16,8 +16,7 @@ final class InstallSource {
     /**
      * Whether TVRelay's own installed copy came from the Play Store - the
      * one trusted installer that is never subject to Android 13+'s
-     * Restricted Settings block (see RestrictedSettingsStepFragment /
-     * CLAUDE.md). On any ambiguity (exception, null installer - i.e. a
+     * Restricted Settings block. On any ambiguity (exception, null installer - i.e. a
      * sideloaded or otherwise-unknown install) this deliberately returns
      * false: a false "show the help row" just costs one unused Settings
      * entry, while a false "hide it" would strand a genuinely stuck
