@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Locale-dependent launcher card-shape markers, read by
+    TvRelayAccessibilityService (isMovieOrShowCard / isYouTubeCard /
+    extractHeroTitle / handleVoiceSearchDetailPage) and OcrTextCleaner.
+
+    These are matched against text the LAUNCHER renders, not against
+    TVRelay's own UI, so they are always resolved through
+    LauncherLocale.systemResources() (the real system locale) rather than
+    the app's own Resources. See that class for why.
+
+    IMPORTANT for anyone adding a values-xx/arrays.xml: defining a
+    string-array in a locale folder REPLACES the default array wholesale,
+    it does not merge item by item. Keep the English entries from this
+    file in your localized array as well, unless you have positive
+    evidence they can never appear on that locale's launcher. These are
+    positive detectors: an extra entry that never matches costs nothing,
+    a missing entry silently drops a real card.
+
+    Never leave an entry (or one of the two subscription strings) blank.
+    String.contains("") is always true, so a blank value matches every
+    card on the home screen.
+-->
+<resources>
+
+    <!--
+        Markers that identify a card as a real movie/show recommendation
+        (as opposed to an app icon or other launcher chrome). Used only
+        for DETECTION, not for extracting the title. Confirmed against
+        real English locale content-desc strings on device:
+          "Scary Movie, costs: $9.99, original price: $19.99, rotten rating: 23% on Rotten Tomatoes"
+          "REACHER, requires Prime Video subscription, fresh rating: 95% on Rotten Tomatoes"
+          "Fountain of Youth, Apple TV, rotten rating: 35% on Rotten Tomatoes"
+    -->
+    <string-array name="title_markers">
+        <item>costs:</item>
+        <item>rating:</item>
+    </string-array>
+
+    <!--
+        "requires {Provider} subscription" - a variable provider name sits
+        between two fixed phrases, so this cannot be a plain title_markers
+        entry. Expressed as two substrings that must BOTH appear, rather
+        than as a regex, so a translator never has to write valid Java
+        regex syntax. (First guessed as the fixed string "subscription
+        required for", which turned out to be the wrong wording entirely,
+        confirmed via real content-desc strings.)
+
+        The surrounding double quotes are LOAD BEARING: aapt2 trims
+        leading and trailing whitespace from string resources unless the
+        value is quoted. Without them the space would be silently dropped.
+
+        If you override these in a locale, override BOTH, and only if that
+        locale's phrasing really does have a variable middle part. If it
+        does not (the Spanish "se necesita una suscripcion a" case), add
+        the phrase to that locale's title_markers instead and leave these
+        two alone, so the English pattern still applies as a fallback.
+    -->
+    <string name="subscription_marker_prefix">"requires "</string>
+    <string name="subscription_marker_suffix">" subscription"</string>
+
+    <!--
+        Distinguishes a YouTube video recommendation card from a movie/show
+        card. Originally a blind guess mirrored from Bananz0/OpenTVBridge
+        (2026-08-24) and CONFIRMED WRONG 2026-08-25 via a real captured
+        YouTube video click: the real content-desc is just the bare title,
+        no duration marker anywhere. Kept as a still plausible marker for a
+        locale or launcher build variant that does include one; isYouTubeCard()
+        no longer depends on it alone (see its structural fallback).
+    -->
+    <string-array name="youtube_markers">
+        <item>duration:</item>
+    </string-array>
+
+    <!--
+        Sponsored/ad hero banners lead with this label instead of a title,
+        and must not be handed to the metadata resolver. Confirmed live on
+        a Danish ONN: "Movie/show detected (hero banner): Sponsoreret" for a
+        real Apple Event ad card, followed by "Could not resolve an IMDB id".
+        Matched case insensitively against the first event.getText() entry.
+    -->
+    <string-array name="sponsored_labels">
+        <item>Sponsored</item>
+    </string-array>
+
+    <!--
+        The generic, title-less window label the Google TV launcher's
+        EntityActivity carries in event.getText()[0]. Gates the entire
+        voice-search OCR fallback trigger; matched with contentEquals
+        (exact), not contains, because it is a whole standalone label.
+        Danish equivalent "Infoside" confirmed live 2026-09-09 from the
+        same EntityActivity window.
+    -->
+    <string-array name="voice_search_detail_page_labels">
+        <item>Detail Page</item>
+    </string-array>
+
+    <!--
+        Known UI chrome labels that can end up as their own ML Kit text
+        block on a detail page and must not be mistaken for the title
+        itself. Guessed, not confirmed against a real capture. Compared
+        case insensitively (both sides are upper-cased with Locale.ROOT
+        before comparison), so casing here is cosmetic.
+    -->
+    <string-array name="ocr_chrome_denylist">
+        <item>PLAY</item>
+        <item>DETAILS</item>
+        <item>ADD TO WATCHLIST</item>
+        <item>TRAILER</item>
+        <item>MORE INFO</item>
+        <item>WATCH NOW</item>
+    </string-array>
+
+</resources>

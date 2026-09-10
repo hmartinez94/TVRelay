@@ -13,9 +13,10 @@ import java.util.regex.Pattern;
  * string heuristic, not a real layout-understanding model.
  *
  * Heuristic: drop text blocks that are too short to plausibly be a title,
- * or that case-insensitively match a small denylist of known TV
- * detail-page UI-chrome labels ("PLAY", "TRAILER", etc. - text that ML Kit
- * will happily also recognize as its own block), then take the block with
+ * or that case-insensitively match a caller-supplied denylist of known TV
+ * detail-page UI-chrome labels (R.array.ocr_chrome_denylist - "PLAY",
+ * "TRAILER", etc. - text that ML Kit will happily also recognize as its own
+ * block), then take the block with
  * the TALLEST font (largest line bounding-box height), on the assumption
  * that the title is rendered in the biggest type on the page. Falls back to
  * the first non-empty block if nothing survives the filter, rather than
@@ -38,19 +39,21 @@ final class OcrTextCleaner {
 
     private static final Pattern WHITESPACE = Pattern.compile("\\s+");
 
-    // Known UI-chrome labels that can end up as their own ML Kit text
-    // block on a detail page and must not be mistaken for the title
-    // itself. Guessed, not confirmed against a real capture - see class
-    // doc.
-    private static final String[] CHROME_DENYLIST = {
-            "PLAY", "DETAILS", "ADD TO WATCHLIST", "TRAILER", "MORE INFO", "WATCH NOW"
-    };
-
     private OcrTextCleaner() {
     }
 
-    /** Returns the best-guess title, or null if the OCR result had nothing usable in it. */
-    static String extractTitle(Text result) {
+    /**
+     * Returns the best-guess title, or null if the OCR result had nothing usable in it.
+     *
+     * @param chromeDenylist UI-chrome labels to reject outright (see
+     *        R.array.ocr_chrome_denylist), resolved by the caller against
+     *        the real system locale (see LauncherLocale) - threaded in as a
+     *        parameter rather than read here so this class stays
+     *        context-free and directly testable. May be null or empty; the
+     *        tallest-font heuristic then carries the whole job, same as
+     *        before this denylist existed.
+     */
+    static String extractTitle(Text result, String[] chromeDenylist) {
         if (result == null) {
             return null;
         }
@@ -68,7 +71,7 @@ final class OcrTextCleaner {
             if (firstNonEmpty == null) {
                 firstNonEmpty = block;
             }
-            if (text.length() < MIN_TITLE_LENGTH || isChrome(text)) {
+            if (text.length() < MIN_TITLE_LENGTH || isChrome(text, chromeDenylist)) {
                 continue;
             }
             // Tallest font wins - the title is the biggest type on the page.
@@ -123,10 +126,15 @@ final class OcrTextCleaner {
         return max;
     }
 
-    private static boolean isChrome(String text) {
+    private static boolean isChrome(String text, String[] chromeDenylist) {
+        if (chromeDenylist == null) {
+            return false;
+        }
         String upper = text.toUpperCase(Locale.ROOT);
-        for (String denied : CHROME_DENYLIST) {
-            if (upper.equals(denied)) {
+        for (String denied : chromeDenylist) {
+            // Both sides normalized, so a localized denylist entry does not
+            // have to be typed in upper case to work.
+            if (denied != null && upper.equals(denied.toUpperCase(Locale.ROOT))) {
                 return true;
             }
         }

@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Danish card-shape markers. Only the two values confirmed live on a
+    real Danish ONN 4K Pro (2026-09-09) are here. See values/arrays.xml
+    for the general rules.
+
+    KNOWN GAP, deliberate: no Danish equivalent of title_markers,
+    youtube_markers or the subscription phrases has ever been captured
+    live, so those are left undefined and fall back to the English
+    defaults, which will never match Danish launcher text. Danish
+    movie/show detection therefore rests entirely on the locale-agnostic
+    structural fallbacks (android.view.View + a comma-separated
+    content-desc in isMovieOrShowCard, and the hero-banner shape in
+    extractHeroTitle), which is what has been carrying it so far.
+
+    To close the gap: click a Danish price/rating card and a Danish
+    subscription-gated card with "adb logcat -s TvRelayService:D", read
+    the real content-desc out of the unconditional "Click event:" log
+    line, and add the real markers here. Do not guess them.
+-->
+<resources>
+
+    <!--
+        Confirmed live: "Movie/show detected (hero banner): Sponsoreret"
+        for a real Apple Event ad card. "Sponsored" kept as well, since a
+        Google-served ad card is not guaranteed to localize its own label.
+    -->
+    <string-array name="sponsored_labels">
+        <item>Sponsoreret</item>
+        <item>Sponsored</item>
+    </string-array>
+
+    <!--
+        Confirmed live: "Window-state event while match pending:
+        class=...EntityActivity text=[Infoside] contentDesc=[null]",
+        captured from the same EntityActivity window
+        handleVoiceSearchDetailPage() checks.
+    -->
+    <string-array name="voice_search_detail_page_labels">
+        <item>Infoside</item>
+        <item>Detail Page</item>
+    </string-array>
+
+</resources>

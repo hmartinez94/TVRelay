@@ -373,9 +373,16 @@ final class OcrCaptureManager {
         }
         try {
             InputImage image = InputImage.fromBitmap(bitmap, 0);
+            // Resolved HERE rather than inside the success listener below:
+            // this method runs on the main thread (FrameCallback is always
+            // delivered there - see OcrCaptureForegroundService.deliverFrame),
+            // so the lookup happens on a known thread and the array is just
+            // an effectively-final local captured by the lambda.
+            String[] chromeDenylist = LauncherLocale.systemResources(appContext)
+                    .getStringArray(R.array.ocr_chrome_denylist);
             textRecognizer.process(image)
                     .addOnSuccessListener(text -> {
-                        String title = OcrTextCleaner.extractTitle(text);
+                        String title = OcrTextCleaner.extractTitle(text, chromeDenylist);
                         if (title == null) {
                             Log.d(TAG, "OCR found no usable text");
                             safeFailure(callback, FailureReason.NO_TEXT_FOUND);

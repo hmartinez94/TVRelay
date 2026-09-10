@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Spanish card-shape markers. See values/arrays.xml for what these are
+    and for the "a localized array replaces the default wholesale" rule
+    that is why the English entries are repeated here.
+
+    The Spanish markers themselves ("cuesta:", "puntuación:", "se necesita
+    una suscripción a") come from the original reference app and have never
+    been verified by this project against a real Spanish-locale device,
+    unlike every English marker. Treat them as plausible, not confirmed.
+
+    Deliberately NOT overridden here (so the English defaults still apply):
+      - subscription_marker_prefix / subscription_marker_suffix: the
+        Spanish phrasing has no variable middle part, so it lives in
+        title_markers below exactly as it did when it was a Java constant.
+      - voice_search_detail_page_labels, ocr_chrome_denylist: no Spanish
+        value has ever been observed.
+-->
+<resources>
+
+    <string-array name="title_markers">
+        <item>cuesta:</item>
+        <item>puntuación:</item>
+        <item>se necesita una suscripción a</item>
+        <item>costs:</item>
+        <item>rating:</item>
+    </string-array>
+
+    <string-array name="youtube_markers">
+        <item>duración:</item>
+        <item>duration:</item>
+    </string-array>
+
+    <string-array name="sponsored_labels">
+        <item>Patrocinado</item>
+        <item>Sponsored</item>
+    </string-array>
+
+</resources>

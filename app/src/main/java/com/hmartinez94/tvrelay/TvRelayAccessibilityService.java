@@ -3,6 +3,7 @@ package com.hmartinez94.tvrelay;
 import android.accessibilityservice.AccessibilityService;
 import android.accessibilityservice.AccessibilityServiceInfo;
 import android.content.SharedPreferences;
+import android.content.res.Resources;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
@@ -12,7 +13,6 @@ import android.view.accessibility.AccessibilityNodeInfo;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.regex.Pattern;
 
 /**
  * Watches for clicks on the Google TV launcher
@@ -39,45 +39,12 @@ public class TvRelayAccessibilityService extends AccessibilityService {
     private static final String GOOGLE_TV_LAUNCHER_PACKAGE = "com.google.android.apps.tv.launcherx";
     private static final String AMAZON_LAUNCHER_PACKAGE = "com.amazon.tv.launcher";
 
-    // Markers that identify a card as a real movie/show recommendation
-    // (as opposed to an app icon or other launcher chrome) - used only for
-    // DETECTION now, not for extracting the title. Confirmed against real
-    // English-locale content-desc strings on-device:
-    //   "Scary Movie, costs: $9.99, original price: $19.99, rotten rating: 23% on Rotten Tomatoes"
-    //   "REACHER, requires Prime Video subscription, fresh rating: 95% on Rotten Tomatoes"
-    //   "Fountain of Youth, Apple TV, rotten rating: 35% on Rotten Tomatoes"
-    private static final String[] TITLE_MARKERS = {
-            "cuesta:", "se necesita una suscripción a", "puntuación:",
-            "costs:", "rating:"
-    };
-
-    // "requires {Provider} subscription" - a variable provider name sits
-    // between fixed words, so this can't be a plain TITLE_MARKERS entry.
-    // (First guessed as the fixed string "subscription required for",
-    // which turned out to be the wrong wording entirely - confirmed via
-    // real content-desc strings like "requires Prime Video subscription".)
-    private static final Pattern SUBSCRIPTION_MARKER = Pattern.compile("requires .+ subscription");
-
-    // Distinguishes a YouTube video recommendation card from a movie/show
-    // card, so it can be redirected to a sideloaded YouTube TV client
-    // instead - SmartTube or TizenTube Cobalt, whichever is installed (see
-    // PlayerLauncher.prepareYouTubeRedirect()) - rather than being treated
-    // as a movie/show search - which, left unchecked, is exactly what the
-    // generic "{Title}, {rest}" fallback in isMovieOrShowCard() would
-    // otherwise do to it.
-    //
-    // Originally a blind guess (mirrored Bananz0/OpenTVBridge's own marker
-    // choice, 2026-08-24) never confirmed against a real click. CONFIRMED
-    // WRONG 2026-08-25 via a real captured YouTube-video click ("The BEST
-    // Crispy Sautéed Potatoes", a cooking video): the real content-desc is
-    // JUST the bare title, no duration marker anywhere, no comma, nothing
-    // else - so this array never matched, and (since isMovieOrShowCard()
-    // separately requires a comma to match anything) the click was simply
-    // dropped, unhandled. Kept as a still-plausible marker for a locale/
-    // launcher-build variant that DOES include one - checked first, before
-    // the real fallback below - but isYouTubeCard() no longer depends on
-    // it alone.
-    private static final String[] YOUTUBE_MARKERS = {"duración:", "duration:"};
+    // Every locale-dependent card-shape marker (title/subscription/YouTube
+    // markers, the sponsored-ad label, the voice-search detail-page label)
+    // now lives in res/values/arrays.xml (+ values-es, values-da),
+    // resolved through LauncherLocale.systemResources() - see that class
+    // and those files for the markers themselves and why they're not plain
+    // Java constants.
 
     private static final String FIRE_TV_MAIN_IMAGE_ID = "com.amazon.tv.launcher:id/main_image";
 
@@ -107,7 +74,7 @@ public class TvRelayAccessibilityService extends AccessibilityService {
     //
     // Fix-if-wrong workflow: handleLauncherLobbyReturn() below logs every
     // window-state class name seen while a match is pending, unconditionally
-    // - the same workflow already used to confirm/correct YOUTUBE_MARKERS.
+    // - the same workflow already used to confirm/correct R.array.youtube_markers.
     // WatchNowOverlay's MAX_LIFETIME_MS cap firing (its own Log.w) is itself
     // indirect diagnostic evidence this constant is wrong and never matched.
     private static final String LOBBY_CLASS_MARKER = "HomeActivity";
@@ -352,15 +319,32 @@ public class TvRelayAccessibilityService extends AccessibilityService {
                     Log.d(TAG, "Movie/show detected: " + title);
                     handleMovieClick(title);
                 }
+                return;
+            }
+            // Neither card check matched - but a hero banner can carry a
+            // content-desc AND its own [Title, subtitle, synopsis, CTA]
+            // text at the same time, and extractHeroTitle()'s shape match
+            // is locale agnostic where the two checks above are not. Before
+            // this existed the branch returned unconditionally here and
+            // such a card was dropped silently, which is the confirmed
+            // root cause of GitHub issue #3's reported symptom (a Danish
+            // ViewGroup hero card whose title sat in text[0] the whole
+            // time). Passing desc in makes extractHeroTitle() apply its
+            // stricter corroboration rules - see its javadoc.
+            String heroTitleWithDesc = extractHeroTitle(event, desc);
+            if (heroTitleWithDesc != null) {
+                Log.d(TAG, "Movie/show detected (hero banner, with content-desc): " + heroTitleWithDesc);
+                handleMovieClick(heroTitleWithDesc);
             }
             return;
         }
 
         // Big autoplay hero banner (top row of Home): title travels in
         // event.getText(), not contentDescription. Format:
-        // [Title, subtitle, synopsis, CTA]. Sponsored entries lead with
-        // "Sponsored"/"Patrocinado" and are ignored - not real recommendations.
-        String heroTitle = extractHeroTitle(event);
+        // [Title, subtitle, synopsis, CTA]. Sponsored entries lead with a
+        // sponsored label (R.array.sponsored_labels) and are ignored - not
+        // real recommendations.
+        String heroTitle = extractHeroTitle(event, null);
         if (heroTitle != null) {
             Log.d(TAG, "Movie/show detected (hero banner): " + heroTitle);
             handleMovieClick(heroTitle);
@@ -416,6 +400,20 @@ public class TvRelayAccessibilityService extends AccessibilityService {
                     Log.d(TAG, "Movie/show detected (delayed): " + title);
                     handleMovieClick(title);
                 }
+                return;
+            }
+            // Same hero-banner fallback as the immediate branch above -
+            // this branch had the identical "give up if isMovieOrShowCard
+            // fails" gap. NOTE: `event` may already have been recycled by
+            // the framework by the time this runs on pre-API-33 devices (a
+            // pre-existing condition, not introduced by this fallback), in
+            // which case getClassName()/getText() come back empty and this
+            // is simply a no-op - never a wrong detection.
+            String delayedHeroTitle = extractHeroTitle(event, delayedDesc);
+            if (delayedHeroTitle != null) {
+                Log.d(TAG, "Movie/show detected (hero banner, with content-desc, delayed): "
+                        + delayedHeroTitle);
+                handleMovieClick(delayedHeroTitle);
             }
         }, 600);
     }
@@ -443,8 +441,8 @@ public class TvRelayAccessibilityService extends AccessibilityService {
      * EntityActivity with zero TYPE_VIEW_CLICKED events anywhere), so this
      * watches for the one confirmed, real signal instead: the window-state
      * transition into EntityActivity, whose event.getText() carries only
-     * the generic, locale-static label "Detail Page" - never the real
-     * title.
+     * a generic, locale-specific label (R.array.voice_search_detail_page_labels,
+     * "Detail Page" in English) - never the real title.
      *
      * CORRECTION (2026-08-25, confirmed via real on-device logcat): this
      * EntityActivity/"Detail Page" signature is NOT unique to voice search
@@ -535,7 +533,27 @@ public class TvRelayAccessibilityService extends AccessibilityService {
             return;
         }
         List<CharSequence> text = event.getText();
-        if (text == null || text.isEmpty() || !"Detail Page".contentEquals(text.get(0))) {
+        if (text == null || text.isEmpty()) {
+            return;
+        }
+        CharSequence firstText = text.get(0);
+        if (firstText == null) {
+            // Pre-existing latent NPE guard: String.contentEquals(null)
+            // throws, and an exception on this thread takes the whole
+            // AccessibilityService down.
+            return;
+        }
+        boolean isDetailPageLabel = false;
+        for (String label : LauncherLocale.systemResources(this)
+                .getStringArray(R.array.voice_search_detail_page_labels)) {
+            // contentEquals (exact), not contains: this is a whole
+            // standalone window label, not a substring of a card's text.
+            if (!label.isEmpty() && label.contentEquals(firstText)) {
+                isDetailPageLabel = true;
+                break;
+            }
+        }
+        if (!isDetailPageLabel) {
             return;
         }
         Log.d(TAG, "Voice-search detail page detected with no title - triggering OCR fallback");
@@ -656,7 +674,31 @@ public class TvRelayAccessibilityService extends AccessibilityService {
         return null;
     }
 
-    private String extractHeroTitle(AccessibilityEvent event) {
+    /**
+     * Title out of the big autoplay hero banner's own
+     * [Title, subtitle, synopsis, CTA] text list.
+     *
+     * @param contentDesc the click event's content-desc, or null if it had
+     *        none. Null means the caller reached here on the original
+     *        "no content-desc at all" path, where the ViewGroup + non-empty
+     *        text shape is signal enough on its own (verified live on the
+     *        ONN: "Mayday" resolved correctly through exactly this path).
+     *        Non-null means the caller already failed both card checks and
+     *        is trying this as a last resort, where that shape alone is NOT
+     *        enough: a launcher banner/ad ("Netflix, Watch now") is also a
+     *        ViewGroup with text, and would otherwise be handed to the
+     *        metadata resolver as the title "WATCH NOW". Two extra
+     *        corroborations are required in that case, both satisfied by
+     *        the real issue #3 card
+     *        (text=[Underverden, Anbefalet til dig, En kirurg..., Se nu],
+     *        contentDesc="Anbefalet til dig. Underverden. En kirurg... Se nu.")
+     *        and both failed by the "Netflix, Watch now" banner shape
+     *        (one text entry, and its CTA text is not a substring of the
+     *        content-desc). Failing these means falling back to exactly
+     *        today's behavior - the click is dropped - so this path can
+     *        only ever ADD detections, never change an existing one.
+     */
+    private String extractHeroTitle(AccessibilityEvent event, String contentDesc) {
         CharSequence className = event.getClassName();
         if (className == null || !"android.view.ViewGroup".contentEquals(className)) {
             return null;
@@ -670,19 +712,35 @@ public class TvRelayAccessibilityService extends AccessibilityService {
             return null;
         }
         String first = firstRaw.toString().trim();
-        if (first.isEmpty() || first.equalsIgnoreCase("Patrocinado") || first.equalsIgnoreCase("Sponsored")) {
+        if (first.isEmpty()) {
+            return null;
+        }
+        // Sponsored/ad banners lead with a sponsored label instead of a
+        // title - see R.array.sponsored_labels. equalsIgnoreCase is
+        // locale-independent in Java (per-character), which is what we want
+        // here since the label may be in any language.
+        for (String sponsored : LauncherLocale.systemResources(this)
+                .getStringArray(R.array.sponsored_labels)) {
+            if (first.equalsIgnoreCase(sponsored)) {
+                return null;
+            }
+        }
+        if (contentDesc != null && (parts.size() < 2 || !contentDesc.contains(first))) {
             return null;
         }
         return first;
     }
 
     private boolean isYouTubeCard(AccessibilityEvent event, String contentDesc) {
-        for (String marker : YOUTUBE_MARKERS) {
-            if (contentDesc.contains(marker)) {
+        for (String marker : LauncherLocale.systemResources(this)
+                .getStringArray(R.array.youtube_markers)) {
+            // The isEmpty() guard is not cosmetic: contains("") is always
+            // true, so one blank <item> would make every card a YouTube card.
+            if (!marker.isEmpty() && contentDesc.contains(marker)) {
                 return true;
             }
         }
-        // Real fallback, confirmed 2026-08-25 - see YOUTUBE_MARKERS' javadoc.
+        // Real fallback, confirmed 2026-08-25 - see R.array.youtube_markers' comment.
         // A YouTube video card is the same android.view.View/empty-text
         // shape as a real movie/show card (see isMovieOrShowCard() below),
         // but with a BARE title and no comma-separated segment at all -
@@ -704,12 +762,26 @@ public class TvRelayAccessibilityService extends AccessibilityService {
     }
 
     private boolean isMovieOrShowCard(AccessibilityEvent event, String contentDesc) {
-        for (String marker : TITLE_MARKERS) {
-            if (contentDesc.contains(marker)) {
+        Resources res = LauncherLocale.systemResources(this);
+        for (String marker : res.getStringArray(R.array.title_markers)) {
+            if (!marker.isEmpty() && contentDesc.contains(marker)) {
                 return true;
             }
         }
-        if (SUBSCRIPTION_MARKER.matcher(contentDesc).find()) {
+        // "requires {Provider} subscription" - a variable provider name
+        // between two fixed phrases, so this is two substrings that must
+        // both appear rather than a plain marker. Replaces the old
+        // Pattern.compile("requires .+ subscription") - equivalent for
+        // every real content-desc seen so far, and marginally more
+        // permissive (it also matches "requires subscription" with no
+        // provider, and tolerates a line break in the middle), which is
+        // the right direction for a positive detector. See
+        // res/values/arrays.xml for why it is not a regex resource.
+        String subscriptionPrefix = res.getString(R.string.subscription_marker_prefix);
+        String subscriptionSuffix = res.getString(R.string.subscription_marker_suffix);
+        if (!subscriptionPrefix.isEmpty()
+                && contentDesc.contains(subscriptionPrefix)
+                && (subscriptionSuffix.isEmpty() || contentDesc.contains(subscriptionSuffix))) {
             return true;
         }
 
@@ -760,7 +832,7 @@ public class TvRelayAccessibilityService extends AccessibilityService {
 
     /**
      * YouTube-redirect toggle for a YouTube video recommendation card - see
-     * YOUTUBE_MARKERS and PlayerLauncher.prepareYouTubeRedirect(). Independent
+     * R.array.youtube_markers and PlayerLauncher.prepareYouTubeRedirect(). Independent
      * of PlayerApp/handleMovieClick(): this fires (or doesn't) based only on
      * Preferences.isSmartTubeEnabled(), regardless of which movie/show
      * player is selected. No MetadataResolver call, same reasoning as the

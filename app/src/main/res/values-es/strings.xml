@@ -18,8 +18,8 @@
     <string name="settings_chooser_status_enabled">Estado: activado - muestra un selector cuando un título coincide exactamente con más de un resultado, en lugar de adivinar</string>
     <string name="settings_chooser_status_disabled">Estado: desactivado - abre siempre automáticamente la coincidencia exacta más reciente</string>
     <string name="settings_hide_aka">Ocultar coincidencias con título alternativo (aka)</string>
-    <string name="settings_hide_aka_status_enabled">Estado: activado - una coincidencia solo conocida por un título original en otro idioma se omite por completo</string>
-    <string name="settings_hide_aka_status_disabled">Estado: desactivado - se muestra, pero después de las coincidencias en el mismo idioma</string>
+    <string name="settings_hide_aka_status_enabled">SOLO EN INGLÉS. Estado: activado - una coincidencia solo conocida por un título original en otro idioma se omite por completo</string>
+    <string name="settings_hide_aka_status_disabled">SOLO EN INGLÉS. Estado: desactivado - se muestra, pero después de las coincidencias en el mismo idioma</string>
     <string name="settings_player_plex_description">Abre la pantalla de búsqueda de Plex - tendrás que escribir el título tú mismo, y solo encuentra títulos que ya están en tu biblioteca</string>
     <string name="settings_player_jellyfin_description">Abre una búsqueda en Jellyfin por defecto - configura \"Buscar primero en la biblioteca\" abajo para abrir títulos de tu propio servidor directamente</string>
     <string name="settings_player_wholphin_description">Abre una búsqueda en Wholphin por defecto - un cliente de Jellyfin independiente y de código abierto. Configura \"Buscar primero en la biblioteca\" abajo para abrir títulos de tu propio servidor directamente</string>

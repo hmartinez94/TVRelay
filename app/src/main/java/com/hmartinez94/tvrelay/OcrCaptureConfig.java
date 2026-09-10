@@ -53,29 +53,42 @@ final class OcrCaptureConfig {
         }
     }
 
-    // Google TV (EntityActivity) - calibrated 2026-08-25 against a real
-    // captured screenshot (ONN, 1920x1080, "Superbad"): title sits at
-    // roughly y=230-380px / x=130-770px out of 1920x1080 (~0.21-0.35
-    // vertically, ~0.07-0.40 horizontally), with the rating/genre/year row
-    // directly below (~0.41-0.44) and the "What it's about"/"What people are
-    // saying" boxes starting at ~0.49. This band targets the title plus that
-    // rating row, stopping before the synopsis. RE-CONFIRMED as the correct
-    // vertical band 2026-09-08: a since-reverted attempt to also fit Fire
-    // TV's tighter band into a single shared crop cut this one off entirely
-    // (ML Kit found zero text, live on a real ONN) - don't merge the two
-    // platforms' bands again without testing both afterward.
+    // Google TV (EntityActivity).
     //
-    // RIGHT widened 0.85 -> 0.97 the same day, confirmed real bug: a long
-    // title ("The Fast and the Furious: Tokyo Drift", live voice-search
-    // capture) OCR'd as "...Tokyo Drit" - the rest of the string came
-    // through perfectly clean, only the final letter of the last word was
-    // missing, right at the crop's old right edge. That's the signature of
-    // the crop clipping the tail of a long title, not a recognition-quality
-    // issue - 0.85 wasn't generous enough once a title has two clauses and a
-    // colon. The right-hand background past the text is just hero art (no
-    // text to false-positive on), so widening this further costs nothing;
-    // 0.97 rather than 1.0 keeps a sliver of margin from the absolute edge.
-    private static final Crop GOOGLE_TV_CROP = new Crop(0.0f, 0.15f, 0.97f, 0.42f);
+    // VERTICAL BAND CORRECTED 2026-09-09 - the previous top=0.15/bottom=0.42
+    // band (dated 2026-08-25, "calibrated against a real captured
+    // screenshot") was never actually confirmed against a real OCR read
+    // through this pipeline end-to-end, unlike Fire TV mode's crop. Found
+    // wrong while debugging "OCR always reads garbage/nothing regardless of
+    // which movie is showing" (real symptom: consistently "TDL" or
+    // NO_TEXT_FOUND for every title): saved the actual bitmap this pipeline
+    // captures and crops (temporary debug instrumentation, since removed)
+    // and looked at it directly instead of guessing from OCR text. On a real
+    // capture (ONN, 1280x720 - this class's own CAPTURE_WIDTH/HEIGHT,
+    // "Superbad"), the title sits at roughly y=252-360px (~0.35-0.50
+    // vertically) with the rating/genre/year row starting at ~0.54 - the old
+    // bottom=0.42 cut straight through the middle of the title text, feeding
+    // ML Kit only the top halves of the letters. That's a garbage input
+    // regardless of which title is on screen, which is exactly the
+    // movie-independent symptom that gave this away. Whether the old
+    // fractional values were simply wrong from the start, or the launcher's
+    // real layout shifted sometime between 2026-08-25 and now, wasn't worth
+    // chasing - what matters is this is now grounded in a real, inspected
+    // capture, not a screenshot's claimed coordinates. New band (top=0.30,
+    // bottom=0.52) has margin above and below the measured title bounds and
+    // stops before the rating row.
+    //
+    // RIGHT widened 0.85 -> 0.97 on 2026-08-25, still valid, unaffected by
+    // the vertical correction above: a long title ("The Fast and the
+    // Furious: Tokyo Drift", live voice-search capture) OCR'd as "...Tokyo
+    // Drit" - the rest of the string came through perfectly clean, only the
+    // final letter of the last word was missing, right at the crop's old
+    // right edge. That's the signature of the crop clipping the tail of a
+    // long title, not a recognition-quality issue. The right-hand background
+    // past the text is just hero art (no text to false-positive on), so
+    // widening this further costs nothing; 0.97 rather than 1.0 keeps a
+    // sliver of margin from the absolute edge.
+    private static final Crop GOOGLE_TV_CROP = new Crop(0.0f, 0.30f, 0.97f, 0.52f);
 
     // Fire TV (DetailsPageDeepLinkActivityDI) - calibrated 2026-09-07 against
     // a real Fire TV Stick capture ("Ruthless People"): title sits at
