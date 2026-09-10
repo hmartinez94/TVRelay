@@ -38,6 +38,10 @@ final class OcrCaptureConfig {
     static final int CAPTURE_WIDTH = 1280;
     static final int CAPTURE_HEIGHT = 720;
 
+    // 2x upscale of the cropped title band before OCR (2026-09-09) - fixed a
+    // real k/l misread ("The Babadook" -> "The Babadool").
+    static final float CROP_UPSCALE_FACTOR = 2.0f;
+
     /** Fractional crop band (applied to the already-downscaled bitmap - see OcrCaptureForegroundService.cropToConfig). */
     static final class Crop {
         final float left;
