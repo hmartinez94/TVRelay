@@ -8,7 +8,7 @@
     <string name="disclosure_accept">I understand, continue</string>
 
     <string name="ocr_disclosure_title">About the screen-reading fallback</string>
-    <string name="ocr_disclosure_description">Some recommendation cards - especially the \"Top picks for you\" row - don\'t include any readable title in the click TVRelay receives, and voice search bypasses title detection entirely. When this fallback is on, TVRelay uses Android\'s screen-recording permission to capture what\'s on screen in those cases and read the title from it using on-device text recognition - nothing is ever uploaded anywhere.\n\nWhile this fallback is turned on, Android will show a persistent \"recording/casting\" indicator the whole time, not just while a capture is actually happening - that\'s a system-level notice you can\'t hide, and it\'s there so you always know the permission is active.\n\nYou can turn this off at any time from Settings.</string>
+    <string name="ocr_disclosure_description">Some recommendation cards - especially the \"Top picks for you\" row - don\'t include any readable title in the click TVRelay receives. When this is on, TVRelay uses Android\'s screen-recording permission to capture what\'s on screen. Android will show a persistent \"recording/casting\" indicator.</string>
 
     <string name="settings_description">Pick which app opens when you select a recommendation on your TV\'s home screen.</string>
 
@@ -25,7 +25,7 @@
     <string name="settings_player_plex_description">Opens Plex\'s search screen - you\'ll need to type the title yourself, and it only finds titles already in your library</string>
     <string name="settings_player_jellyfin_description">Opens a search in Jellyfin by default - set up \"Find in library first\" below to open titles on your own server directly instead</string>
     <string name="settings_player_wholphin_description">Opens a search in Wholphin by default - an independent, open-source Jellyfin client. Set up \"Find in library first\" below to open titles on your own server directly instead</string>
-    <string name="settings_player_moonfin_description">Only opens titles already on your Jellyfin server - Moonfin has no search screen to fall back to, so set up \"Find in library first\" below or clicked titles won\'t open</string>
+    <string name="settings_player_moonfin_description">Only opens titles already on your Jellyfin server</string>
     <string name="settings_player_wako_description">Opens titles using their TMDB id directly - doesn\'t work if you\'ve set Metadata provider to TheTVDB</string>
     <string name="settings_ocr_fallback">Screen-reading fallback for undetectable cards</string>
     <string name="settings_ocr_status_enabled">Status: enabled - a persistent recording indicator stays visible while this is on. Captures the screen on-device (nothing uploaded) when a card or voice-search result has no readable title</string>
@@ -62,7 +62,7 @@
     <string name="settings_overlay_status_enabled">Status: enabled - a confirm button appears before opening another app</string>
     <string name="settings_overlay_status_disabled">Status: not enabled - recognized clicks open the app directly with no confirmation. Select to grant \"display over other apps\"</string>
     <string name="settings_overlay_reappear">Reappear after dismissing</string>
-    <string name="settings_overlay_reappear_status_enabled">Status: enabled - dismissing the confirm button with Back or a D-pad press only hides it; it reappears a few seconds later until you return to the launcher\'s home screen</string>
+    <string name="settings_overlay_reappear_status_enabled">Status: enabled - dismissing the confirm button with Back or a D-pad press only hides it</string>
     <string name="settings_overlay_reappear_status_disabled">Status: disabled - dismissing the confirm button discards it for good, like the original behavior</string>
     <string name="settings_overlay_reappear_status_requires_permission">Requires \"Watch now\" confirmation to be enabled above</string>
     <string name="settings_overlay_long_press">Long press only</string>
@@ -76,7 +76,7 @@
     <string name="settings_accessibility_status_enabled">Status: enabled</string>
     <string name="settings_accessibility_status_disabled">Status: not enabled - select to open system settings</string>
     <string name="settings_restricted_settings_help">Accessibility not turning on? Get help</string>
-    <string name="settings_restricted_settings_help_description">It looks like the toggle isn\'t sticking - see how to fix it</string>
+    <string name="settings_restricted_settings_help_description">The toggle isn\'t sticking - see how to fix it</string>
 
     <string name="settings_section_more">More</string>
     <string name="settings_section_update">Update</string>
@@ -95,7 +95,7 @@
     <string name="settings_jellyfin_not_configured_no_search">Not set up - %1$s has no search screen, so clicked titles won\'t open until this is set up</string>
 
     <string name="jellyfin_settings_title">Configure Jellyfin server</string>
-    <string name="jellyfin_settings_description">Optional for Jellyfin/Wholphin, required for Moonfin. When \"Find in library first\" is on and set up below, a clicked or typed title that\'s already on your Jellyfin server opens directly - the same way Nuvio does - instead of just opening a search. Applies whether Jellyfin, Wholphin (an independent, open-source Jellyfin client), or Moonfin is your selected player, since all three connect to the same kind of server - Moonfin specifically has no search screen of its own, so without this set up its clicked titles just won\'t open. Get an API key from your server\'s Dashboard → API Keys.</string>
+    <string name="jellyfin_settings_description">Optional for Jellyfin/Wholphin, required for Moonfin.</string>
     <string name="jellyfin_lookup_enabled">Find in library first</string>
     <string name="jellyfin_lookup_status_enabled">Status: enabled - a title that\'s an exact match on your server opens directly; anything else still falls back to a search</string>
     <string name="jellyfin_lookup_status_disabled">Status: disabled - always just opens a search, like before</string>
