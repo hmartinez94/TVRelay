@@ -67,10 +67,10 @@ final class WatchNowOverlay {
 
     private static final String TAG = "WatchNowOverlay";
 
-    // How long the button stays concealed before reappearing - "a few
-    // seconds of continued inactivity." Not tuned against real usage yet;
-    // a round guess.
-    private static final long REAPPEAR_DELAY_MS = 4_000;
+    // The reappear delay is user-configurable now - see
+    // Preferences.getOverlayReappearDelayMs(), sampled in scheduleReappear()
+    // on each conceal (so a changed setting applies from the next conceal,
+    // not to a callback already posted).
 
     // Defensive absolute cap on how long a match can stay pending in total,
     // in case the lobby-detection heuristic (see
@@ -504,7 +504,7 @@ final class WatchNowOverlay {
     private void scheduleReappear() {
         cancelCycleTimer();
         cycleTimer = this::reveal;
-        mainHandler.postDelayed(cycleTimer, REAPPEAR_DELAY_MS);
+        mainHandler.postDelayed(cycleTimer, Preferences.getOverlayReappearDelayMs(appContext));
     }
 
     private void cancelCycleTimer() {

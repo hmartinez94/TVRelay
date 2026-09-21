@@ -1,14 +1,12 @@
 package com.hmartinez94.tvrelay;
 
-import android.content.ComponentName;
 import android.content.Context;
-import android.content.Intent;
-import android.net.Uri;
 import android.os.Bundle;
+import android.view.LayoutInflater;
+import android.view.ViewGroup;
 import android.os.Handler;
 import android.os.Looper;
 import android.provider.Settings;
-import android.text.TextUtils;
 import android.view.View;
 import android.widget.Toast;
 
@@ -20,59 +18,42 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Main menu: choose a player app, enable the accessibility service, and reach
- * the rest of Settings.
+ * Main menu: pick a player app and reach each group of settings.
  *
- * Redesigned 2026-08-25 for clarity: related rows are grouped under
- * non-interactive section-header actions (infoOnly - see addHeader()) rather
- * than one long undifferentiated list, and two multi-choice settings (player
- * app, YouTube redirect target) are now dropdown-style rows using leanback's
+ * Regrouped 2026-09-21: the single long list (25 rows under 8 section
+ * headers) became this short menu, where each group opens its own screen
+ * (see the SettingsSubStepFragment subclasses). The player dropdown stays
+ * inline here since it's the one setting most people come to change. Two
+ * rows carry a one-line status (Confirmation Overlay, Accessibility &
+ * Permissions) because that state matters at a glance and would otherwise
+ * be hidden a click away - Accessibility in particular is the critical
+ * first-run step.
+ *
+ * The player app is a dropdown-style row using leanback's
  * GuidedAction.subActions - a single row that expands an inline popup of
- * choices - instead of being spelled out as separate top-level radio rows.
- * See onSubGuidedActionClicked() for the popup-selection handling, which is
- * separate from onGuidedActionClicked() (top-level rows only) since sub-
- * actions live in their own per-row list, not the fragment's main action list.
+ * choices. See onSubGuidedActionClicked() for the popup-selection handling,
+ * which is separate from onGuidedActionClicked() (top-level rows only) since
+ * sub-actions live in their own per-row list, not the fragment's main action
+ * list.
  */
 public class SettingsStepFragment extends GuidedStepSupportFragment {
 
     private static final long ACTION_PLAYER_APP = 1;
     private static final long ACTION_PLAYER_BASE = 100;
-    private static final long ACTION_ENABLE_ACCESSIBILITY = 2;
-    private static final long ACTION_RESTRICTED_SETTINGS_HELP = 3;
-    private static final long ACTION_SHOW_CHOOSER = 4;
-    private static final long ACTION_OCR_FALLBACK = 5;
-    private static final long ACTION_SMARTTUBE_REDIRECT = 6;
-    private static final long ACTION_YOUTUBE_TARGET = 7;
-    private static final long ACTION_YOUTUBE_TARGET_BASE = 300;
-    private static final long ACTION_ENABLE_OVERLAY = 8;
-    private static final long ACTION_OVERLAY_REAPPEAR = 9;
-    private static final long ACTION_SEARCH_MANUALLY = 10;
-    private static final long ACTION_METADATA_PROVIDER = 11;
-    private static final long ACTION_ABOUT = 12;
-    private static final long ACTION_UPDATE_AVAILABLE = 13;
-    private static final long ACTION_JELLYFIN_SERVER = 14;
-    private static final long ACTION_FIRE_TV_MODE = 15;
-    private static final long ACTION_HIDE_ALTERNATE_TITLES = 16;
-    private static final long ACTION_OVERLAY_LONG_PRESS = 17;
+    private static final long ACTION_UPDATE_AVAILABLE = 2;
+    private static final long ACTION_JELLYFIN_SERVER = 3;
+    private static final long ACTION_FIRE_TV_MODE = 4;
+    private static final long ACTION_DETECTION = 5;
+    private static final long ACTION_OVERLAY = 6;
+    private static final long ACTION_YOUTUBE = 7;
+    private static final long ACTION_ACCESSIBILITY = 8;
+    private static final long ACTION_MORE = 9;
 
     /** Throttle for the GitHub release check kicked off from onResume() - see maybeCheckForUpdate(). */
     private static final long UPDATE_CHECK_INTERVAL_MS = 24L * 60 * 60 * 1000;
 
     /** See onResume() - skips its rebuild on the very first call. */
     private boolean firstResume = true;
-
-    // Section headers - infoOnly, so leanback skips them in D-pad focus
-    // navigation and never routes a click to them. Distinct ids only matter
-    // for leanback's internal list diffing (RecyclerView-style) when
-    // buildActions() rebuilds the whole list - never branched on anywhere.
-    private static final long ACTION_HEADER_PLAYER = 900;
-    private static final long ACTION_HEADER_DETECTION = 901;
-    private static final long ACTION_HEADER_YOUTUBE = 902;
-    private static final long ACTION_HEADER_OVERLAY = 903;
-    private static final long ACTION_HEADER_ACCESSIBILITY = 904;
-    private static final long ACTION_HEADER_MORE = 905;
-    private static final long ACTION_HEADER_UPDATE = 906;
-    private static final long ACTION_HEADER_FIRETV = 907;
 
     @Override
     public GuidanceStylist.Guidance onCreateGuidance(Bundle savedInstanceState) {
@@ -81,6 +62,15 @@ public class SettingsStepFragment extends GuidedStepSupportFragment {
                 getString(R.string.settings_description),
                 null,
                 null);
+    }
+
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        View view = super.onCreateView(inflater, container, savedInstanceState);
+        // The adapter exists only once the view does. See ActionListDiff for why
+        // this is required for the dropdown to keep opening after a rebuild.
+        ActionListDiff.install(this);
+        return view;
     }
 
     @Override
@@ -93,16 +83,16 @@ public class SettingsStepFragment extends GuidedStepSupportFragment {
         super.onResume();
         // Reflect state that might have changed while this screen wasn't
         // visible - the accessibility toggle or overlay permission, both
-        // granted in system Settings and only ever seen again once the user
-        // returns here. Skipped on the very first onResume() (right after
-        // onCreateActions() already built the identical list moments
-        // earlier in onCreate()) - confirmed real bug (2026-08-27): on a
-        // fresh install's first-ever visit to this screen, this redundant
-        // rebuild had nothing new to reflect yet, but could still replace
-        // the action list's views out from under a fast first click - user
-        // report was the "Player app" dropdown not opening on the first tap,
-        // only after clicking something else first, consistent with that
-        // click landing mid-rebuild on a view about to be torn down.
+        // granted in system Settings (via a sub-screen) and only ever seen
+        // again once the user returns here. Skipped on the very first
+        // onResume() (right after onCreateActions() already built the
+        // identical list moments earlier in onCreate()) - confirmed real bug
+        // (2026-08-27): on a fresh install's first-ever visit to this screen,
+        // this redundant rebuild had nothing new to reflect yet, but could
+        // still replace the action list's views out from under a fast first
+        // click - user report was the "Player app" dropdown not opening on
+        // the first tap, only after clicking something else first, consistent
+        // with that click landing mid-rebuild on a view about to be torn down.
         if (!firstResume) {
             setActions(buildActions(requireContext()));
         }
@@ -114,19 +104,18 @@ public class SettingsStepFragment extends GuidedStepSupportFragment {
      * Throttled GitHub release check - see UPDATE_CHECK_INTERVAL_MS and
      * Preferences.getUpdateCheckedAt(). Only meaningful for a sideloaded
      * install (InstallSource.isPlayStoreInstall() - a Play install updates
-     * through Play instead, same gate shouldOfferRestrictedSettingsHelp()
-     * uses for a similar sideload-only concern). Silent no-op on failure -
-     * this is a background convenience check, not a user-initiated action
-     * that needs its own error feedback (unlike UpdateStepFragment's actual
-     * download, which does). A check that succeeds DOES say so either way,
-     * though - a toast for "already current" and a separate one for "a
-     * newer version is now available" (the settings row already reflects
-     * this too, via isUpdateAvailable()/buildActions() - the toast is just
-     * an immediate heads-up in case the user isn't looking at the row right
-     * then). Both toasts are deliberately just passive displays that steal
-     * no focus and interfere with nothing, per explicit user request
-     * (2026-08-26): without them, "no update row appeared" was
-     * indistinguishable from "the check never ran or failed".
+     * through Play instead). Silent no-op on failure - this is a background
+     * convenience check, not a user-initiated action that needs its own
+     * error feedback (unlike UpdateStepFragment's actual download, which
+     * does). A check that succeeds DOES say so either way, though - a toast
+     * for "already current" and a separate one for "a newer version is now
+     * available" (the settings row already reflects this too, via
+     * isUpdateAvailable()/buildActions() - the toast is just an immediate
+     * heads-up in case the user isn't looking at the row right then). Both
+     * toasts are deliberately just passive displays that steal no focus and
+     * interfere with nothing, per explicit user request (2026-08-26):
+     * without them, "no update row appeared" was indistinguishable from "the
+     * check never ran or failed".
      */
     private void maybeCheckForUpdate() {
         Context context = requireContext();
@@ -178,13 +167,11 @@ public class SettingsStepFragment extends GuidedStepSupportFragment {
     private List<GuidedAction> buildActions(Context context) {
         List<GuidedAction> actions = new ArrayList<>();
 
-        // Surfaced at the very top, above every other section, so it's the
-        // first thing seen - a user who doesn't know to scroll down to
-        // "More" would otherwise never notice it. See maybeCheckForUpdate()
-        // for how this gets populated; the toast it also shows is only a
-        // one-time heads-up, this row is what actually persists.
+        // Surfaced at the very top, above every other row, so it's the first
+        // thing seen. See maybeCheckForUpdate() for how this gets populated;
+        // the toast it also shows is only a one-time heads-up, this row is
+        // what actually persists.
         if (isUpdateAvailable(context)) {
-            addHeader(actions, context, ACTION_HEADER_UPDATE, R.string.settings_section_update);
             actions.add(new GuidedAction.Builder(context)
                     .id(ACTION_UPDATE_AVAILABLE)
                     .title(getString(R.string.settings_update_available))
@@ -193,7 +180,6 @@ public class SettingsStepFragment extends GuidedStepSupportFragment {
                     .build());
         }
 
-        addHeader(actions, context, ACTION_HEADER_PLAYER, R.string.settings_section_player);
         actions.add(buildPlayerAppAction(context));
         if (Preferences.getSelectedApp(context).usesJellyfinServer()) {
             // Only relevant while Jellyfin, Wholphin, or Moonfin is actually
@@ -208,162 +194,43 @@ public class SettingsStepFragment extends GuidedStepSupportFragment {
         if (FireTvSupport.isFireTv(context)) {
             // Fire TV can't use the click pipeline at all (the accessibility
             // service receives zero events on the Fire TV home screen - see
-            // FireTvWatcherService) - this row opens the UsageStats + OCR activation
-            // flow instead. Only shown on a Fire TV device; on Google TV the
-            // normal click path works and this would just be a worse,
-            // permission-heavier duplicate.
-            addHeader(actions, context, ACTION_HEADER_FIRETV, R.string.settings_section_fire_tv);
-            boolean fireTvEnabled = Preferences.isFireTvModeEnabled(context);
+            // FireTvWatcherService) - this row opens the UsageStats + OCR
+            // activation flow instead. Only shown on a Fire TV device; on
+            // Google TV the normal click path works and this would just be a
+            // worse, permission-heavier duplicate.
             actions.add(new GuidedAction.Builder(context)
                     .id(ACTION_FIRE_TV_MODE)
                     .title(getString(R.string.settings_fire_tv_mode))
-                    .description(getString(fireTvEnabled
+                    .description(getString(Preferences.isFireTvModeEnabled(context)
                             ? R.string.settings_fire_tv_status_enabled
                             : R.string.settings_fire_tv_status_disabled))
                     .build());
         }
 
-        addHeader(actions, context, ACTION_HEADER_DETECTION, R.string.settings_section_detection);
-        boolean chooserEnabled = Preferences.isChooserEnabled(context);
-        actions.add(new GuidedAction.Builder(context)
-                .id(ACTION_SHOW_CHOOSER)
-                .title(getString(R.string.settings_show_chooser))
-                .description(getString(chooserEnabled
-                        ? R.string.settings_chooser_status_enabled
-                        : R.string.settings_chooser_status_disabled))
-                .checkSetId(GuidedAction.CHECKBOX_CHECK_SET_ID)
-                .checked(chooserEnabled)
-                .build());
-        boolean alternateTitlesHidden = Preferences.isAlternateTitlesHidden(context);
-        actions.add(new GuidedAction.Builder(context)
-                .id(ACTION_HIDE_ALTERNATE_TITLES)
-                .title(getString(R.string.settings_hide_aka))
-                .description(getString(alternateTitlesHidden
-                        ? R.string.settings_hide_aka_status_enabled
-                        : R.string.settings_hide_aka_status_disabled))
-                .checkSetId(GuidedAction.CHECKBOX_CHECK_SET_ID)
-                .checked(alternateTitlesHidden)
-                .build());
-        boolean ocrFallbackEnabled = Preferences.isOcrFallbackEnabled(context);
-        actions.add(new GuidedAction.Builder(context)
-                .id(ACTION_OCR_FALLBACK)
-                .title(getString(R.string.settings_ocr_fallback))
-                .description(getString(ocrFallbackEnabled
-                        ? R.string.settings_ocr_status_enabled
-                        : R.string.settings_ocr_status_disabled))
-                .checkSetId(GuidedAction.CHECKBOX_CHECK_SET_ID)
-                .checked(ocrFallbackEnabled)
-                .build());
-
-        addHeader(actions, context, ACTION_HEADER_YOUTUBE, R.string.settings_section_youtube);
-        boolean smartTubeEnabled = Preferences.isSmartTubeEnabled(context);
-        actions.add(new GuidedAction.Builder(context)
-                .id(ACTION_SMARTTUBE_REDIRECT)
-                .title(getString(R.string.settings_smarttube_redirect))
-                .description(getString(smartTubeEnabled
-                        ? R.string.settings_smarttube_status_enabled
-                        : R.string.settings_smarttube_status_disabled))
-                .checkSetId(GuidedAction.CHECKBOX_CHECK_SET_ID)
-                .checked(smartTubeEnabled)
-                .build());
-        if (smartTubeEnabled) {
-            // Only offered while the toggle above is on - nothing to target
-            // otherwise. Rebuilding the whole list on that toggle (rather
-            // than a single notifyActionChanged) is what makes this row
-            // appear/disappear immediately - see its click handler below.
-            actions.add(buildYouTubeTargetAction(context));
-        }
-
-        addHeader(actions, context, ACTION_HEADER_OVERLAY, R.string.settings_section_overlay);
-        boolean overlayGranted = Settings.canDrawOverlays(context);
-        actions.add(new GuidedAction.Builder(context)
-                .id(ACTION_ENABLE_OVERLAY)
-                .title(getString(R.string.settings_enable_overlay))
-                .description(getString(overlayGranted
-                        ? R.string.settings_overlay_status_enabled
-                        : R.string.settings_overlay_status_disabled))
-                .build());
-        // Reappear is meaningless without the overlay permission - hide()
-        // never even gets a button to conceal/reveal without it (see
-        // WatchNowOverlay.ensureButton()) - so the row is disabled (not just
-        // hidden, so its own default-on state stays visible/predictable)
-        // until overlayGranted is true, matching ACTION_ENABLE_OVERLAY above.
-        boolean overlayReappearEnabled = Preferences.isOverlayReappearEnabled(context);
-        actions.add(new GuidedAction.Builder(context)
-                .id(ACTION_OVERLAY_REAPPEAR)
-                .title(getString(R.string.settings_overlay_reappear))
-                .description(getString(!overlayGranted
-                        ? R.string.settings_overlay_reappear_status_requires_permission
-                        : overlayReappearEnabled
-                                ? R.string.settings_overlay_reappear_status_enabled
-                                : R.string.settings_overlay_reappear_status_disabled))
-                .checkSetId(GuidedAction.CHECKBOX_CHECK_SET_ID)
-                .checked(overlayReappearEnabled)
-                .enabled(overlayGranted)
-                .build());
-        // Same reasoning as Reappear's own gate above, plus Reappear itself:
-        // long-press-only's short-press dismiss (see WatchNowOverlay.hide())
-        // only does anything when Reappear is on - see
-        // Preferences.isOverlayLongPressOnlyReady().
-        boolean overlayLongPressOnlyEnabled = Preferences.isOverlayLongPressOnlyEnabled(context);
-        actions.add(new GuidedAction.Builder(context)
-                .id(ACTION_OVERLAY_LONG_PRESS)
-                .title(getString(R.string.settings_overlay_long_press))
-                .description(getString(!overlayGranted
-                        ? R.string.settings_overlay_long_press_status_requires_permission
-                        : !overlayReappearEnabled
-                                ? R.string.settings_overlay_long_press_status_requires_reappear
-                                : overlayLongPressOnlyEnabled
-                                        ? R.string.settings_overlay_long_press_status_enabled
-                                        : R.string.settings_overlay_long_press_status_disabled))
-                .checkSetId(GuidedAction.CHECKBOX_CHECK_SET_ID)
-                .checked(overlayLongPressOnlyEnabled)
-                .enabled(overlayGranted && overlayReappearEnabled)
-                .build());
-
-        addHeader(actions, context, ACTION_HEADER_ACCESSIBILITY, R.string.settings_section_accessibility);
-        boolean serviceEnabled = isAccessibilityServiceEnabled(context);
-        actions.add(new GuidedAction.Builder(context)
-                .id(ACTION_ENABLE_ACCESSIBILITY)
-                .title(getString(R.string.settings_enable_accessibility))
-                .description(getString(serviceEnabled
-                        ? R.string.settings_accessibility_status_enabled
-                        : R.string.settings_accessibility_status_disabled))
-                .build());
-        if (shouldOfferRestrictedSettingsHelp(context)) {
-            actions.add(new GuidedAction.Builder(context)
-                    .id(ACTION_RESTRICTED_SETTINGS_HELP)
-                    .title(getString(R.string.settings_restricted_settings_help))
-                    .description(getString(R.string.settings_restricted_settings_help_description))
-                    .build());
-        }
-
-        addHeader(actions, context, ACTION_HEADER_MORE, R.string.settings_section_more);
-        actions.add(new GuidedAction.Builder(context)
-                .id(ACTION_SEARCH_MANUALLY)
-                .title(getString(R.string.settings_search_manually))
-                .build());
-        MetadataProvider provider = Preferences.getMetadataProvider(context);
-        actions.add(new GuidedAction.Builder(context)
-                .id(ACTION_METADATA_PROVIDER)
-                .title(getString(R.string.settings_metadata_provider))
-                .description(provider == MetadataProvider.TMDB ? "TMDB" : "TheTVDB")
-                .build());
-        actions.add(new GuidedAction.Builder(context)
-                .id(ACTION_ABOUT)
-                .title(getString(R.string.settings_about))
-                .build());
+        actions.add(groupAction(context, ACTION_DETECTION, R.string.settings_section_detection, null));
+        actions.add(groupAction(context, ACTION_OVERLAY, R.string.settings_section_overlay,
+                getString(Settings.canDrawOverlays(context)
+                        ? R.string.settings_summary_enabled
+                        : R.string.settings_summary_not_enabled)));
+        actions.add(groupAction(context, ACTION_YOUTUBE, R.string.settings_section_youtube, null));
+        actions.add(groupAction(context, ACTION_ACCESSIBILITY, R.string.settings_section_accessibility,
+                getString(AccessibilitySettingsStepFragment.isAccessibilityServiceEnabled(context)
+                        ? R.string.settings_summary_enabled
+                        : R.string.settings_summary_not_enabled)));
+        actions.add(groupAction(context, ACTION_MORE, R.string.settings_section_more, null));
 
         return actions;
     }
 
-    private void addHeader(List<GuidedAction> actions, Context context, long id, int titleRes) {
-        actions.add(new GuidedAction.Builder(context)
+    /** A row that just opens a group's own screen; description is an optional one-line status. */
+    private GuidedAction groupAction(Context context, long id, int titleRes, String description) {
+        GuidedAction.Builder builder = new GuidedAction.Builder(context)
                 .id(id)
-                .title(getString(titleRes))
-                .infoOnly(true)
-                .focusable(false)
-                .build());
+                .title(getString(titleRes));
+        if (description != null) {
+            builder.description(description);
+        }
+        return builder.build();
     }
 
     /** The player-app row: a dropdown (subActions) rather than N separate top-level radio rows - see class doc. */
@@ -428,173 +295,36 @@ public class SettingsStepFragment extends GuidedStepSupportFragment {
                 .build();
     }
 
-    /** The YouTube-redirect-target row: a dropdown between the two supported clients - see class doc. */
-    private GuidedAction buildYouTubeTargetAction(Context context) {
-        YouTubeRedirectTarget selected = Preferences.getYouTubeRedirectTarget(context);
-        List<GuidedAction> subActions = new ArrayList<>();
-        YouTubeRedirectTarget[] targets = YouTubeRedirectTarget.values();
-        for (int i = 0; i < targets.length; i++) {
-            YouTubeRedirectTarget target = targets[i];
-            GuidedAction.Builder builder = new GuidedAction.Builder(context)
-                    .id(ACTION_YOUTUBE_TARGET_BASE + i)
-                    .title(target.getLabel())
-                    .checkSetId(GuidedAction.DEFAULT_CHECK_SET_ID)
-                    .checked(target == selected);
-            if (target.getDescriptionRes() != 0) {
-                builder.description(getString(target.getDescriptionRes()));
-            }
-            subActions.add(builder.build());
-        }
-        return new GuidedAction.Builder(context)
-                .id(ACTION_YOUTUBE_TARGET)
-                .title(getString(R.string.settings_youtube_target))
-                .description(selected.getLabel())
-                .subActions(subActions)
-                .build();
-    }
-
     @Override
     public void onGuidedActionClicked(GuidedAction action) {
-        Context context = requireContext();
         long id = action.getId();
-
-        if (id == ACTION_SHOW_CHOOSER) {
-            boolean enabled = !Preferences.isChooserEnabled(context);
-            Preferences.setChooserEnabled(context, enabled);
-            action.setChecked(enabled);
-            action.setDescription(getString(enabled
-                    ? R.string.settings_chooser_status_enabled
-                    : R.string.settings_chooser_status_disabled));
-            notifyActionChanged(getActions().indexOf(action));
-            return;
-        }
-
-        if (id == ACTION_HIDE_ALTERNATE_TITLES) {
-            boolean hidden = !Preferences.isAlternateTitlesHidden(context);
-            Preferences.setAlternateTitlesHidden(context, hidden);
-            action.setChecked(hidden);
-            action.setDescription(getString(hidden
-                    ? R.string.settings_hide_aka_status_enabled
-                    : R.string.settings_hide_aka_status_disabled));
-            notifyActionChanged(getActions().indexOf(action));
-            return;
-        }
-
-        if (id == ACTION_SMARTTUBE_REDIRECT) {
-            boolean enabled = !Preferences.isSmartTubeEnabled(context);
-            Preferences.setSmartTubeEnabled(context, enabled);
-            // Full rebuild, not a single notifyActionChanged: the YouTube
-            // target dropdown row itself needs to appear/disappear
-            // immediately along with this toggle - see buildActions().
-            setActions(buildActions(context));
-            return;
-        }
-
-        if (id == ACTION_OVERLAY_REAPPEAR) {
-            if (!Settings.canDrawOverlays(context)) {
-                // Belt-and-suspenders: the row's .enabled(false) above should
-                // already stop this click from reaching here.
-                return;
-            }
-            boolean enabled = !Preferences.isOverlayReappearEnabled(context);
-            Preferences.setOverlayReappearEnabled(context, enabled);
-            action.setChecked(enabled);
-            action.setDescription(getString(enabled
-                    ? R.string.settings_overlay_reappear_status_enabled
-                    : R.string.settings_overlay_reappear_status_disabled));
-            notifyActionChanged(getActions().indexOf(action));
-
-            // Long-press-only depends on this setting too (see its own
-            // .enabled() in buildActions()) - update it in place rather than
-            // a full setActions() rebuild, which would reset D-pad focus to
-            // the top of the list.
-            GuidedAction longPressAction = findActionById(ACTION_OVERLAY_LONG_PRESS);
-            if (longPressAction != null) {
-                longPressAction.setEnabled(enabled);
-                longPressAction.setDescription(getString(enabled
-                        ? (Preferences.isOverlayLongPressOnlyEnabled(context)
-                                ? R.string.settings_overlay_long_press_status_enabled
-                                : R.string.settings_overlay_long_press_status_disabled)
-                        : R.string.settings_overlay_long_press_status_requires_reappear));
-                notifyActionChanged(getActions().indexOf(longPressAction));
-            }
-            return;
-        }
-
-        if (id == ACTION_OVERLAY_LONG_PRESS) {
-            if (!Settings.canDrawOverlays(context) || !Preferences.isOverlayReappearEnabled(context)) {
-                // Belt-and-suspenders: the row's .enabled(false) above should
-                // already stop this click from reaching here.
-                return;
-            }
-            boolean enabled = !Preferences.isOverlayLongPressOnlyEnabled(context);
-            Preferences.setOverlayLongPressOnlyEnabled(context, enabled);
-            action.setChecked(enabled);
-            action.setDescription(getString(enabled
-                    ? R.string.settings_overlay_long_press_status_enabled
-                    : R.string.settings_overlay_long_press_status_disabled));
-            notifyActionChanged(getActions().indexOf(action));
-            return;
-        }
-
-        if (id == ACTION_OCR_FALLBACK) {
-            if (!Preferences.isOcrDisclosureAccepted(context)) {
-                // First time this row is turned on: route through its own
-                // explicit consent screen (a materially bigger grant than
-                // the base accessibility disclosure - see
-                // OcrDisclosureStepFragment's class doc) instead of
-                // toggling directly. It writes the pref itself and pops
-                // back here, where onResume()'s existing rebuild-from-
-                // Preferences picks up the new enabled state - same
-                // mechanism PhonePairingStepFragment/
-                // MetadataProviderStepFragment already rely on for their
-                // own "write elsewhere, pop back" flows.
-                GuidedStepSupportFragment.add(getFragmentManager(), new OcrDisclosureStepFragment());
-                return;
-            }
-            boolean enabled = !Preferences.isOcrFallbackEnabled(context);
-            Preferences.setOcrFallbackEnabled(context, enabled);
-            if (!enabled) {
-                context.stopService(new Intent(context, OcrCaptureForegroundService.class));
-            }
-            action.setChecked(enabled);
-            action.setDescription(getString(enabled
-                    ? R.string.settings_ocr_status_enabled
-                    : R.string.settings_ocr_status_disabled));
-            notifyActionChanged(getActions().indexOf(action));
-            return;
-        }
-
-        if (id == ACTION_ENABLE_ACCESSIBILITY) {
-            startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS));
-        } else if (id == ACTION_RESTRICTED_SETTINGS_HELP) {
-            GuidedStepSupportFragment.add(getFragmentManager(), new RestrictedSettingsStepFragment());
-        } else if (id == ACTION_ENABLE_OVERLAY) {
-            startActivity(new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                    Uri.parse("package:" + context.getPackageName())));
-        } else if (id == ACTION_SEARCH_MANUALLY) {
-            startActivity(new Intent(context, SearchActivity.class));
-        } else if (id == ACTION_METADATA_PROVIDER) {
-            GuidedStepSupportFragment.add(getFragmentManager(), new MetadataProviderStepFragment());
+        if (id == ACTION_DETECTION) {
+            GuidedStepSupportFragment.add(getFragmentManager(), new DetectionSettingsStepFragment());
+        } else if (id == ACTION_OVERLAY) {
+            GuidedStepSupportFragment.add(getFragmentManager(), new OverlaySettingsStepFragment());
+        } else if (id == ACTION_YOUTUBE) {
+            GuidedStepSupportFragment.add(getFragmentManager(), new YouTubeSettingsStepFragment());
+        } else if (id == ACTION_ACCESSIBILITY) {
+            GuidedStepSupportFragment.add(getFragmentManager(), new AccessibilitySettingsStepFragment());
+        } else if (id == ACTION_MORE) {
+            GuidedStepSupportFragment.add(getFragmentManager(), new MoreSettingsStepFragment());
         } else if (id == ACTION_JELLYFIN_SERVER) {
             GuidedStepSupportFragment.add(getFragmentManager(), new JellyfinSettingsStepFragment());
         } else if (id == ACTION_FIRE_TV_MODE) {
             GuidedStepSupportFragment.add(getFragmentManager(), new FireTvModeStepFragment());
-        } else if (id == ACTION_ABOUT) {
-            GuidedStepSupportFragment.add(getFragmentManager(), new AboutStepFragment());
         } else if (id == ACTION_UPDATE_AVAILABLE) {
             GuidedStepSupportFragment.add(getFragmentManager(), new UpdateWarningStepFragment());
         }
     }
 
     /**
-     * Handles a choice made inside either dropdown's inline popup (player
-     * app, YouTube redirect target) - separate from onGuidedActionClicked()
-     * above because sub-actions live in their own per-row list
-     * (GuidedAction.getSubActions()), not the fragment's main action list,
-     * so getActions().indexOf(action)/notifyActionChanged(int) don't apply
-     * to them directly. Returning true closes the popup back to the normal
-     * action list, per GuidedStepSupportFragment's contract.
+     * Handles a choice made inside the player dropdown's inline popup -
+     * separate from onGuidedActionClicked() above because sub-actions live in
+     * their own per-row list (GuidedAction.getSubActions()), not the
+     * fragment's main action list, so getActions().indexOf(action)/
+     * notifyActionChanged(int) don't apply to them directly. Returning true
+     * closes the popup back to the normal action list, per
+     * GuidedStepSupportFragment's contract.
      */
     @Override
     public boolean onSubGuidedActionClicked(GuidedAction action) {
@@ -618,19 +348,16 @@ public class SettingsStepFragment extends GuidedStepSupportFragment {
                 if (wasJellyfin || isJellyfin) {
                     // The "Configure Jellyfin server" row's very presence
                     // depends on this selection (see buildActions()), and its
-                    // description names whichever of Jellyfin/Wholphin is
-                    // selected (see buildJellyfinServerAction()) - so this
-                    // also needs to rebuild on a straight swap between the
-                    // two (wasJellyfin == isJellyfin == true), not only on
-                    // the row appearing/disappearing. The partial patch above
+                    // description names whichever of Jellyfin/Wholphin/Moonfin
+                    // is selected (see buildJellyfinServerAction()) - so this
+                    // also needs to rebuild on a straight swap between them
+                    // (wasJellyfin == isJellyfin == true), not only on the
+                    // row appearing/disappearing. The partial patch above
                     // only updates the dropdown's own row, so without this
                     // the server row wouldn't appear/disappear/relabel until
                     // Settings was left and re-entered. Posted to the next
-                    // frame, not called synchronously: this callback runs
-                    // while the dropdown's own popup is still dismissing, and
-                    // rebuilding the action list underneath it here (rather
-                    // than deferred) is what the plan flagged as liable to
-                    // misbehave.
+                    // frame rather than run synchronously, since this callback
+                    // fires while the popup is still dismissing.
                     View view = getView();
                     if (view != null) {
                         view.post(() -> {
@@ -641,25 +368,7 @@ public class SettingsStepFragment extends GuidedStepSupportFragment {
                     }
                 }
             }
-            return true;
         }
-
-        if (id >= ACTION_YOUTUBE_TARGET_BASE && id < ACTION_YOUTUBE_TARGET_BASE + 100) {
-            int index = (int) (id - ACTION_YOUTUBE_TARGET_BASE);
-            YouTubeRedirectTarget[] targets = YouTubeRedirectTarget.values();
-            if (index >= 0 && index < targets.length) {
-                YouTubeRedirectTarget chosen = targets[index];
-                Preferences.setYouTubeRedirectTarget(context, chosen);
-                GuidedAction parent = findActionById(ACTION_YOUTUBE_TARGET);
-                if (parent != null) {
-                    parent.setDescription(chosen.getLabel());
-                    syncCheckedInList(parent.getSubActions(), id);
-                    notifyActionChanged(getActions().indexOf(parent));
-                }
-            }
-            return true;
-        }
-
         return true;
     }
 
@@ -679,36 +388,5 @@ public class SettingsStepFragment extends GuidedStepSupportFragment {
         for (GuidedAction candidate : list) {
             candidate.setChecked(candidate.getId() == selectedId);
         }
-    }
-
-    /**
-     * Whether to offer the Restricted Settings walkthrough as an extra
-     * Settings row. Deliberately always shown for any sideloaded install
-     * (2026-09-08, at explicit user request) rather than only appearing
-     * after the user had already tried and failed to enable Accessibility -
-     * a user who knows to look for it shouldn't have to trigger the failure
-     * first, and there's no harm in a sideloaded user seeing it early.
-     * Still gated behind InstallSource.isPlayStoreInstall(), since Play is a
-     * trusted installer and is never subject to this restriction in the
-     * first place (a real Play Internal Testing release already exists for
-     * this app, confirming this).
-     */
-    private static boolean shouldOfferRestrictedSettingsHelp(Context context) {
-        return !InstallSource.isPlayStoreInstall(context);
-    }
-
-    private static boolean isAccessibilityServiceEnabled(Context context) {
-        String enabledServices = Settings.Secure.getString(
-                context.getContentResolver(), Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES);
-        if (TextUtils.isEmpty(enabledServices)) {
-            return false;
-        }
-        ComponentName target = new ComponentName(context, TvRelayAccessibilityService.class);
-        for (String flattened : enabledServices.split(":")) {
-            if (target.equals(ComponentName.unflattenFromString(flattened))) {
-                return true;
-            }
-        }
-        return false;
     }
 }

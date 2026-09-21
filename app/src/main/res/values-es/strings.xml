@@ -10,7 +10,6 @@
 
     <string name="settings_description">Elige qué app se abre al seleccionar una recomendación en la pantalla de inicio de tu TV.</string>
 
-    <string name="settings_section_player">Reproductor</string>
     <string name="settings_player_app">App del reproductor</string>
 
     <string name="settings_section_detection">Detección y coincidencias</string>
@@ -30,7 +29,6 @@
     <string name="settings_ocr_status_disabled">Estado: desactivado - las tarjetas y resultados de búsqueda por voz sin título legible se dejan intactos</string>
 
     <!-- Modo Fire TV (FireTvModeStepFragment / FireTvWatcherService) -->
-    <string name="settings_section_fire_tv">Fire TV</string>
     <string name="settings_fire_tv_mode">Modo Fire TV</string>
     <string name="settings_fire_tv_status_enabled">Estado: activado - lee el título de una recomendación en la pantalla cuando la abres. Debes volver a activarlo tras reiniciar.</string>
     <string name="settings_fire_tv_status_disabled">Estado: desactivado - las recomendaciones de Fire TV se dejan intactas. Fire TV no puede usar la detección de clic normal, así que esto usa el acceso de uso y la grabación de pantalla en su lugar.</string>
@@ -68,6 +66,19 @@
     <string name="settings_overlay_long_press_status_disabled">Estado: desactivado - una pulsación normal del botón de confirmación abre la app al momento</string>
     <string name="settings_overlay_long_press_status_requires_permission">Requiere activar la confirmación \"Ver ahora\" más arriba</string>
     <string name="settings_overlay_long_press_status_requires_reappear">Requiere activar \"Reaparecer al descartar\" más arriba</string>
+    <string name="settings_overlay_reappear_delay">Retraso al reaparecer</string>
+    <string name="settings_overlay_reappear_delay_description">%1$s segundos - pulsa Izquierda/Derecha para ajustar</string>
+    <string name="settings_overlay_reappear_delay_requires_permission">Requiere activar la confirmación \"Ver ahora\" más arriba</string>
+    <string name="settings_overlay_reappear_delay_requires_reappear">Requiere activar \"Reaparecer al descartar\" más arriba</string>
+
+    <!-- Main-menu status lines and per-group sub-screen descriptions -->
+    <string name="settings_summary_enabled">Estado: activado</string>
+    <string name="settings_summary_not_enabled">Estado: no activado</string>
+    <string name="settings_group_detection_description">Cómo TVRelay reconoce un título y elige una coincidencia</string>
+    <string name="settings_group_overlay_description">El botón de confirmación que aparece antes de abrir otra app</string>
+    <string name="settings_group_youtube_description">Envía las recomendaciones de YouTube a un cliente de YouTube para TV</string>
+    <string name="settings_group_accessibility_description">El permiso que TVRelay necesita para ver tus clics</string>
+    <string name="settings_group_more_description">Búsqueda manual, fuente de metadatos y ayuda</string>
 
     <string name="settings_section_accessibility">Accesibilidad y permisos</string>
     <string name="settings_enable_accessibility">Activar en Ajustes de Accesibilidad</string>
@@ -77,7 +88,6 @@
     <string name="settings_restricted_settings_help_description">El interruptor no se queda activado? - mira cómo solucionarlo</string>
 
     <string name="settings_section_more">Más</string>
-    <string name="settings_section_update">Actualización</string>
     <string name="settings_search_manually">Buscar un título manualmente</string>
     <string name="settings_metadata_provider">Proveedor de metadatos</string>
     <string name="settings_about">Acerca de y ayuda</string>

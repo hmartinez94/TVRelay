@@ -24,6 +24,7 @@ public final class Preferences {
     private static final String KEY_YOUTUBE_REDIRECT_TARGET = "youtube_redirect_target";
     private static final String KEY_OVERLAY_REAPPEAR_ENABLED = "overlay_reappear_enabled";
     private static final String KEY_OVERLAY_LONG_PRESS_ONLY = "overlay_long_press_only";
+    private static final String KEY_OVERLAY_REAPPEAR_DELAY = "overlay_reappear_delay_ms";
     private static final String KEY_UPDATE_CHECKED_AT = "update_checked_at";
     private static final String KEY_UPDATE_LATEST_VERSION = "update_latest_version";
     private static final String KEY_UPDATE_APK_URL = "update_apk_url";
@@ -266,6 +267,45 @@ public final class Preferences {
 
     public static void setOverlayReappearEnabled(Context context, boolean enabled) {
         prefs(context).edit().putBoolean(KEY_OVERLAY_REAPPEAR_ENABLED, enabled).apply();
+    }
+
+    // The grid the Settings stepper walks and WatchNowOverlay schedules on.
+    // DEFAULT is the value that used to be hardcoded in WatchNowOverlay, so
+    // an existing install behaves identically until the user changes it.
+    static final long OVERLAY_REAPPEAR_DELAY_MIN_MS = 500L;
+    static final long OVERLAY_REAPPEAR_DELAY_MAX_MS = 15_000L;
+    static final long OVERLAY_REAPPEAR_DELAY_STEP_MS = 500L;
+    static final long OVERLAY_REAPPEAR_DELAY_DEFAULT_MS = 4_000L;
+
+    /**
+     * How long WatchNowOverlay keeps a dismissed confirm button hidden
+     * before bringing it back (only relevant while Reappear is on). Always
+     * clamped to [MIN, MAX] and snapped to the STEP grid, so a hand-edited
+     * or out-of-range stored value can never post a 0 ms or multi-minute
+     * timer. Read on every conceal, so it's kept cheap. Default 4 s.
+     */
+    public static long getOverlayReappearDelayMs(Context context) {
+        long stored = prefs(context).getLong(KEY_OVERLAY_REAPPEAR_DELAY, OVERLAY_REAPPEAR_DELAY_DEFAULT_MS);
+        return snapOverlayReappearDelay(stored);
+    }
+
+    public static void setOverlayReappearDelayMs(Context context, long delayMillis) {
+        prefs(context).edit()
+                .putLong(KEY_OVERLAY_REAPPEAR_DELAY, snapOverlayReappearDelay(delayMillis))
+                .apply();
+    }
+
+    /** The neighbouring grid value in the given direction (+1/-1), clamped at both ends. */
+    static long stepOverlayReappearDelay(long currentMs, int direction) {
+        return snapOverlayReappearDelay(
+                snapOverlayReappearDelay(currentMs) + direction * OVERLAY_REAPPEAR_DELAY_STEP_MS);
+    }
+
+    private static long snapOverlayReappearDelay(long ms) {
+        long steps = Math.round((double) ms / OVERLAY_REAPPEAR_DELAY_STEP_MS);
+        long snapped = steps * OVERLAY_REAPPEAR_DELAY_STEP_MS;
+        return Math.max(OVERLAY_REAPPEAR_DELAY_MIN_MS,
+                Math.min(OVERLAY_REAPPEAR_DELAY_MAX_MS, snapped));
     }
 
     /**

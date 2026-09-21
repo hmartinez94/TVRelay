@@ -12,7 +12,6 @@
 
     <string name="settings_description">Pick which app opens when you select a recommendation on your TV\'s home screen.</string>
 
-    <string name="settings_section_player">Player</string>
     <string name="settings_player_app">Player app</string>
 
     <string name="settings_section_detection">Detection &amp; Matching</string>
@@ -32,7 +31,6 @@
     <string name="settings_ocr_status_disabled">Status: disabled - cards and voice-search results with no readable title are left alone</string>
 
     <!-- Fire TV mode (FireTvModeStepFragment / FireTvWatcherService) -->
-    <string name="settings_section_fire_tv">Fire TV</string>
     <string name="settings_fire_tv_mode">Fire TV mode</string>
     <string name="settings_fire_tv_status_enabled">Status: on - reads a recommendation\'s title off the screen when you open it. You must re-activate it after a reboot.</string>
     <string name="settings_fire_tv_status_disabled">Status: off - Fire TV recommendations are left alone.</string>
@@ -70,6 +68,19 @@
     <string name="settings_overlay_long_press_status_disabled">Status: disabled - a normal press on the confirm button opens the app right away</string>
     <string name="settings_overlay_long_press_status_requires_permission">Requires \"Watch now\" confirmation to be enabled above</string>
     <string name="settings_overlay_long_press_status_requires_reappear">Requires \"Reappear after dismissing\" to be enabled above</string>
+    <string name="settings_overlay_reappear_delay">Reappear delay</string>
+    <string name="settings_overlay_reappear_delay_description">%1$s seconds - press Left/Right to adjust</string>
+    <string name="settings_overlay_reappear_delay_requires_permission">Requires \"Watch now\" confirmation to be enabled above</string>
+    <string name="settings_overlay_reappear_delay_requires_reappear">Requires \"Reappear after dismissing\" to be enabled above</string>
+
+    <!-- Main-menu status lines and per-group sub-screen descriptions -->
+    <string name="settings_summary_enabled">Status: enabled</string>
+    <string name="settings_summary_not_enabled">Status: not enabled</string>
+    <string name="settings_group_detection_description">How TVRelay recognizes a title and picks a match</string>
+    <string name="settings_group_overlay_description">The confirm button shown before opening another app</string>
+    <string name="settings_group_youtube_description">Send YouTube recommendations to a YouTube TV client</string>
+    <string name="settings_group_accessibility_description">The permission TVRelay needs to see your clicks</string>
+    <string name="settings_group_more_description">Manual search, metadata source, and help</string>
 
     <string name="settings_section_accessibility">Accessibility &amp; Permissions</string>
     <string name="settings_enable_accessibility">Enable in Accessibility settings</string>
@@ -79,7 +90,6 @@
     <string name="settings_restricted_settings_help_description">The toggle isn\'t sticking - see how to fix it</string>
 
     <string name="settings_section_more">More</string>
-    <string name="settings_section_update">Update</string>
     <string name="settings_update_available">Update available</string>
     <string name="settings_update_available_description">Version %1$s is ready to download and install</string>
     <string name="settings_search_manually">Search for a title manually</string>
