@@ -39,6 +39,19 @@ final class OcrTextCleaner {
 
     private static final Pattern WHITESPACE = Pattern.compile("\\s+");
 
+    /**
+     * Rating-style text a detail page shows next to the title: "94%" (Rotten
+     * Tomatoes / match score) or "7.9/10". Never a title, but often the
+     * biggest text in the crop when the real title is a logo image with no
+     * readable text - confirmed 2026-09-21: "Talk to Me" was read as "94%",
+     * which TMDB then "matched" to the series "Toshkent 94". Deliberately
+     * whole-string only: a real title that merely contains a percent sign
+     * ("100% Wolf") must still pass. Digits-only text ("1917", "2012") also
+     * passes - those are real titles.
+     */
+    private static final Pattern RATING_LIKE =
+            Pattern.compile("^\\d{1,3}\\s*%$|^\\d(\\.\\d)?\\s*/\\s*10$");
+
     private OcrTextCleaner() {
     }
 
@@ -66,6 +79,9 @@ final class OcrTextCleaner {
         for (Text.TextBlock block : result.getTextBlocks()) {
             String text = collapseWhitespace(block.getText());
             if (text.isEmpty()) {
+                continue;
+            }
+            if (RATING_LIKE.matcher(text).matches()) {
                 continue;
             }
             if (firstNonEmpty == null) {

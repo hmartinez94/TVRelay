@@ -92,7 +92,18 @@ final class OcrCaptureConfig {
     // past the text is just hero art (no text to false-positive on), so
     // widening this further costs nothing; 0.97 rather than 1.0 keeps a
     // sliver of margin from the absolute edge.
-    private static final Crop GOOGLE_TV_CROP = new Crop(0.0f, 0.30f, 0.97f, 0.52f);
+    //
+    // VERTICAL BAND WIDENED AGAIN 2026-09-21 (0.30 -> 0.15 top): the title is
+    // NOT at a fixed height. Measured from real captures - "Superbad" title
+    // at ~0.35-0.50, but "Talk to Me" at ~0.23-0.355 (rating row ~0.43, the
+    // "What it's about" card text from ~0.55). The 0.30 top cut "Talk to Me"
+    // in half, leaving only the "94%" rating readable, which then opened the
+    // wrong title. One band now spans both positions; OcrTextCleaner's
+    // tallest-font rule (plus its rating-text rejection) picks the title out
+    // of whatever else falls inside. Bottom stays 0.52, just above the card
+    // text. If a third layout shows the title outside 0.15-0.52, capture it
+    // and re-measure rather than guessing.
+    private static final Crop GOOGLE_TV_CROP = new Crop(0.0f, 0.15f, 0.97f, 0.52f);
 
     // Fire TV (DetailsPageDeepLinkActivityDI) - calibrated 2026-09-07 against
     // a real Fire TV Stick capture ("Ruthless People"): title sits at

@@ -625,9 +625,9 @@ public class TvRelayAccessibilityService extends AccessibilityService {
 
         ocrCaptureManager.requestTitleCapture(new OcrCaptureManager.Callback() {
             @Override
-            public void onTitleExtracted(String title) {
-                Log.d(TAG, "OCR-detected title: " + title);
-                handleMovieClick(title);
+            public void onTitlesExtracted(java.util.List<String> titles) {
+                Log.d(TAG, "OCR-detected titles: " + titles);
+                titleHandler.handleOcr(titles);
             }
 
             @Override

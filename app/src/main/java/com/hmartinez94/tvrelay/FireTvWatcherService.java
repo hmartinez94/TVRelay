@@ -261,9 +261,9 @@ public final class FireTvWatcherService extends Service {
         }
         ocrCaptureManager.requestTitleCapture(new OcrCaptureManager.Callback() {
             @Override
-            public void onTitleExtracted(String title) {
-                Log.d(TAG, "OCR-detected title (Fire TV): " + title);
-                titleHandler.handle(title);
+            public void onTitlesExtracted(java.util.List<String> titles) {
+                Log.d(TAG, "OCR-detected titles (Fire TV): " + titles);
+                titleHandler.handleOcr(titles);
             }
 
             @Override

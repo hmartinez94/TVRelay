@@ -52,6 +52,12 @@ final class OcrCaptureManager {
 
     private static final String TAG = "OcrCaptureManager";
 
+    // Extra sizes to read the (already 2x-upscaled) crop at, relative to it: 1.0x & 0.5x of the
+    // original capture - see recognizeAtEachScale().
+    private static final float[] RECOGNITION_EXTRA_SCALES = {0.5f, 0.25f};
+    // Skip a variant whose crop would be too short to read at all.
+    private static final int MIN_VARIANT_HEIGHT_PX = 40;
+
     private enum State {
         NO_SESSION, SESSION_STARTING, SESSION_ACTIVE
     }
@@ -61,7 +67,8 @@ final class OcrCaptureManager {
     }
 
     interface Callback {
-        void onTitleExtracted(String title);
+        /** Every distinct reading the recognizer produced, best first - never empty. */
+        void onTitlesExtracted(java.util.List<String> titles);
 
         void onFailure(FailureReason reason);
     }
@@ -380,25 +387,98 @@ final class OcrCaptureManager {
             // an effectively-final local captured by the lambda.
             String[] chromeDenylist = LauncherLocale.systemResources(appContext)
                     .getStringArray(R.array.ocr_chrome_denylist);
-            textRecognizer.process(image)
-                    .addOnSuccessListener(text -> {
-                        String title = OcrTextCleaner.extractTitle(text, chromeDenylist);
-                        if (title == null) {
-                            Log.d(TAG, "OCR found no usable text");
-                            safeFailure(callback, FailureReason.NO_TEXT_FOUND);
-                        } else {
-                            Log.d(TAG, "OCR extracted title: " + title);
-                            safeSuccess(callback, title);
-                        }
-                    })
-                    .addOnFailureListener(e -> {
-                        Log.e(TAG, "ML Kit text recognition failed", e);
-                        safeFailure(callback, FailureReason.CAPTURE_ERROR);
-                    });
+            recognizeAtEachScale(bitmap, chromeDenylist, callback);
         } catch (Exception e) {
             Log.e(TAG, "OCR pipeline threw", e);
             safeFailure(callback, FailureReason.CAPTURE_ERROR);
         }
+    }
+
+    /**
+     * Reads the crop at three sizes and reports every distinct title seen.
+     *
+     * ML Kit is tuned for characters of roughly 16-24 px and gains nothing
+     * from larger ones (its own documentation), yet the title on a Google TV
+     * detail page is ~90 px tall at capture size and ~180 px after the crop
+     * upscale - and one-letter misreads followed ("You Should Have Lef",
+     * "The Babadool"). Which size reads a given title best isn't knowable
+     * up front, so all three are tried and TitleHandler picks the reading
+     * that actually matches a real title. Sequential, not parallel - one
+     * recognizer instance, and the whole thing is a few hundred ms.
+     *
+     * Readings that agree rank first: a string seen at more sizes is more
+     * likely right, with the order tried (largest first, the one validated
+     * before this existed) breaking ties.
+     */
+    private void recognizeAtEachScale(Bitmap source, String[] chromeDenylist, Callback callback) {
+        java.util.List<Bitmap> variants = new java.util.ArrayList<>();
+        variants.add(source);
+        for (float scale : RECOGNITION_EXTRA_SCALES) {
+            int w = Math.round(source.getWidth() * scale);
+            int h = Math.round(source.getHeight() * scale);
+            if (h >= MIN_VARIANT_HEIGHT_PX && w > 0) {
+                variants.add(Bitmap.createScaledBitmap(source, w, h, true));
+            }
+        }
+        recognizeVariant(variants, 0, chromeDenylist, new java.util.ArrayList<>(), callback);
+    }
+
+    private void recognizeVariant(java.util.List<Bitmap> variants, int index, String[] chromeDenylist,
+                                  java.util.List<String> readings, Callback callback) {
+        if (index >= variants.size()) {
+            for (int i = 1; i < variants.size(); i++) {
+                variants.get(i).recycle();
+            }
+            finishReadings(readings, callback);
+            return;
+        }
+        try {
+            textRecognizer.process(InputImage.fromBitmap(variants.get(index), 0))
+                    .addOnSuccessListener(text -> {
+                        String title = OcrTextCleaner.extractTitle(text, chromeDenylist);
+                        if (title != null) {
+                            readings.add(title);
+                        }
+                        recognizeVariant(variants, index + 1, chromeDenylist, readings, callback);
+                    })
+                    .addOnFailureListener(e -> {
+                        Log.w(TAG, "ML Kit failed on variant " + index, e);
+                        recognizeVariant(variants, index + 1, chromeDenylist, readings, callback);
+                    });
+        } catch (Exception e) {
+            Log.e(TAG, "OCR pipeline threw", e);
+            recognizeVariant(variants, index + 1, chromeDenylist, readings, callback);
+        }
+    }
+
+    private void finishReadings(java.util.List<String> readings, Callback callback) {
+        java.util.Map<String, Integer> votes = new java.util.LinkedHashMap<>();
+        java.util.Map<String, String> firstSpelling = new java.util.LinkedHashMap<>();
+        for (String reading : readings) {
+            String key = OcrMatchFilter.normalize(reading);
+            if (key.isEmpty()) {
+                continue;
+            }
+            Integer seen = votes.get(key);
+            votes.put(key, seen == null ? 1 : seen + 1);
+            if (!firstSpelling.containsKey(key)) {
+                firstSpelling.put(key, reading);
+            }
+        }
+        if (votes.isEmpty()) {
+            Log.d(TAG, "OCR found no usable text");
+            safeFailure(callback, FailureReason.NO_TEXT_FOUND);
+            return;
+        }
+        java.util.List<String> keys = new java.util.ArrayList<>(votes.keySet());
+        // Stable sort: equal votes keep the order they were first read in.
+        java.util.Collections.sort(keys, (a, b) -> votes.get(b) - votes.get(a));
+        java.util.List<String> titles = new java.util.ArrayList<>();
+        for (String key : keys) {
+            titles.add(firstSpelling.get(key));
+        }
+        Log.d(TAG, "OCR readings (best first): " + titles);
+        safeSuccess(callback, titles);
     }
 
     private void resetSession() {
@@ -440,14 +520,14 @@ final class OcrCaptureManager {
         }
     }
 
-    private void safeSuccess(Callback callback, String title) {
+    private void safeSuccess(Callback callback, java.util.List<String> titles) {
         if (callback == null) {
             return;
         }
         try {
-            callback.onTitleExtracted(title);
+            callback.onTitlesExtracted(titles);
         } catch (Exception e) {
-            Log.e(TAG, "Callback.onTitleExtracted threw", e);
+            Log.e(TAG, "Callback.onTitlesExtracted threw", e);
         }
     }
 

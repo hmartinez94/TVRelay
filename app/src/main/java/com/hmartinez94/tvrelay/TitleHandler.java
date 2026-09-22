@@ -84,6 +84,25 @@ final class TitleHandler {
     }
 
     void handle(String title) {
+        handleInternal(java.util.Collections.singletonList(title), false);
+    }
+
+    /**
+     * For a title read off the screen by OCR. Takes every distinct reading
+     * the recognizer produced (best first) because any single read can be a
+     * letter off. Each is searched in turn and the first that yields a
+     * trustworthy match wins - see OcrMatchFilter for what "trustworthy"
+     * means and why a plain search hit is not enough (OCR read "94%" for
+     * "Talk to Me" and the top-relevance guess opened "Toshkent 94",
+     * confirmed 2026-09-21). Typed or click-payload titles keep the looser
+     * behavior via handle().
+     */
+    void handleOcr(List<String> titles) {
+        handleInternal(titles, true);
+    }
+
+    private void handleInternal(List<String> titles, boolean fromOcr) {
+        String title = titles.get(0);
         long now = System.currentTimeMillis();
         if (title.equals(lastHandledTitle) && (now - lastHandledAtMillis) < DEBOUNCE_MS) {
             return;
@@ -167,9 +186,13 @@ final class TitleHandler {
         }
 
         backgroundExecutor.execute(() -> {
-            List<TitleCandidate> candidates = MetadataResolver.resolveCandidates(appContext, title);
+            final ResolvedTitle found = fromOcr
+                    ? resolveOcrTitles(titles)
+                    : new ResolvedTitle(title, MetadataResolver.resolveCandidates(appContext, title));
+            final String usedTitle = found.title;
+            final List<TitleCandidate> candidates = found.candidates;
             if (candidates.isEmpty()) {
-                Log.w(TAG, "Could not resolve an IMDB id for: " + title);
+                Log.w(TAG, "Could not resolve an IMDB id for: " + usedTitle);
                 if (confirmFirst) {
                     // abandon(), not hide(): resolution failed outright, so
                     // there's no pending match to ever offer back.
@@ -183,18 +206,18 @@ final class TitleHandler {
             }
 
             if (Preferences.isChooserEnabled(appContext) && MetadataResolver.isAmbiguous(candidates)) {
-                Log.d(TAG, "Ambiguous match for " + title + " (" + candidates.size() + " candidates)");
+                Log.d(TAG, "Ambiguous match for " + usedTitle + " (" + candidates.size() + " candidates)");
                 if (confirmFirst) {
-                    mainHandler.post(() -> overlay.showConfirmAmbiguous(app, () -> showChooser(title, candidates)));
+                    mainHandler.post(() -> overlay.showConfirmAmbiguous(app, () -> showChooser(usedTitle, candidates)));
                 } else {
-                    mainHandler.post(() -> showChooser(title, candidates));
+                    mainHandler.post(() -> showChooser(usedTitle, candidates));
                 }
                 return;
             }
 
             BooleanSupplier launch = PlayerLauncher.prepare(appContext, candidates.get(0));
             if (launch == null) {
-                Log.w(TAG, "Could not resolve an IMDB id for: " + title);
+                Log.w(TAG, "Could not resolve an IMDB id for: " + usedTitle);
                 if (confirmFirst) {
                     mainHandler.post(() -> {
                         overlay.abandon();
@@ -204,7 +227,7 @@ final class TitleHandler {
                 }
                 return;
             }
-            Log.d(TAG, "Resolved " + title);
+            Log.d(TAG, "Resolved " + usedTitle);
 
             if (confirmFirst) {
                 mainHandler.post(() -> overlay.showConfirm(app, launch::getAsBoolean));
@@ -212,6 +235,35 @@ final class TitleHandler {
                 launch.getAsBoolean();
             }
         });
+    }
+
+    /** A search result together with the exact string that produced it (for the chooser's header and logs). */
+    private static final class ResolvedTitle {
+        final String title;
+        final List<TitleCandidate> candidates;
+
+        ResolvedTitle(String title, List<TitleCandidate> candidates) {
+            this.title = title;
+            this.candidates = candidates;
+        }
+    }
+
+    /**
+     * Tries each OCR reading in order (best first) and returns the first one
+     * OcrMatchFilter trusts, or an empty result - never a guess. Runs on
+     * backgroundExecutor (network).
+     */
+    private ResolvedTitle resolveOcrTitles(List<String> titles) {
+        for (String reading : titles) {
+            List<TitleCandidate> accepted =
+                    OcrMatchFilter.accept(reading, MetadataResolver.resolveCandidates(appContext, reading));
+            if (!accepted.isEmpty()) {
+                Log.d(TAG, "OCR reading accepted: \"" + reading + "\" -> " + accepted.get(0).displayTitle);
+                return new ResolvedTitle(reading, accepted);
+            }
+            Log.d(TAG, "OCR reading has no trustworthy match: \"" + reading + "\"");
+        }
+        return new ResolvedTitle(titles.get(0), java.util.Collections.<TitleCandidate>emptyList());
     }
 
     /** Runs on the main thread - see the mainHandler.post() call sites above. */
