@@ -137,11 +137,8 @@
 
     <string name="watch_now_loading">Looking that up…</string>
     <string name="watch_now_confirm">Watch now in %1$s</string>
-    <string name="watch_now_confirm_hold">Hold to watch in %1$s</string>
     <string name="watch_now_choose">Choose in %1$s</string>
-    <string name="watch_now_choose_hold">Hold to choose in %1$s</string>
     <string name="watch_now_search">Search in %1$s</string>
-    <string name="watch_now_search_hold">Hold to search in %1$s</string>
 
     <string name="search_title">Search for a title</string>
     <string name="search_description">Some recommendation cards don\'t expose their title to accessibility tools, so TVRelay can\'t always detect them automatically. Type the title here instead - everything after that (looking it up, opening your chosen app) works exactly the same way.</string>

@@ -149,11 +149,8 @@
 
     <string name="watch_now_loading">Buscando…</string>
     <string name="watch_now_confirm">Ver ahora en %1$s</string>
-    <string name="watch_now_confirm_hold">Mantén pulsado para ver en %1$s</string>
     <string name="watch_now_choose">Elegir en %1$s</string>
-    <string name="watch_now_choose_hold">Mantén pulsado para elegir en %1$s</string>
     <string name="watch_now_search">Buscar en %1$s</string>
-    <string name="watch_now_search_hold">Mantén pulsado para buscar en %1$s</string>
 
     <string name="search_title">Buscar un título</string>
     <string name="search_description">Algunas tarjetas de recomendación no exponen su título a las herramientas de accesibilidad, así que TVRelay no siempre puede detectarlas automáticamente. Escribe aquí el título en su lugar - todo lo demás (buscarlo, abrir tu app elegida) funciona exactamente igual.</string>

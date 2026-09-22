@@ -26,8 +26,9 @@ import android.widget.Button;
  *    tapping it - launches the title. Never launches on its own: the
  *    accidental-click protection this feature exists for in the first
  *    place comes from requiring that explicit tap, not from any timeout.
- *    With Preferences.isOverlayLongPressOnlyReady() true, the label instead
- *    reads "Hold to..." and a normal tap dismisses (see hide()) rather than
+ *    With Preferences.isOverlayLongPressOnlyReady() true, the label is
+ *    unchanged (the user turned the option on, so a "Hold to..." prefix only
+ *    adds clutter) but a normal tap dismisses (see hide()) rather than
  *    launching - only a held press launches. See showConfirmWithText().
  *
  * A directional/BACK key press now only CONCEALS the button rather than
@@ -127,7 +128,7 @@ final class WatchNowOverlay {
     /** Swaps to the real confirm state once resolution completes (or, for the Nuvio+TMDB fast path, needed no resolution at all - see PlayerLauncher.prepare). */
     void showConfirm(PlayerApp app, Runnable onConfirm) {
         Log.d(TAG, "Showing confirm via " + app.getLabel());
-        showConfirmWithText(R.string.watch_now_confirm, R.string.watch_now_confirm_hold, app.getLabel(), false, onConfirm);
+        showConfirmWithText(R.string.watch_now_confirm, app.getLabel(), false, onConfirm);
     }
 
     /**
@@ -141,7 +142,7 @@ final class WatchNowOverlay {
      */
     void showConfirmAmbiguous(PlayerApp app, Runnable onConfirm) {
         Log.d(TAG, "Showing ambiguous-match confirm via " + app.getLabel());
-        showConfirmWithText(R.string.watch_now_choose, R.string.watch_now_choose_hold, app.getLabel(), true, onConfirm);
+        showConfirmWithText(R.string.watch_now_choose, app.getLabel(), true, onConfirm);
     }
 
     /**
@@ -162,10 +163,10 @@ final class WatchNowOverlay {
      */
     void showConfirmSearch(String appLabel, Runnable onConfirm) {
         Log.d(TAG, "Showing search confirm via " + appLabel);
-        showConfirmWithText(R.string.watch_now_search, R.string.watch_now_search_hold, appLabel, false, onConfirm);
+        showConfirmWithText(R.string.watch_now_search, appLabel, false, onConfirm);
     }
 
-    private void showConfirmWithText(int normalRes, int holdRes, String appLabel, boolean handoffToChooser, Runnable onConfirm) {
+    private void showConfirmWithText(int normalRes, String appLabel, boolean handoffToChooser, Runnable onConfirm) {
         if (button == null) {
             state = State.IDLE;
         }
@@ -187,14 +188,14 @@ final class WatchNowOverlay {
             onConfirm.run();
         };
 
-        // Read once per confirm, not per key/touch event, so the label and
-        // the actual behavior can never disagree mid-match - see
+        // Read once per confirm, not per key/touch event, so the click behavior
+        // can never change mid-match - see
         // Preferences.isOverlayLongPressOnlyReady(). Gated on Reappear (not
         // just the toggle) so hide()'s dismiss below actually does
         // something instead of silently abandoning the match on a short
         // press - see hide()'s own Reappear gate.
         boolean longPressOnly = Preferences.isOverlayLongPressOnlyReady(appContext);
-        String text = appContext.getString(longPressOnly ? holdRes : normalRes, appLabel);
+        String text = appContext.getString(normalRes, appLabel);
         View.OnClickListener onClick = longPressOnly ? v -> hide() : v -> settleAndRun.run();
         // Must return true: that's what tells the platform a long press was
         // actually handled, which is what suppresses the matching key-up's
