@@ -10,105 +10,105 @@
     <string name="ocr_disclosure_title">About the screen-reading fallback</string>
     <string name="ocr_disclosure_description">Some recommendation cards - especially the \"Top picks for you\" row - don\'t include any readable title in the click TVRelay receives. When this is on, TVRelay uses Android\'s screen-recording permission to capture what\'s on screen. Android will show a persistent \"recording/casting\" indicator.</string>
 
-    <string name="settings_description">Pick which app opens when you select a recommendation on your TV\'s home screen.</string>
+    <string name="settings_description">Choose the app that opens when you pick a recommendation on your TV\'s home screen.</string>
 
     <string name="settings_player_app">Player app</string>
 
-    <string name="settings_section_detection">Detection &amp; Matching</string>
-    <string name="settings_show_chooser">Ask when a match is ambiguous</string>
-    <string name="settings_chooser_status_enabled">Status: enabled - shows a chooser when a title matches more than one thing exactly, instead of guessing</string>
-    <string name="settings_chooser_status_disabled">Status: disabled - always opens the newest exact match automatically</string>
-    <string name="settings_hide_aka">Hide alternate-title (aka) matches</string>
-    <string name="settings_hide_aka_status_enabled">ENGLISH ONLY. Status: enabled - a match only known under a different original-language title is skipped entirely</string>
-    <string name="settings_hide_aka_status_disabled">ENGLISH ONLY. Status: disabled - shown, but listed after same-language matches</string>
-    <string name="settings_player_plex_description">Opens Plex\'s search screen - you\'ll need to type the title yourself, and it only finds titles already in your library</string>
-    <string name="settings_player_jellyfin_description">Opens a search in Jellyfin by default - set up \"Find in library first\" below to open titles on your own server directly instead</string>
-    <string name="settings_player_wholphin_description">Opens a search in Wholphin by default - an independent, open-source Jellyfin client. Set up \"Find in library first\" below to open titles on your own server directly instead</string>
-    <string name="settings_player_moonfin_description">Only opens titles already on your Jellyfin server</string>
-    <string name="settings_player_wako_description">Opens titles using their TMDB id directly - doesn\'t work if you\'ve set Metadata provider to TheTVDB</string>
-    <string name="settings_ocr_fallback">Screen-reading fallback for undetectable cards</string>
-    <string name="settings_ocr_status_enabled">Status: enabled - a persistent recording indicator stays visible while this is on. Captures the screen on-device (nothing uploaded) when a card or voice-search result has no readable title</string>
-    <string name="settings_ocr_status_disabled">Status: disabled - cards and voice-search results with no readable title are left alone</string>
+    <string name="settings_section_detection">Title matching</string>
+    <string name="settings_show_chooser">Ask which year to open</string>
+    <string name="settings_chooser_status_enabled">On - if several titles share a name, you pick the year</string>
+    <string name="settings_chooser_status_disabled">Off - the newest year opens automatically</string>
+    <string name="settings_hide_aka">Hide other-language matches</string>
+    <string name="settings_hide_aka_status_enabled">ENGLISH ONLY. On - results that only match another language\'s title are hidden</string>
+    <string name="settings_hide_aka_status_disabled">ENGLISH ONLY. Off - they are shown, but listed last</string>
+    <string name="settings_player_plex_description">Opens Plex\'s search - you type the title. Only finds titles in your library</string>
+    <string name="settings_player_jellyfin_description">Opens a search in Jellyfin. Set up your server below to open titles directly.</string>
+    <string name="settings_player_wholphin_description">Opens a search in Wholphin. Set up your server below to open titles directly.</string>
+    <string name="settings_player_moonfin_description">Only opens titles that are already on your Jellyfin server</string>
+    <string name="settings_player_wako_description">Needs TMDB as your title database - it won\'t work with TheTVDB</string>
+    <string name="settings_ocr_fallback">Read titles from the screen</string>
+    <string name="settings_ocr_status_enabled">On - reads a title off the screen when needed. Nothing is uploaded. A recording icon shows.</string>
+    <string name="settings_ocr_status_disabled">Off - cards with no readable title are ignored</string>
 
     <!-- Fire TV mode (FireTvModeStepFragment / FireTvWatcherService) -->
     <string name="settings_fire_tv_mode">Fire TV mode</string>
-    <string name="settings_fire_tv_status_enabled">Status: on - reads a recommendation\'s title off the screen when you open it. You must re-activate it after a reboot.</string>
-    <string name="settings_fire_tv_status_disabled">Status: off - Fire TV recommendations are left alone.</string>
+    <string name="settings_fire_tv_status_enabled">On - reads a title when you open a recommendation. Turn it on again after a restart.</string>
+    <string name="settings_fire_tv_status_disabled">Off - Fire TV recommendations are ignored</string>
     <string name="fire_tv_mode_title">Fire TV mode</string>
     <string name="fire_tv_mode_description">Fire TV\'s home screen doesn\'t let TVRelay detect a clicked recommendation the way Google TV does. Instead, Fire TV mode notices when you open a recommendation and reads its title off the screen using on-device text recognition, then opens it in your chosen app.\n\nIt needs two one-time permissions: Usage access (to notice when you open a recommendation) and Screen recording (to read the title - nothing ever leaves the device). While it\'s active, Android shows a persistent recording indicator, which it can\'t hide.\n\nBecause screen-recording permission is cleared on a reboot, you\'ll need to activate Fire TV mode again after restarting the device.</string>
     <string name="fire_tv_mode_usage_access">Grant usage access</string>
     <string name="fire_tv_mode_usage_access_granted">Granted</string>
-    <string name="fire_tv_mode_usage_access_not_granted">Not granted - tap to open Apps settings, then go to Special app access → Usage access → TVRelay and turn it on</string>
+    <string name="fire_tv_mode_usage_access_not_granted">Not granted - open Apps > Special app access > Usage access > TVRelay and turn it on</string>
     <string name="fire_tv_mode_activate">Activate Fire TV mode</string>
     <string name="fire_tv_mode_reactivate">Re-activate Fire TV mode</string>
-    <string name="fire_tv_mode_active_description">On. If you\'ve rebooted since turning it on, re-activate to grant screen recording again.</string>
+    <string name="fire_tv_mode_active_description">On. If you restarted the TV, activate it again to allow screen recording.</string>
     <string name="fire_tv_mode_inactive_description">Starts watching and asks for screen-recording permission</string>
     <string name="fire_tv_mode_deactivate">Turn off Fire TV mode</string>
     <string name="fire_tv_mode_usage_required_toast">Grant usage access first, then activate.</string>
     <string name="fire_tv_mode_activated_toast">Fire TV mode activated. Allow screen recording when Android asks.</string>
     <string name="fire_tv_mode_usage_settings_unavailable">Couldn\'t open Usage access settings on this device.</string>
 
-    <string name="settings_section_youtube">YouTube Redirect</string>
-    <string name="settings_smarttube_redirect">Redirect YouTube recommendations</string>
-    <string name="settings_smarttube_status_enabled">Status: enabled - a YouTube video recommendation opens a search in the app chosen below, independent of your movie/show player above</string>
-    <string name="settings_smarttube_status_disabled">Status: disabled - YouTube video recommendations are left alone</string>
-    <string name="settings_youtube_target">Target app</string>
-    <string name="settings_youtube_target_tizentube_cobalt_description">Doesn\'t work out of the box - see the README\'s Limitations section for what\'s needed</string>
+    <string name="settings_section_youtube">YouTube</string>
+    <string name="settings_smarttube_redirect">Open YouTube videos in another app</string>
+    <string name="settings_smarttube_status_enabled">On - YouTube recommendations open a search in the app below</string>
+    <string name="settings_smarttube_status_disabled">Off - YouTube recommendations open normally</string>
+    <string name="settings_youtube_target">Open in</string>
+    <string name="settings_youtube_target_tizentube_cobalt_description">Needs extra setup - see Limitations in the README</string>
 
-    <string name="settings_section_overlay">Confirmation Overlay</string>
-    <string name="settings_enable_overlay">Enable \"Watch now\" confirmation</string>
-    <string name="settings_overlay_status_enabled">Status: enabled - a confirm button appears before opening another app</string>
-    <string name="settings_overlay_status_disabled">Status: not enabled - recognized clicks open the app directly with no confirmation. Select to grant \"display over other apps\"</string>
-    <string name="settings_overlay_reappear">Reappear after dismissing</string>
-    <string name="settings_overlay_reappear_status_enabled">Status: enabled - dismissing the confirm button with Back or a D-pad press only hides it</string>
-    <string name="settings_overlay_reappear_status_disabled">Status: disabled - dismissing the confirm button discards it for good, like the original behavior</string>
-    <string name="settings_overlay_reappear_status_requires_permission">Requires \"Watch now\" confirmation to be enabled above</string>
-    <string name="settings_overlay_long_press">Long press only</string>
-    <string name="settings_overlay_long_press_status_enabled">Status: enabled - hold Select on the confirm button to open the app; a short press only hides it, and it reappears a few seconds later</string>
-    <string name="settings_overlay_long_press_status_disabled">Status: disabled - a normal press on the confirm button opens the app right away</string>
-    <string name="settings_overlay_long_press_status_requires_permission">Requires \"Watch now\" confirmation to be enabled above</string>
-    <string name="settings_overlay_long_press_status_requires_reappear">Requires \"Reappear after dismissing\" to be enabled above</string>
-    <string name="settings_overlay_reappear_delay">Reappear delay</string>
-    <string name="settings_overlay_reappear_delay_description">%1$s seconds - press Left/Right to adjust</string>
-    <string name="settings_overlay_reappear_delay_requires_permission">Requires \"Watch now\" confirmation to be enabled above</string>
-    <string name="settings_overlay_reappear_delay_requires_reappear">Requires \"Reappear after dismissing\" to be enabled above</string>
+    <string name="settings_section_overlay">Watch now button</string>
+    <string name="settings_enable_overlay">Show the Watch now button</string>
+    <string name="settings_overlay_status_enabled">On - a button appears before another app opens</string>
+    <string name="settings_overlay_status_disabled">Off - apps open right away. Select to allow display over other apps</string>
+    <string name="settings_overlay_reappear">Show again after hiding</string>
+    <string name="settings_overlay_reappear_status_enabled">On - Back or a D-pad press hides the button, then it returns</string>
+    <string name="settings_overlay_reappear_status_disabled">Off - hiding the button removes it for good</string>
+    <string name="settings_overlay_reappear_status_requires_permission">Turn on \"Show the Watch now button\" first</string>
+    <string name="settings_overlay_long_press">Hold Select to confirm</string>
+    <string name="settings_overlay_long_press_status_enabled">On - hold Select to open the app. A short press hides the button</string>
+    <string name="settings_overlay_long_press_status_disabled">Off - one press opens the app</string>
+    <string name="settings_overlay_long_press_status_requires_permission">Turn on \"Show the Watch now button\" first</string>
+    <string name="settings_overlay_long_press_status_requires_reappear">Turn on \"Show again after hiding\" first</string>
+    <string name="settings_overlay_reappear_delay">Time until it returns</string>
+    <string name="settings_overlay_reappear_delay_description">%1$s seconds - press Left or Right to change</string>
+    <string name="settings_overlay_reappear_delay_requires_permission">Turn on \"Show the Watch now button\" first</string>
+    <string name="settings_overlay_reappear_delay_requires_reappear">Turn on \"Show again after hiding\" first</string>
 
     <!-- Main-menu status lines and per-group sub-screen descriptions -->
-    <string name="settings_summary_enabled">Status: enabled</string>
-    <string name="settings_summary_not_enabled">Status: not enabled</string>
-    <string name="settings_group_detection_description">How TVRelay recognizes a title and picks a match</string>
-    <string name="settings_group_overlay_description">The confirm button shown before opening another app</string>
-    <string name="settings_group_youtube_description">Send YouTube recommendations to a YouTube TV client</string>
-    <string name="settings_group_accessibility_description">The permission TVRelay needs to see your clicks</string>
-    <string name="settings_group_more_description">Manual search, metadata source, and help</string>
+    <string name="settings_summary_enabled">On</string>
+    <string name="settings_summary_not_enabled">Off</string>
+    <string name="settings_group_detection_description">How TVRelay finds the right title</string>
+    <string name="settings_group_overlay_description">The button that appears before another app opens</string>
+    <string name="settings_group_youtube_description">Open YouTube recommendations in a YouTube TV app</string>
+    <string name="settings_group_accessibility_description">TVRelay needs this to see what you click</string>
+    <string name="settings_group_more_description">Search by hand, choose the title database, and get help</string>
 
     <string name="settings_section_accessibility">Accessibility &amp; Permissions</string>
-    <string name="settings_enable_accessibility">Enable in Accessibility settings</string>
-    <string name="settings_accessibility_status_enabled">Status: enabled</string>
-    <string name="settings_accessibility_status_disabled">Status: not enabled - select to open system settings</string>
-    <string name="settings_restricted_settings_help">Accessibility not turning on? Get help</string>
-    <string name="settings_restricted_settings_help_description">The toggle isn\'t sticking - see how to fix it</string>
+    <string name="settings_enable_accessibility">Turn on in Accessibility settings</string>
+    <string name="settings_accessibility_status_enabled">On</string>
+    <string name="settings_accessibility_status_disabled">Off - select to open Android\'s settings</string>
+    <string name="settings_restricted_settings_help">Accessibility won\'t turn on? Get help</string>
+    <string name="settings_restricted_settings_help_description">The switch keeps turning itself off - see the fix</string>
 
     <string name="settings_section_more">More</string>
     <string name="settings_update_available">Update available</string>
-    <string name="settings_update_available_description">Version %1$s is ready to download and install</string>
-    <string name="settings_search_manually">Search for a title manually</string>
-    <string name="settings_metadata_provider">Metadata provider</string>
+    <string name="settings_update_available_description">Version %1$s is ready to install</string>
+    <string name="settings_search_manually">Search for a title</string>
+    <string name="settings_metadata_provider">Title database</string>
     <string name="settings_about">About &amp; help</string>
 
     <!-- Only shown in Settings while Jellyfin, Wholphin, or Moonfin is the
          selected player app - see SettingsStepFragment.buildActions()/
          PlayerApp.usesJellyfinServer(). -->
-    <string name="settings_jellyfin_configure">Configure Jellyfin server</string>
+    <string name="settings_jellyfin_configure">Jellyfin server setup</string>
     <string name="settings_jellyfin_configured_description">Server: %1$s</string>
-    <string name="settings_jellyfin_not_configured">Not set up - %1$s will just open a search</string>
-    <string name="settings_jellyfin_not_configured_no_search">Not set up - %1$s has no search screen, so clicked titles won\'t open until this is set up</string>
+    <string name="settings_jellyfin_not_configured">Not set up - %1$s will only open a search</string>
+    <string name="settings_jellyfin_not_configured_no_search">Not set up - %1$s can\'t open titles until you set this up</string>
 
-    <string name="jellyfin_settings_title">Configure Jellyfin server</string>
-    <string name="jellyfin_settings_description">Optional for Jellyfin/Wholphin, required for Moonfin.</string>
+    <string name="jellyfin_settings_title">Jellyfin server setup</string>
+    <string name="jellyfin_settings_description">Optional for Jellyfin and Wholphin. Required for Moonfin.</string>
     <string name="jellyfin_lookup_enabled">Find in library first</string>
-    <string name="jellyfin_lookup_status_enabled">Status: enabled - a title that\'s an exact match on your server opens directly; anything else still falls back to a search</string>
-    <string name="jellyfin_lookup_status_disabled">Status: disabled - always just opens a search, like before</string>
+    <string name="jellyfin_lookup_status_enabled">On - titles on your server open directly. Others open a search</string>
+    <string name="jellyfin_lookup_status_disabled">Off - always opens a search</string>
     <string name="jellyfin_field_url">Jellyfin server URL</string>
     <string name="jellyfin_field_api_key">Jellyfin API key</string>
     <string name="jellyfin_pair_url">Send server URL from phone…</string>
@@ -150,12 +150,12 @@
     <string name="search_searching">Searching…</string>
     <string name="search_not_found">Couldn\'t find that title</string>
 
-    <string name="metadata_provider_title">Metadata provider</string>
-    <string name="metadata_provider_description">Whichever service TVRelay asks to identify a clicked title. TMDB is the default and needs nothing from you - TVRelay includes a shared key so it works right away. You can optionally enter your own free personal API key below instead (get one at themoviedb.org, under Settings → API) - useful mainly if the shared key is ever rate-limited. TheTVDB is available as an alternative if TMDB ever gives you a wrong match for a title.</string>
+    <string name="metadata_provider_title">Title database</string>
+    <string name="metadata_provider_description">The service TVRelay asks to identify a title. TMDB is the default and works right away - TVRelay includes a shared key. If you like, enter your own free key below (get one at themoviedb.org, under Settings → API). TheTVDB is an alternative in case TMDB gets a title wrong.</string>
     <string name="metadata_provider_tvdb">TheTVDB</string>
     <string name="metadata_provider_tvdb_description">Alternative - no setup needed</string>
     <string name="metadata_provider_tmdb">TMDB (default)</string>
-    <string name="metadata_provider_tmdb_description">Already works out of the box - enter your own key below only if you want to</string>
+    <string name="metadata_provider_tmdb_description">Works right away - add your own key below only if you want to</string>
     <string name="metadata_tmdb_key_field">TMDB API key</string>
     <string name="metadata_tmdb_pair_phone">Send key from phone…</string>
     <string name="metadata_tmdb_pair_phone_description">Scan a QR code and type it on your phone instead of here</string>
