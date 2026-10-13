@@ -71,6 +71,18 @@
         <package android:name="org.smarttube.stable" />
         <package android:name="org.smarttube.beta" />
         <package android:name="io.gh.reisxd.tizentube.cobalt" />
+        <!-- YouTubeClickGate: whether the official YouTube app is installed,
+             and the names of launcher-visible apps (an Apps-tab tile's title
+             is never a YouTube video to search for). -->
+        <package android:name="com.google.android.youtube.tv" />
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
         <!-- Fire OS Settings, so FireTvModeStepFragment can open the real
              Apps settings screen by explicit component (the standard
              usage-access intent is a dead CTS stub on Fire OS - see there). -->

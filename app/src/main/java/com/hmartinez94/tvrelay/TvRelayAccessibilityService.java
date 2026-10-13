@@ -124,6 +124,7 @@ public class TvRelayAccessibilityService extends AccessibilityService {
     // ambiguous-match chooser tray) - see TitleHandler. Extracted so the
     // Fire TV UsageStats+OCR path (FireTvWatcherService) runs the same logic.
     private TitleHandler titleHandler;
+    private YouTubeClickGate youTubeClickGate;
     private SharedPreferences.OnSharedPreferenceChangeListener ocrPrefsListener;
 
     @Override
@@ -164,8 +165,9 @@ public class TvRelayAccessibilityService extends AccessibilityService {
             info = new AccessibilityServiceInfo();
         }
         // TYPE_WINDOW_STATE_CHANGED is included conditionally - see
-        // currentEventTypes(): needed while either the OCR fallback is
-        // enabled (to catch the voice-search EntityActivity transition) or
+        // currentEventTypes(): needed while the OCR fallback is
+        // enabled (to catch the voice-search EntityActivity transition), the
+        // YouTube redirect is on (YouTubeClickGate), or
         // a WatchNowOverlay match is currently pending (to detect
         // return-to-lobby). info.packageNames below stays UNCHANGED for
         // this purpose - do not widen it to request window-state events for
@@ -176,13 +178,18 @@ public class TvRelayAccessibilityService extends AccessibilityService {
         info.eventTypes = currentEventTypes();
         info.feedbackType = AccessibilityServiceInfo.FEEDBACK_GENERIC;
         info.notificationTimeout = 100;
-        info.packageNames = new String[]{GOOGLE_TV_LAUNCHER_PACKAGE, AMAZON_LAUNCHER_PACKAGE};
+        // The YouTube app is here only for its window-state events, which
+        // confirm a YouTube-looking click really opened a YouTube video -
+        // see YouTubeClickGate. Its clicks are never handled.
+        info.packageNames = new String[]{GOOGLE_TV_LAUNCHER_PACKAGE, AMAZON_LAUNCHER_PACKAGE,
+                YouTubeClickGate.YOUTUBE_TV_PACKAGE};
         // Required for getViewIdResourceName() to return anything - the
         // Fire TV card lookup below depends on it.
         info.flags |= AccessibilityServiceInfo.FLAG_REPORT_VIEW_IDS;
         setServiceInfo(info);
 
         ocrCaptureManager = new OcrCaptureManager(this, overlay);
+        youTubeClickGate = new YouTubeClickGate(this, mainHandler, this::launchYouTubeRedirect);
 
         // The coordinator wires the shared pipeline back to this service's
         // two accessibility-only concerns: keeping TYPE_WINDOW_STATE_CHANGED
@@ -226,7 +233,10 @@ public class TvRelayAccessibilityService extends AccessibilityService {
      */
     private int currentEventTypes() {
         int eventTypes = AccessibilityEvent.TYPE_VIEW_CLICKED;
+        // The YouTube redirect needs it too: YouTubeClickGate confirms a
+        // click by the YouTube app's window opening.
         boolean needsWindowState = Preferences.isOcrFallbackEnabled(this)
+                || Preferences.isSmartTubeEnabled(this)
                 || (overlay != null && overlay.hasPendingMatch());
         if (needsWindowState) {
             eventTypes |= AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED;
@@ -260,6 +270,15 @@ public class TvRelayAccessibilityService extends AccessibilityService {
     @Override
     public void onAccessibilityEvent(AccessibilityEvent event) {
         if (event == null) {
+            return;
+        }
+        CharSequence eventPackage = event.getPackageName();
+        if (eventPackage != null && YouTubeClickGate.YOUTUBE_TV_PACKAGE.contentEquals(eventPackage)) {
+            // Subscribed only for its window events (YouTubeClickGate) -
+            // clicks inside the YouTube app itself are not launcher cards.
+            if (event.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED && youTubeClickGate != null) {
+                youTubeClickGate.onYouTubeWindow();
+            }
             return;
         }
         if (event.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
@@ -308,7 +327,7 @@ public class TvRelayAccessibilityService extends AccessibilityService {
             if (isYouTubeCard(event, desc)) {
                 String title = extractTitle(desc);
                 if (!title.isEmpty()) {
-                    Log.d(TAG, "YouTube video detected: " + title);
+                    Log.d(TAG, "YouTube-looking card, awaiting confirmation: " + title);
                     handleYouTubeClick(title);
                 }
                 return;
@@ -389,7 +408,7 @@ public class TvRelayAccessibilityService extends AccessibilityService {
             if (isYouTubeCard(event, delayedDesc)) {
                 String title = extractTitle(delayedDesc);
                 if (!title.isEmpty()) {
-                    Log.d(TAG, "YouTube video detected (delayed): " + title);
+                    Log.d(TAG, "YouTube-looking card, awaiting confirmation (delayed): " + title);
                     handleYouTubeClick(title);
                 }
                 return;
@@ -863,6 +882,11 @@ public class TvRelayAccessibilityService extends AccessibilityService {
      * title" risk the confirm step exists to guard against for
      * handleMovieClick() - worst case here is an unwanted search opening,
      * not an unwanted title playing.
+     *
+     * isYouTubeCard() only produces candidates: an Apps-tab app suggestion
+     * has the exact same payload shape as a YouTube video card. The launch
+     * waits for YouTubeClickGate to confirm the click opened the official
+     * YouTube app (launchYouTubeRedirect() is its callback).
      */
     private void handleYouTubeClick(String title) {
         if (!Preferences.isSmartTubeEnabled(this)) {
@@ -876,6 +900,10 @@ public class TvRelayAccessibilityService extends AccessibilityService {
         lastHandledTitle = title;
         lastHandledAtMillis = now;
 
+        youTubeClickGate.onCandidateClick(title);
+    }
+
+    private void launchYouTubeRedirect(String title) {
         PlayerLauncher.YouTubeRedirect redirect = PlayerLauncher.prepareYouTubeRedirect(this, title);
         redirect.launch.getAsBoolean();
     }
@@ -894,6 +922,9 @@ public class TvRelayAccessibilityService extends AccessibilityService {
         }
         if (titleHandler != null) {
             titleHandler.shutdown();
+        }
+        if (youTubeClickGate != null) {
+            youTubeClickGate.shutdown();
         }
         if (ocrPrefsListener != null) {
             Preferences.rawPrefs(this).unregisterOnSharedPreferenceChangeListener(ocrPrefsListener);
