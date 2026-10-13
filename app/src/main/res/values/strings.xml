@@ -53,7 +53,6 @@
     <string name="settings_smarttube_status_enabled">On - YouTube recommendations open a search in the app below</string>
     <string name="settings_smarttube_status_disabled">Off - YouTube recommendations open normally</string>
     <string name="settings_youtube_target">Open in</string>
-    <string name="settings_youtube_target_tizentube_cobalt_description">Needs extra setup - see Limitations in the README</string>
 
     <string name="settings_section_overlay">Watch now button</string>
     <string name="settings_enable_overlay">Show the Watch now button</string>

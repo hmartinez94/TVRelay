@@ -323,7 +323,7 @@ adb shell settings put secure accessibility_enabled 1</code></pre>
     <div class="cols-3" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px;">
       <div class="card-pad" style="border: 1px solid #23262e; border-radius: 12px; background: #12141a; padding: 28px;">
         <h3 style="font-family: 'Space Grotesk', sans-serif; font-size: 18px; margin: 0 0 12px; font-weight: 500;">Open YouTube videos in another app</h3>
-        <p style="margin: 0; color: #9a9ba1; font-size: 15px; line-height: 1.6;">Sends YouTube video recommendations to <strong style="color: rgb(232, 230, 227); font-weight: 600;">SmartTube</strong> or <strong style="color: rgb(232, 230, 227); font-weight: 600;">TizenTube Cobalt</strong> — independent of your movie/show player. See <a href="#limits">Limitations</a> for why SmartTube is the safer pick.</p>
+        <p style="margin: 0; color: #9a9ba1; font-size: 15px; line-height: 1.6;">Sends YouTube video recommendations to <strong style="color: rgb(232, 230, 227); font-weight: 600;">SmartTube</strong> or <strong style="color: rgb(232, 230, 227); font-weight: 600;">TizenTube Cobalt</strong> — independent of your movie/show player. Both open a YouTube search for the video's title.</p>
       </div>
       <div class="card-pad" style="border: 1px solid #23262e; border-radius: 12px; background: #12141a; padding: 28px;">
         <h3 style="font-family: 'Space Grotesk', sans-serif; font-size: 18px; margin: 0 0 12px; font-weight: 500;">Screen-reading fallback</h3>
@@ -344,10 +344,6 @@ adb shell settings put secure accessibility_enabled 1</code></pre>
         <div class="card-pad" style="border: 1px solid #23262e; border-radius: 12px; background: #12141a; padding: 28px 30px;">
           <h3 style="font-family: 'Space Grotesk', sans-serif; font-size: 18px; margin: 0 0 12px; font-weight: 500;">Jellyfin and Wholphin open a search, not the title — Moonfin needs setup to open anything</h3>
           <p style="margin: 0; color: #9a9ba1; font-size: 15px; line-height: 1.6;">Neither Jellyfin nor Wholphin has a universal-catalog way for another app to open a specific title, so picking either opens its search screen pre-filled with the title — it'll only find something already on your server. <strong style="color: #e8e6e3; font-weight: 600;">Wholphin</strong> is a separate, open-source client for a Jellyfin server, not the official app — turn on "Find in library first" (Settings) for either one, and a title already on your server opens directly instead. <strong style="color: #e8e6e3; font-weight: 600;">Moonfin</strong>, a third Jellyfin-server client, has no search screen at all, so "Find in library first" isn't optional for it — without it set up, or on a title not on your server, clicking just does nothing. Nuvio, Stremio, and WuPlay resolve against their own online catalogs, so they can open a title you don't already have.</p>
-        </div>
-        <div class="card-pad" style="border: 1px solid #23262e; border-radius: 12px; background: #12141a; padding: 28px 30px;">
-          <h3 style="font-family: 'Space Grotesk', sans-serif; font-size: 18px; margin: 0 0 12px; font-weight: 500;">TizenTube Cobalt is unreliable as a YouTube target</h3>
-          <p style="margin: 0; color: #9a9ba1; font-size: 15px; line-height: 1.6;">It only accepts a search from TVRelay the first time it opens after being fully closed; once running in the background, the same search silently lands on its home feed, and no app can force another to restart. Officially supported only alongside <a href="https://github.com/TobiPeterG/tizentube-bridge">TizenTube Bridge</a> — which needs the official YouTube app uninstalled (often impossible on certified Google TV devices) and isn't confirmed to fix this either. <strong style="color: #e8e6e3; font-weight: 600;">SmartTube doesn't have this limitation.</strong></p>
         </div>
         <div class="card-pad" style="border: 1px solid #23262e; border-radius: 12px; background: #12141a; padding: 28px 30px;">
           <h3 style="font-family: 'Space Grotesk', sans-serif; font-size: 18px; margin: 0 0 12px; font-weight: 500;">Some cards expose no title at all</h3>
@@ -384,7 +380,7 @@ adb shell am start -a android.intent.action.VIEW -d "moonfin://item?id=&lt;item 
 # SmartTube
 adb shell am start -a android.intent.action.VIEW -d "https://www.youtube.com/results?search_query=iron+man" -p org.smarttube.stable
 # TizenTube Cobalt
-adb shell am start -a android.intent.action.VIEW -d "https://www.youtube.com/results?search_query=iron+man" -p io.gh.reisxd.tizentube.cobalt</code></pre>
+adb shell am start -a android.media.action.MEDIA_PLAY_FROM_SEARCH -d "https://www.youtube.com/results?search_query=iron+man" -n io.gh.reisxd.tizentube.cobalt/dev.cobalt.app.MainActivity -f 0x18800000</code></pre>
           </div>
           <p style="margin: 0; color: #9a9ba1; font-size: 15.5px; line-height: 1.6;">Each should land on Iron Man's page, or a search for "iron man". If none do, the issue is the target app's own build, not TVRelay. If they work, the click probably isn't being detected — check with:</p>
           <div class="code-box" style="position: relative; border: 1px solid #262a33; border-radius: 10px; background: #0b0c0f; padding: 18px 20px; min-width: 0;">

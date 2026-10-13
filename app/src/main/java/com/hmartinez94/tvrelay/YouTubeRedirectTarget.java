@@ -14,15 +14,9 @@ package com.hmartinez94.tvrelay;
  */
 public enum YouTubeRedirectTarget {
     SMARTTUBE("SmartTube", 0),
-    // Confirmed real, reproduced limitation (2026-08-25) - see
-    // PlayerLauncher.prepareTizenTubeCobalt()'s javadoc for the full
-    // evidence: this only works the first time TizenTube Cobalt is opened
-    // after being fully closed, not while it's already running, and
-    // there's no way for TVRelay to force another app to fully restart.
-    // Only officially supported paired with TizenTube Bridge (see
-    // README's Limitations section) - flagged here too since a user
-    // picking this from the dropdown may not have read that far.
-    TIZENTUBE_COBALT("TizenTube Cobalt", R.string.settings_youtube_target_tizentube_cobalt_description);
+    // Used to only work on a cold start (Cobalt fully closed); fixed by
+    // launching without CLEAR_TASK - see PlayerLauncher.prepareTizenTubeCobalt().
+    TIZENTUBE_COBALT("TizenTube Cobalt", 0);
 
     private final String label;
     private final int descriptionRes; // 0 = no description shown in the dropdown

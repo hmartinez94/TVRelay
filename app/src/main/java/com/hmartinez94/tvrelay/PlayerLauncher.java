@@ -96,6 +96,20 @@ final class PlayerLauncher {
     // to v1.0.2) - only one package to try, unlike SmartTube.
     private static final String TIZENTUBE_COBALT_LABEL = "TizenTube Cobalt";
     private static final String TIZENTUBE_COBALT_PACKAGE = "io.gh.reisxd.tizentube.cobalt";
+    // Cobalt's single Activity - the stock Cobalt runtime's own class name,
+    // which TizenTube Cobalt keeps. Targeted explicitly so the search lands
+    // on the live instance; see prepareTizenTubeCobalt().
+    private static final String TIZENTUBE_COBALT_ACTIVITY = "dev.cobalt.app.MainActivity";
+
+    // Default flags every launch gets - see openWithFallback() for why.
+    private static final int CLEAN_START_FLAGS =
+            Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK;
+
+    // TizenTube Cobalt only: deliberately NO CLEAR_TASK - see
+    // prepareTizenTubeCobalt().
+    private static final int COBALT_LIVE_INSTANCE_FLAGS = Intent.FLAG_ACTIVITY_NEW_TASK
+            | Intent.FLAG_ACTIVITY_MULTIPLE_TASK
+            | Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS;
 
     private PlayerLauncher() {
     }
@@ -418,44 +432,34 @@ final class PlayerLauncher {
      * confirmed via another real screenshot: "Search results for sauteed
      * potatoes" with the real matching video as the top hit.
      *
-     * UNRELIABLE ONCE COBALT IS ALREADY RUNNING - confirmed real, reproduced
-     * limitation (2026-08-25), not a TVRelay bug: the exact same Intent that
-     * correctly opens real search results on a genuine cold start (Cobalt's
-     * process not already alive) instead lands on Cobalt's plain home feed,
-     * silently ignoring the query, once Cobalt is already resident - even
-     * though openWithFallback()'s FLAG_ACTIVITY_CLEAR_TASK does force a
-     * fresh Activity/task (confirmed via its splash screen reappearing),
-     * Cobalt's underlying Starboard/Cobalt runtime process apparently
-     * persists underneath and ignores the new intent's data on that second
-     * launch. Reproduced twice back-to-back with identical intents, only the
-     * process's alive/dead state differed. TVRelay has no way to force
-     * another app's process to fully restart - FORCE_STOP_PACKAGES is a
-     * signature-level permission no third-party app can hold, sideloaded or
-     * not.
+     * Launch flags: NEW_TASK|MULTIPLE_TASK|EXCLUDE_FROM_RECENTS, never the
+     * CLEAR_TASK every other launch gets (see openWithFallback()). With
+     * CLEAR_TASK the search only worked on a cold start: once Cobalt was
+     * already running, the same Intent landed on its home feed with the
+     * query dropped (reproduced 2026-08-25). Cobalt only reads a new query
+     * on its live instance (onNewIntent), and CLEAR_TASK tears that instance
+     * down first. Addressing its Activity explicitly with these flags hands
+     * the search to the live instance instead; a cold start works either
+     * way.
      *
-     * Per user decision (2026-08-25): TizenTube Cobalt as a YouTube-redirect
-     * target is only officially supported for a user who has also installed
-     * TizenTube Bridge (https://github.com/TobiPeterG/tizentube-bridge, a
-     * separate sideloaded app that takes over the official YouTube TV
-     * package id and forwards YouTube-targeted intents to Cobalt). NOT
-     * verified to actually fix the warm-restart issue above - its own
-     * README describes it as a pure intent pass-through ("It cannot make
-     * Cobalt support a deep link that Cobalt itself does not understand"),
-     * so this codebase's read is that the underlying limitation likely
-     * still applies even with Bridge installed. Not tested directly:
-     * Bridge requires uninstalling the device's official YouTube TV app
-     * first (often a non-removable system app on certified Google TV
-     * devices), a real, possibly-irreversible device change judged not
-     * worth making just to test a fix this project doesn't expect to work.
-     * "Supported only with Bridge installed" is a support-boundary decision
-     * the user made deliberately aware of this, not a claim that Bridge is
-     * confirmed to resolve it - see README's Limitations section.
+     * If a future Cobalt build renames its Activity, the explicit attempt
+     * fails and this retries scoped to the package only (same flags) - which
+     * still opens Cobalt, just possibly back on the cold-start-only path.
      */
     static BooleanSupplier prepareTizenTubeCobalt(Context context, String rawTitle) {
         Uri uri = buildYouTubeSearchUri(rawTitle);
-        Intent intent = new Intent("android.media.action.MEDIA_PLAY_FROM_SEARCH", uri)
-                .setPackage(TIZENTUBE_COBALT_PACKAGE);
-        return () -> openWithFallback(context, intent, TIZENTUBE_COBALT_LABEL, false);
+        return () -> {
+            Intent explicit = new Intent("android.media.action.MEDIA_PLAY_FROM_SEARCH", uri)
+                    .setClassName(TIZENTUBE_COBALT_PACKAGE, TIZENTUBE_COBALT_ACTIVITY);
+            if (openWithFallback(context, explicit, TIZENTUBE_COBALT_LABEL, false,
+                    COBALT_LIVE_INSTANCE_FLAGS)) {
+                return true;
+            }
+            Intent packageOnly = new Intent("android.media.action.MEDIA_PLAY_FROM_SEARCH", uri)
+                    .setPackage(TIZENTUBE_COBALT_PACKAGE);
+            return openWithFallback(context, packageOnly, TIZENTUBE_COBALT_LABEL, false,
+                    COBALT_LIVE_INSTANCE_FLAGS);
+        };
     }
 
     /**
@@ -566,6 +570,16 @@ final class PlayerLauncher {
      * @return whether an Activity was actually started.
      */
     private static boolean openWithFallback(Context context, Intent intent, String appLabel, boolean allowGenericFallback) {
+        return openWithFallback(context, intent, appLabel, allowGenericFallback, CLEAN_START_FLAGS);
+    }
+
+    /**
+     * Same as above with caller-chosen task flags - only TizenTube Cobalt
+     * needs anything other than CLEAN_START_FLAGS (see
+     * prepareTizenTubeCobalt()). Must include FLAG_ACTIVITY_NEW_TASK.
+     */
+    private static boolean openWithFallback(Context context, Intent intent, String appLabel,
+                                            boolean allowGenericFallback, int taskFlags) {
         // FLAG_ACTIVITY_CLEAR_TASK + NEW_TASK: Nuvio and Stremio both
         // declare their Activity as launchMode="singleTask". Without
         // CLEAR_TASK, if the app is already open in the background, Android
@@ -575,9 +589,10 @@ final class PlayerLauncher {
         // every open. NEW_TASK is also required here regardless of caller,
         // since Context.startActivity needs it when the calling context
         // isn't itself an Activity. Harmless for Plex/Jellyfin's search
-        // intents too, so applied unconditionally rather than only for the
-        // two players that need it.
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        // intents too, so it's the default (CLEAN_START_FLAGS) rather than
+        // only for the two players that need it. TizenTube Cobalt is the one
+        // exception - see prepareTizenTubeCobalt().
+        intent.addFlags(taskFlags);
 
         try {
             context.startActivity(intent);

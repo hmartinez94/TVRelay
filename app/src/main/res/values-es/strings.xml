@@ -51,7 +51,6 @@
     <string name="settings_smarttube_status_enabled">Activado - las recomendaciones de YouTube abren una búsqueda en la app de abajo</string>
     <string name="settings_smarttube_status_disabled">Desactivado - las recomendaciones de YouTube se abren con normalidad</string>
     <string name="settings_youtube_target">Abrir en</string>
-    <string name="settings_youtube_target_tizentube_cobalt_description">Necesita configuración extra - mira Limitaciones en el README</string>
 
     <string name="settings_section_overlay">Botón Ver ahora</string>
     <string name="settings_enable_overlay">Mostrar el botón Ver ahora</string>
