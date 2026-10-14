@@ -28,7 +28,7 @@
 
     <string-array name="youtube_markers">
         <item>duración:</item>
-        <item>duration:</item>
+        <item>Duration is</item>
     </string-array>
 
     <string-array name="sponsored_labels">

@@ -61,15 +61,19 @@
 
     <!--
         Distinguishes a YouTube video recommendation card from a movie/show
-        card. Originally a blind guess mirrored from Bananz0/OpenTVBridge
-        (2026-08-24) and CONFIRMED WRONG 2026-08-25 via a real captured
-        YouTube video click: the real content-desc is just the bare title,
-        no duration marker anywhere. Kept as a still plausible marker for a
-        locale or launcher build variant that does include one; isYouTubeCard()
-        no longer depends on it alone (see its structural fallback).
+        card. Matched case sensitively (contains) against the content-desc.
+        Two real YouTube card shapes are known:
+          - bare title, no marker at all (ONN, 2026-08-25) - caught by
+            isYouTubeCard()'s structural fallback, not by this list;
+          - "{Title}, Duration is 49 minutes 14 seconds" (Google TV HD, from
+            the GitHub issue #6 log, 2026-09-05). Without this marker the
+            comma made it look like a "{Title}, {synopsis}" movie card.
+        Every YouTube candidate is still confirmed by YouTubeClickGate (the
+        official YouTube app must open), so a wrong marker can only drop a
+        click, never open something unrelated in SmartTube/TizenTube.
     -->
     <string-array name="youtube_markers">
-        <item>duration:</item>
+        <item>Duration is</item>
     </string-array>
 
     <!--
